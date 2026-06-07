@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Servicio {
+  idServicio     Int      @id @default(autoincrement())
+  nombre         String
+  descripcion    String?
+  precio         Decimal  @db.Decimal(10, 2)
+  duracionMinutos Int
+  urlImagen      String?
+  vigente        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  detalles TurnoDetalle[]
+
+  @@map("servicios")
+}
+
+model Turno {
+  idTurno         Int      @id @default(autoincrement())
+  idPersona       Int
+  fechaHoraInicio DateTime @map("fecha_hora_inicio")
+  fechaHoraFin    DateTime @map("fecha_hora_fin")
+  estado          String   @default("PENDIENTE")
+  observacion     String?
+  fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
+
+  persona     Persona        @relation(fields: [idPersona], references: [idPersona])
+  detalles    TurnoDetalle[]
+  pagos       Pago[]
+  movimientos MovimientoCaja[]
+
+  @@map("turnos")
+}
+
+model TurnoDetalle {
+  idTurnoDetalle Int     @id @default(autoincrement())
+  idTurno        Int
+  idServicio     Int
+  precioReal     Decimal @db.Decimal(10, 2) @map("precio_real")
+  cantidad       Int     @default(1)
+
+  turno    Turno    @relation(fields: [idTurno], references: [idTurno], onDelete: Cascade)
+  servicio Servicio @relation(fields: [idServicio], references: [idServicio])
+
+  @@map("turno_detalles")
+}
+
+model Persona {
+  idPersona      Int       @id @default(autoincrement())
+  nombre         String
+  apellido       String
+  mail           String?   @unique
+  telefono       String?
+  fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date
+  instagram      String?
+  ultimoCorte    DateTime? @map("ultimo_corte")
+  usuario        String?   @unique
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  turnos      Turno[]
+  usuarioWeb  UsuarioWeb?
+
+  @@map("personas")
+}
+
+model UsuarioWeb {
+  usuario  String  @id
+  email    String  @unique
+  hashPass String  @map("hash_pass")
+  idPersona Int   @unique @map("id_persona")
+  rol      String  @default("PELUQUERO")
+
+  persona      Persona        @relation(fields: [idPersona], references: [idPersona])
+  movimientos  MovimientoCaja[]
+  cierres      CierreCaja[]
+
+  @@map("usuarios_web")
+}
+
+model FormaPago {
+  idFormaPago         Int     @id @default(autoincrement())
+  nombre              String
+  requiereComprobante Boolean @default(false) @map("requiere_comprobante")
+  vigente             Boolean @default(true)
+
+  pagos       Pago[]
+  movimientos MovimientoCaja[]
+
+  @@map("formas_pago")
+}
+
+model Pago {
+  idPago      Int      @id @default(autoincrement())
+  idTurno     Int
+  idFormaPago Int
+  monto       Decimal  @db.Decimal(10, 2)
+  comprobante String?
+  fechaHora   DateTime @default(now()) @map("fecha_hora")
+
+  turno     Turno     @relation(fields: [idTurno], references: [idTurno])
+  formaPago FormaPago @relation(fields: [idFormaPago], references: [idFormaPago])
+
+  @@map("pagos")
+}
+
+model MovimientoCaja {
+  idMovimiento Int      @id @default(autoincrement())
+  fechaHora    DateTime @default(now()) @map("fecha_hora")
+  tipo         String
+  monto        Decimal  @db.Decimal(10, 2)
+  concepto     String?
+  idFormaPago  Int      @map("id_forma_pago")
+  idUsuario    String   @map("id_usuario")
+  idTurno      Int?     @map("id_turno")
+
+  formaPago FormaPago  @relation(fields: [idFormaPago], references: [idFormaPago])
+  usuario   UsuarioWeb @relation(fields: [idUsuario], references: [usuario])
+  turno     Turno?     @relation(fields: [idTurno], references: [idTurno])
+
+  @@map("movimientos_caja")
+}
+
+model CierreCaja {
+  idCierre          Int      @id @default(autoincrement())
+  fecha             DateTime @db.Date
+  horaInicio        DateTime @map("hora_inicio")
+  horaFin           DateTime? @map("hora_fin")
+  totalEfectivo     Decimal  @db.Decimal(10, 2) @map("total_efectivo")
+  totalTarjeta      Decimal  @db.Decimal(10, 2) @map("total_tarjeta")
+  totalTransferencia Decimal @db.Decimal(10, 2) @map("total_transferencia")
+  totalOtros        Decimal  @db.Decimal(10, 2) @map("total_otros")
+  totalEsperado     Decimal  @db.Decimal(10, 2) @map("total_esperado")
+  totalReal         Decimal  @db.Decimal(10, 2) @map("total_real")
+  diferencia        Decimal  @db.Decimal(10, 2)
+  idUsuarioCierra   String   @map("id_usuario_cierra")
+
+  usuarioCierra UsuarioWeb @relation(fields: [idUsuarioCierra], references: [usuario])
+
+  @@map("cierres_caja")
+}
