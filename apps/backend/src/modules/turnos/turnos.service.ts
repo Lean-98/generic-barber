@@ -4,10 +4,14 @@ import { Turno } from '@prisma/client';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 
 @Injectable()
 export class TurnosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleCalendarService: GoogleCalendarService,
+  ) {}
 
   async create(data: CreateTurnoDto): Promise<Turno> {
     // 1. Validar que la persona existe
@@ -49,6 +53,7 @@ export class TurnosService {
         estado: 'PENDIENTE',
         observacion: data.observacion,
       },
+      include: { persona: true },
     });
 
     // 6. Crear detalles del turno
@@ -65,6 +70,19 @@ export class TurnosService {
           cantidad: servicioDto.cantidad || 1,
         },
       });
+    }
+
+    // 7. Sincronizar con Google Calendar (silencioso, no falla si no está configurado)
+    try {
+      const googleEventId = await this.googleCalendarService.createEvent(turno);
+      if (googleEventId) {
+        await this.prisma.turno.update({
+          where: { idTurno: turno.idTurno },
+          data: { googleEventId },
+        });
+      }
+    } catch {
+      // Silencioso: no falla si Google Calendar no está conectado
     }
 
     return this.findOne(turno.idTurno);
@@ -124,13 +142,40 @@ export class TurnosService {
       );
     }
 
-    return this.prisma.turno.update({
+    const updatedTurno = await this.prisma.turno.update({
       where: { idTurno: id },
       data: {
         idPersona: data.idPersona,
         fechaHoraInicio: data.fechaHoraInicio ? new Date(data.fechaHoraInicio) : undefined,
         observacion: data.observacion,
       },
+      include: { persona: true },
+    });
+
+    // Sincronizar actualización con Google Calendar
+    try {
+      await this.googleCalendarService.updateEvent(updatedTurno);
+    } catch {
+      // Silencioso
+    }
+
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    const turno = await this.findOne(id);
+
+    // Si tiene un evento en Google Calendar, eliminarlo
+    if (turno.googleEventId) {
+      try {
+        await this.googleCalendarService.deleteEvent(turno.googleEventId);
+      } catch {
+        // Silencioso
+      }
+    }
+
+    await this.prisma.turno.delete({
+      where: { idTurno: id },
     });
   }
 
@@ -140,7 +185,23 @@ export class TurnosService {
   }
 
   async cancelar(id: number): Promise<Turno> {
-    return this.cambiarEstado(id, 'CANCELADO', (estado) => estado.cancelar());
+    const turno = await this.findOne(id);
+    const estado = getTurnoState(turno.estado);
+    estado.cancelar();
+
+    // Si tiene un evento en Google Calendar, eliminarlo
+    if (turno.googleEventId) {
+      try {
+        await this.googleCalendarService.deleteEvent(turno.googleEventId);
+      } catch {
+        // Silencioso
+      }
+    }
+
+    return this.prisma.turno.update({
+      where: { idTurno: id },
+      data: { estado: 'CANCELADO', googleEventId: null },
+    });
   }
 
   async iniciarAtencion(id: number): Promise<Turno> {
@@ -156,7 +217,23 @@ export class TurnosService {
   }
 
   async marcarNoShow(id: number): Promise<Turno> {
-    return this.cambiarEstado(id, 'NO_SHOW', (estado) => estado.marcarNoShow());
+    const turno = await this.findOne(id);
+    const estado = getTurnoState(turno.estado);
+    estado.marcarNoShow();
+
+    // Si tiene un evento en Google Calendar, eliminarlo
+    if (turno.googleEventId) {
+      try {
+        await this.googleCalendarService.deleteEvent(turno.googleEventId);
+      } catch {
+        // Silencioso
+      }
+    }
+
+    return this.prisma.turno.update({
+      where: { idTurno: id },
+      data: { estado: 'NO_SHOW', googleEventId: null },
+    });
   }
 
   private async cambiarEstado(

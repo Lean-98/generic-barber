@@ -3,6 +3,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { TurnosService } from './turnos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 
 /**
@@ -51,6 +52,15 @@ describe('TurnosService', () => {
           provide: PrismaService,
           useValue: prismaMock,
         },
+        {
+          provide: GoogleCalendarService,
+          useValue: {
+            createEvent: jest.fn().mockResolvedValue(null),
+            updateEvent: jest.fn().mockResolvedValue(undefined),
+            deleteEvent: jest.fn().mockResolvedValue(undefined),
+            isConnected: jest.fn().mockResolvedValue(false),
+          },
+        },
       ],
     }).compile();
 
@@ -71,7 +81,7 @@ describe('TurnosService', () => {
       prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
       prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
       prismaMock.turno.findMany.mockResolvedValue([]);
-      prismaMock.turno.create.mockResolvedValue(mockTurno);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
       prismaMock.turnoDetalle.create.mockResolvedValue({
         idTurnoDetalle: 1,
         idTurno: 1,
@@ -84,6 +94,7 @@ describe('TurnosService', () => {
         detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],
         persona: mockPersona,
       });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, googleEventId: 'google-event-123' });
 
       const dto: CreateTurnoDto = {
         idPersona: 1,
@@ -144,8 +155,8 @@ describe('TurnosService', () => {
 
   describe('Patrón State - cancelar', () => {
     it('should cancelar PENDIENTE -> CANCELADO', async () => {
-      prismaMock.turno.findUnique.mockResolvedValue(mockTurno);
-      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'CANCELADO' });
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, googleEventId: 'google-event-123' });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'CANCELADO', googleEventId: null });
 
       const result = await service.cancelar(1);
       expect(result.estado).toBe('CANCELADO');

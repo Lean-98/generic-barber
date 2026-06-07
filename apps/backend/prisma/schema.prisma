@@ -31,6 +31,7 @@ model Turno {
   estado          String   @default("PENDIENTE")
   observacion     String?
   fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
+  googleEventId   String?  @map("google_event_id")
 
   persona     Persona        @relation(fields: [idPersona], references: [idPersona])
   detalles    TurnoDetalle[]
@@ -146,4 +147,15 @@ model CierreCaja {
   usuarioCierra UsuarioWeb @relation(fields: [idUsuarioCierra], references: [usuario])
 
   @@map("cierres_caja")
+}
+
+model GoogleCalendarConfig {
+  id          Int      @id @default(autoincrement())
+  accessToken String   @map("access_token")
+  refreshToken String  @map("refresh_token")
+  expiryDate  DateTime? @map("expiry_date")
+  calendarId  String   @map("calendar_id")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("google_calendar_config")
 }

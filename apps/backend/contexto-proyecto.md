@@ -6,11 +6,12 @@
 - **Patrones**: SOLID, DRY, KISS, Inmutabilidad, Builder, Adapter, Facade, State, Strategy, Observer/Mediator
 
 ## Módulos Implementados
-- **Auth**: JWT (login por usuario/email, register, protección de endpoints). Ver notas de seguridad abajo.
+- **Auth**: JWT (login por usuario/email, register, profile). Ver notas de seguridad abajo.
 - **Personas**: CRUD completo, búsqueda por nombre/instagram
 - **Servicios**: CRUD con soft delete (eliminación lógica)
-- **Turnos**: Patrón State para transiciones de estados (PENDIENTE → CONFIRMADO → EN_PROCESO → COMPLETADO → CANCELADO)
+- **Turnos**: CRUD + Patrón State (PENDIENTE → CONFIRMADO → EN_PROCESO → COMPLETADO → CANCELADO)
 - **Caja**: Pagos, Movimientos, Cierre de Caja con Strategy + Facade
+- **Google Calendar**: Integración completa para sincronizar turnos. Ver detalles abajo.
 
 ## Patrones de Diseño Aplicados
 - **State**: Turnos (transiciones de estado encapsuladas)
@@ -20,7 +21,7 @@
 - **Inmutabilidad**: Angular Signals y DTOs readonly
 
 ## Estado Actual
-- **Tests**: 49 unitarios + 28 E2E = 77 tests pasando
+- **Tests**: 61 unitarios + 28 E2E = 89 tests pasando
 - **Swagger UI**: Disponible en `/api/docs`
 - **Seed**: Datos iniciales (formas de pago, usuario admin)
 
@@ -40,10 +41,37 @@
 - **getProfile**: No incluye `persona` en la query de Prisma.
 - **register**: No incluye `include: { persona: true }` en la creación de usuario.
 
+## Google Calendar Integration
+
+### Configuración
+- **Variables de entorno**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_ID`
+- **OAuth2**: Flujo estándar de Google OAuth2 con `offline` access type para obtener refresh token.
+- **Modelo `GoogleCalendarConfig`**: Guarda `accessToken`, `refreshToken`, `expiryDate`, `calendarId` en la base de datos.
+- **Modelo `Turno`**: Campo `googleEventId` para vincular eventos de Google Calendar.
+
+### Endpoints
+- `GET /api/google-calendar/status`: Verifica si está configurado y conectado. Si no está conectado pero sí configurado, devuelve la URL de autorización.
+- `GET /api/google-calendar/auth-url`: Obtiene la URL de autorización de Google OAuth2.
+- `POST /api/google-calendar/connect?code={code}`: Conecta Google Calendar con el código de autorización.
+- `DELETE /api/google-calendar/disconnect`: Desconecta Google Calendar (elimina tokens).
+
+### Sincronización Automática
+- **Crear turno**: Automáticamente crea evento en Google Calendar. Si falla, no interrumpe la creación del turno (silencioso).
+- **Editar turno**: Actualiza el evento en Google Calendar si existe.
+- **Cancelar turno**: Elimina el evento de Google Calendar y limpia `googleEventId`.
+- **No-show**: Elimina el evento de Google Calendar y limpia `googleEventId`.
+- **Eliminar turno**: Elimina el evento de Google Calendar antes de borrar el turno.
+- **Timezone**: Los eventos se crean con timezone `America/Argentina/Buenos_Aires`.
+
+### Características de Seguridad
+- **Fail-safe**: Si Google Calendar no está configurado o conectado, las operaciones de turnos funcionan normalmente sin error.
+- **No expone tokens**: Los endpoints nunca devuelven tokens de Google en la respuesta.
+- **Soft fail**: Si la API de Google falla (rate limit, token expirado), la operación del turno sigue funcionando.
+
 ## Próximos Pasos
 1. Desarrollo frontend Angular
-2. Integración Google Calendar
-3. Reportes y estadísticas
+2. Reportes y estadísticas
+3. Notificaciones por email/SMS
 
 ## Notas Técnicas
 - `PrismaServiceMock` en `test/mocks/prisma.service.mock.ts` para tests unitarios
@@ -53,3 +81,5 @@
 - `horaFin` en `CierreCaja` es nullable
 - `MovimientoTipo` enum: INGRESO, EGRESO
 - `TurnoEstado` enum: PENDIENTE, CONFIRMADO, EN_PROCESO, COMPLETADO, CANCELADO, NO_SHOW
+- `googleapis` versión `^131.0.0` en dependencias
+- Migración: `20260607070432_add_google_calendar` agregó `googleEventId` a `Turno` y modelo `GoogleCalendarConfig`

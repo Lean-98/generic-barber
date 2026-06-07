@@ -71,6 +71,12 @@ export class PrismaServiceMock {
     update: jest.fn(),
   };
 
+  googleCalendarConfig = {
+    create: jest.fn(),
+    findFirst: jest.fn(),
+    deleteMany: jest.fn(),
+  };
+
   // Simula la conexión/desconexión sin hacer nada
   async $connect() {}
   async $disconnect() {}
