@@ -22,13 +22,13 @@ import { UpdateServicioDto } from './dto/update-servicio.dto';
 import { Servicio } from '@prisma/client';
 
 @ApiTags('Servicios')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('servicios')
 export class ServiciosController {
   constructor(private readonly serviciosService: ServiciosService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Crear un nuevo servicio' })
   @ApiResponse({ status: 201, description: 'Servicio creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
@@ -39,12 +39,21 @@ export class ServiciosController {
   @Get()
   @ApiOperation({ summary: 'Obtener todos los servicios' })
   @ApiQuery({ name: 'vigente', required: false, type: Boolean, description: 'Filtrar por vigencia' })
+  @ApiQuery({ name: 'categoria', required: false, type: String, description: 'Filtrar por categoría' })
   @ApiResponse({ status: 200, description: 'Lista de servicios' })
   async findAll(
     @Query('vigente', new DefaultValuePipe(undefined), new ParseBoolPipe({ optional: true }))
     vigente?: boolean,
+    @Query('categoria') categoria?: string,
   ): Promise<Servicio[]> {
-    return this.serviciosService.findAll(vigente);
+    return this.serviciosService.findAll(vigente, categoria);
+  }
+
+  @Get('categorias')
+  @ApiOperation({ summary: 'Obtener todas las categorías de servicios' })
+  @ApiResponse({ status: 200, description: 'Lista de categorías' })
+  async findCategorias(): Promise<string[]> {
+    return this.serviciosService.findCategorias();
   }
 
   @Get(':id')
@@ -56,6 +65,8 @@ export class ServiciosController {
   }
 
   @Put(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Actualizar un servicio' })
   @ApiResponse({ status: 200, description: 'Servicio actualizado' })
   @ApiResponse({ status: 404, description: 'Servicio no encontrado' })
@@ -67,6 +78,8 @@ export class ServiciosController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar un servicio (lógico)' })
   @ApiResponse({ status: 200, description: 'Servicio marcado como no vigente' })

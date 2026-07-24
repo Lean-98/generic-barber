@@ -23,10 +23,10 @@ export class CajaFacade {
 
   /**
    * Procesa un pago completo:
-   * 1. Valida que el turno exista y esté FINALIZADO
+   * 1. Valida que el turno exista y esté COMPLETADO
    * 2. Registra el pago
    * 3. Crea un movimiento de caja (INGRESO)
-   * 4. Si el total pagado >= total del turno, marca el turno como PAGADO
+   * 4. Verifica que el turno esté completamente pagado
    */
   async procesarPago(
     dto: CreatePagoDto,
@@ -38,8 +38,8 @@ export class CajaFacade {
       throw new NotFoundException(`Turno ${dto.idTurno} no encontrado`);
     }
 
-    // Solo se puede pagar si está FINALIZADO (o ya PAGADO para pagos parciales)
-    if (turno.estado !== 'FINALIZADO' && turno.estado !== 'PAGADO') {
+    // Solo se puede pagar si está COMPLETADO
+    if (turno.estado !== 'COMPLETADO') {
       throw new BadRequestException(
         `No se puede pagar: el turno está ${turno.estado}`,
       );
@@ -66,11 +66,7 @@ export class CajaFacade {
     const totalPagado = await this.pagosService.calcularTotalPagado(dto.idTurno);
     const totalTurno = await this.turnosService.calcularTotal(dto.idTurno);
 
-    let turnoActualizado = false;
-    if (totalPagado >= totalTurno && turno.estado === 'FINALIZADO') {
-      await this.turnosService.registrarPago(dto.idTurno);
-      turnoActualizado = true;
-    }
+    const turnoActualizado = totalPagado >= totalTurno;
 
     return { pago, movimiento, turnoActualizado };
   }

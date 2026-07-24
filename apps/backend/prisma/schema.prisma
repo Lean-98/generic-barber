@@ -11,6 +11,7 @@ model Servicio {
   idServicio     Int      @id @default(autoincrement())
   nombre         String
   descripcion    String?
+  categoria      String?
   precio         Decimal  @db.Decimal(10, 2)
   duracionMinutos Int
   urlImagen      String?
@@ -18,9 +19,23 @@ model Servicio {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  detalles TurnoDetalle[]
+  detalles  TurnoDetalle[]
+  historial ServicioHistorial[]
 
   @@map("servicios")
+}
+
+model ServicioHistorial {
+  idHistorial     Int      @id @default(autoincrement())
+  idServicio      Int
+  precio          Decimal  @db.Decimal(10, 2)
+  duracionMinutos Int
+  vigente         Boolean
+  fechaCambio     DateTime @default(now()) @map("fecha_cambio")
+
+  servicio Servicio @relation(fields: [idServicio], references: [idServicio], onDelete: Cascade)
+
+  @@map("servicios_historial")
 }
 
 model Turno {

@@ -85,4 +85,21 @@ export class PersonasService {
       where: { instagram: { equals: instagram, mode: 'insensitive' } },
     });
   }
+
+  async findTurnos(id: number): Promise<any[]> {
+    await this.findOne(id);
+
+    return this.prisma.turno.findMany({
+      where: { idPersona: id },
+      orderBy: { fechaHoraInicio: 'desc' },
+      include: {
+        detalles: {
+          include: {
+            servicio: true,
+          },
+        },
+        pagos: true,
+      },
+    });
+  }
 }

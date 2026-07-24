@@ -25,6 +25,14 @@ import { ConfirmarCierreDto } from './dto/confirmar-cierre.dto';
 export class CajaController {
   constructor(private readonly cajaService: CajaService) {}
 
+  // Formas de pago
+  @Get('formas-pago')
+  @ApiOperation({ summary: 'Obtener formas de pago vigentes' })
+  @ApiResponse({ status: 200, description: 'Lista de formas de pago' })
+  async findFormasPago() {
+    return this.cajaService.movimientos.findFormasPago();
+  }
+
   // Pagos
   @Post('pagos')
   @ApiOperation({ summary: 'Registrar un pago (usa Facade)' })

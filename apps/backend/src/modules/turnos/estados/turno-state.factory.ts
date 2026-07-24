@@ -1,9 +1,8 @@
 import {
   PendienteState,
   ConfirmadoState,
-  EnAtencionState,
-  FinalizadoState,
-  PagadoState,
+  EnProcesoState,
+  CompletadoState,
   CanceladoState,
   NoShowState,
   ITurnoState,
@@ -19,12 +18,10 @@ export function getTurnoState(estado: string): ITurnoState {
       return new PendienteState();
     case 'CONFIRMADO':
       return new ConfirmadoState();
-    case 'EN_ATENCION':
-      return new EnAtencionState();
-    case 'FINALIZADO':
-      return new FinalizadoState();
-    case 'PAGADO':
-      return new PagadoState();
+    case 'EN_PROCESO':
+      return new EnProcesoState();
+    case 'COMPLETADO':
+      return new CompletadoState();
     case 'CANCELADO':
       return new CanceladoState();
     case 'NO_SHOW':

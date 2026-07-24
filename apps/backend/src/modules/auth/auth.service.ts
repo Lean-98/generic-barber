@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -27,12 +31,10 @@ export class AuthService {
    * Busca un usuario por nombre de usuario o email.
    */
   private async findUserByLogin(login: string) {
-    // Primero buscar por usuario
     let user = await this.prisma.usuarioWeb.findUnique({
       where: { usuario: login },
     });
 
-    // Si no existe, buscar por email
     if (!user) {
       user = await this.prisma.usuarioWeb.findUnique({
         where: { email: login },
@@ -42,10 +44,13 @@ export class AuthService {
     return user;
   }
 
-  async validateUser(login: string, password: string): Promise<UserPublic | null> {
+  async validateUser(
+    login: string,
+    password: string,
+  ): Promise<UserPublic | null> {
     const user = await this.findUserByLogin(login);
 
-    if (user && await bcrypt.compare(password, user.hashPass)) {
+    if (user && (await bcrypt.compare(password, user.hashPass))) {
       return {
         usuario: user.usuario,
         email: user.email,

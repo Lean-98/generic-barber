@@ -76,4 +76,12 @@ export class PersonasController {
   async remove(@Param('id', ParseIntPipe) id: number): Promise<Persona> {
     return this.personasService.remove(id);
   }
+
+  @Get(':id/turnos')
+  @ApiOperation({ summary: 'Obtener historial de turnos de un cliente' })
+  @ApiResponse({ status: 200, description: 'Historial de turnos' })
+  @ApiResponse({ status: 404, description: 'Cliente no encontrado' })
+  async findTurnos(@Param('id', ParseIntPipe) id: number): Promise<any[]> {
+    return this.personasService.findTurnos(id);
+  }
 }

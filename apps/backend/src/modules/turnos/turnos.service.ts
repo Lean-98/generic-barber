@@ -205,15 +205,15 @@ export class TurnosService {
   }
 
   async iniciarAtencion(id: number): Promise<Turno> {
-    return this.cambiarEstado(id, 'EN_ATENCION', (estado) => estado.iniciarAtencion());
+    return this.cambiarEstado(id, 'EN_PROCESO', (estado) => estado.iniciarAtencion());
   }
 
   async finalizar(id: number): Promise<Turno> {
-    return this.cambiarEstado(id, 'FINALIZADO', (estado) => estado.finalizar());
+    return this.cambiarEstado(id, 'COMPLETADO', (estado) => estado.finalizar());
   }
 
   async registrarPago(id: number): Promise<Turno> {
-    return this.cambiarEstado(id, 'PAGADO', (estado) => estado.registrarPago());
+    return this.cambiarEstado(id, 'COMPLETADO', (estado) => estado.registrarPago());
   }
 
   async marcarNoShow(id: number): Promise<Turno> {
@@ -292,5 +292,86 @@ export class TurnosService {
     return turno.detalles.reduce((total, detalle) => {
       return total + Number(detalle.precioReal) * detalle.cantidad;
     }, 0);
+  }
+
+  // ─── Public API: availability and client booking ───
+
+  async getDisponibilidad(fechaStr: string, serviciosIdsStr: string): Promise<{ slots: string[]; duracionTotal: number }> {
+    const serviciosIds = serviciosIdsStr.split(',').map((id) => Number(id.trim()));
+    const servicios = await this.prisma.servicio.findMany({
+      where: { idServicio: { in: serviciosIds }, vigente: true },
+    });
+    if (servicios.length !== serviciosIds.length) {
+      throw new BadRequestException('Uno o más servicios no existen o no están vigentes');
+    }
+    const duracionTotal = servicios.reduce((total, s) => total + s.duracionMinutos, 0);
+
+    const fecha = new Date(fechaStr);
+    const inicioJornada = new Date(fecha);
+    inicioJornada.setUTCHours(9, 0, 0, 0);
+    const finJornada = new Date(fecha);
+    finJornada.setUTCHours(18, 0, 0, 0);
+
+    // Obtener turnos ocupados del día
+    const turnosOcupados = await this.prisma.turno.findMany({
+      where: {
+        fechaHoraInicio: { gte: inicioJornada, lt: finJornada },
+        estado: { notIn: ['CANCELADO', 'NO_SHOW'] },
+      },
+    });
+
+    const slots: string[] = [];
+    const intervalo = 30; // minutos
+    for (let minutos = 0; minutos < 540; minutos += intervalo) {
+      const slotInicio = new Date(inicioJornada.getTime() + minutos * 60000);
+      const slotFin = new Date(slotInicio.getTime() + duracionTotal * 60000);
+
+      if (slotFin > finJornada) break;
+
+      // Verificar si el slot está libre
+      const ocupado = turnosOcupados.some((t) => {
+        const tInicio = new Date(t.fechaHoraInicio);
+        const tFin = new Date(t.fechaHoraFin);
+        return (
+          (slotInicio >= tInicio && slotInicio < tFin) ||
+          (slotFin > tInicio && slotFin <= tFin) ||
+          (slotInicio <= tInicio && slotFin >= tFin)
+        );
+      });
+
+      if (!ocupado) {
+        slots.push(slotInicio.toISOString());
+      }
+    }
+
+    return { slots, duracionTotal };
+  }
+
+  async reservarPublica(data: { nombre: string; apellido: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[] }): Promise<Turno> {
+    // 1. Buscar o crear persona por email
+    let persona = await this.prisma.persona.findUnique({
+      where: { mail: data.email },
+    });
+
+    if (!persona) {
+      persona = await this.prisma.persona.create({
+        data: {
+          nombre: data.nombre,
+          apellido: data.apellido,
+          mail: data.email,
+          telefono: data.telefono,
+        },
+      });
+    }
+
+    // 2. Crear turno usando el método existente
+    const createDto = {
+      idPersona: persona.idPersona,
+      fechaHoraInicio: data.fechaHoraInicio,
+      observacion: data.observacion,
+      servicios: data.servicios,
+    };
+
+    return this.create(createDto);
   }
 }

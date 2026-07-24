@@ -7,6 +7,7 @@ import { PersonasModule } from './modules/personas/personas.module';
 import { CajaModule } from './modules/caja/caja.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.
     PersonasModule,
     CajaModule,
     GoogleCalendarModule,
+    ReportesModule,
   ],
 })
 export class AppModule {}

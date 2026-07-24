@@ -9,29 +9,48 @@ export class ServiciosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateServicioDto): Promise<Servicio> {
-    return this.prisma.servicio.create({
+    const servicio = await this.prisma.servicio.create({
       data: {
         nombre: data.nombre,
         descripcion: data.descripcion,
+        categoria: data.categoria,
         precio: data.precio,
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
         vigente: data.vigente ?? true,
       },
     });
+
+    await this.prisma.servicioHistorial.create({
+      data: {
+        idServicio: servicio.idServicio,
+        precio: data.precio,
+        duracionMinutos: data.duracionMinutos,
+        vigente: data.vigente ?? true,
+      },
+    });
+
+    return servicio;
   }
 
-  async findAll(vigente?: boolean): Promise<Servicio[]> {
-    const where = vigente !== undefined ? { vigente } : {};
+  async findAll(vigente?: boolean, categoria?: string): Promise<Servicio[]> {
+    const where: any = {};
+    if (vigente !== undefined) where.vigente = vigente;
+    if (categoria) where.categoria = { equals: categoria, mode: 'insensitive' };
     return this.prisma.servicio.findMany({
       where,
       orderBy: { nombre: 'asc' },
     });
   }
 
-  async findOne(id: number): Promise<Servicio> {
+  async findOne(id: number): Promise<Servicio & { historial: any[] }> {
     const servicio = await this.prisma.servicio.findUnique({
       where: { idServicio: id },
+      include: {
+        historial: {
+          orderBy: { fechaCambio: 'desc' },
+        },
+      },
     });
 
     if (!servicio) {
@@ -42,28 +61,67 @@ export class ServiciosService {
   }
 
   async update(id: number, data: UpdateServicioDto): Promise<Servicio> {
-    await this.findOne(id); // Verifica que existe
+    const actual = await this.findOne(id);
 
-    return this.prisma.servicio.update({
+    const servicio = await this.prisma.servicio.update({
       where: { idServicio: id },
       data: {
         nombre: data.nombre,
         descripcion: data.descripcion,
+        categoria: data.categoria,
         precio: data.precio,
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
         vigente: data.vigente,
       },
     });
+
+    // Guardar historial solo si cambió precio, duración o vigencia
+    const cambioPrecio = data.precio !== undefined && data.precio !== Number(actual.precio);
+    const cambioDuracion = data.duracionMinutos !== undefined && data.duracionMinutos !== actual.duracionMinutos;
+    const cambioVigencia = data.vigente !== undefined && data.vigente !== actual.vigente;
+
+    if (cambioPrecio || cambioDuracion || cambioVigencia) {
+      await this.prisma.servicioHistorial.create({
+        data: {
+          idServicio: id,
+          precio: data.precio ?? actual.precio,
+          duracionMinutos: data.duracionMinutos ?? actual.duracionMinutos,
+          vigente: data.vigente ?? actual.vigente,
+        },
+      });
+    }
+
+    return servicio;
   }
 
   async remove(id: number): Promise<Servicio> {
-    await this.findOne(id); // Verifica que existe
+    await this.findOne(id);
 
     // Eliminación lógica: marcamos como no vigente
-    return this.prisma.servicio.update({
+    const servicio = await this.prisma.servicio.update({
       where: { idServicio: id },
       data: { vigente: false },
     });
+
+    await this.prisma.servicioHistorial.create({
+      data: {
+        idServicio: id,
+        precio: servicio.precio,
+        duracionMinutos: servicio.duracionMinutos,
+        vigente: false,
+      },
+    });
+
+    return servicio;
+  }
+
+  async findCategorias(): Promise<string[]> {
+    const resultados = await this.prisma.servicio.findMany({
+      distinct: ['categoria'],
+      where: { categoria: { not: null } },
+      select: { categoria: true },
+    });
+    return resultados.map((s) => s.categoria).filter((c): c is string => c !== null);
   }
 }

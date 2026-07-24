@@ -12,6 +12,11 @@ export class CreateServicioDto {
   @IsOptional()
   descripcion?: string;
 
+  @ApiPropertyOptional({ description: 'Categoría del servicio', example: 'Cortes' })
+  @IsString()
+  @IsOptional()
+  categoria?: string;
+
   @ApiProperty({ description: 'Precio del servicio', example: 25.00 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)

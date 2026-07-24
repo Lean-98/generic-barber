@@ -136,19 +136,19 @@ describe('TurnosController (e2e)', () => {
       const iniciar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/iniciar`)
         .set('Authorization', `Bearer ${authToken}`);
-      expect(iniciar.body.estado).toBe('EN_ATENCION');
+      expect(iniciar.body.estado).toBe('EN_PROCESO');
 
       // 4. Finalizar
       const finalizar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/finalizar`)
         .set('Authorization', `Bearer ${authToken}`);
-      expect(finalizar.body.estado).toBe('FINALIZADO');
+      expect(finalizar.body.estado).toBe('COMPLETADO');
 
       // 5. Pagar
       const pagar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/pagar`)
         .set('Authorization', `Bearer ${authToken}`);
-      expect(pagar.body.estado).toBe('PAGADO');
+      expect(pagar.body.estado).toBe('COMPLETADO');
     });
 
     it('should cancelar a PENDIENTE turno', async () => {

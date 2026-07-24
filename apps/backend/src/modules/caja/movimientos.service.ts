@@ -36,6 +36,13 @@ export class MovimientosService {
     });
   }
 
+  async findFormasPago(): Promise<{ idFormaPago: number; nombre: string; requiereComprobante: boolean }[]> {
+    return this.prisma.formaPago.findMany({
+      where: { vigente: true },
+      orderBy: { idFormaPago: 'asc' },
+    });
+  }
+
   async findByUsuario(idUsuario: string): Promise<MovimientoCaja[]> {
     return this.prisma.movimientoCaja.findMany({
       where: { idUsuario },

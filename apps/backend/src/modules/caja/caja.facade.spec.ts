@@ -14,7 +14,7 @@ describe('CajaFacade', () => {
 
   const mockTurno = {
     idTurno: 1,
-    estado: 'FINALIZADO',
+    estado: 'COMPLETADO',
     detalles: [{ precioReal: 25, cantidad: 1 }],
   };
 
@@ -51,7 +51,7 @@ describe('CajaFacade', () => {
           useValue: {
             findOne: jest.fn().mockResolvedValue(mockTurno),
             calcularTotal: jest.fn().mockResolvedValue(25),
-            registrarPago: jest.fn().mockResolvedValue({ ...mockTurno, estado: 'PAGADO' }),
+            registrarPago: jest.fn().mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' }),
           },
         },
       ],

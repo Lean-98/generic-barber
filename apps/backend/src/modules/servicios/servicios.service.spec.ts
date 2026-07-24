@@ -25,6 +25,7 @@ describe('ServiciosService', () => {
     idServicio: 1,
     nombre: 'Corte de cabello',
     descripcion: 'Corte clásico para caballero',
+    categoria: 'Cortes',
     precio: 25.00 as any, // Prisma Decimal
     duracionMinutos: 30,
     urlImagen: 'https://example.com/corte.jpg',
@@ -80,6 +81,7 @@ describe('ServiciosService', () => {
         data: {
           nombre: dto.nombre,
           descripcion: dto.descripcion,
+          categoria: dto.categoria,
           precio: dto.precio,
           duracionMinutos: dto.duracionMinutos,
           urlImagen: dto.urlImagen,
@@ -128,7 +130,10 @@ describe('ServiciosService', () => {
   describe('findOne', () => {
     it('should return a service by id', async () => {
       // Arrange
-      prismaMock.servicio.findUnique.mockResolvedValue(mockServicio);
+      prismaMock.servicio.findUnique.mockResolvedValue({
+        ...mockServicio,
+        historial: [],
+      });
 
       // Act
       const result = await service.findOne(1);
@@ -136,6 +141,11 @@ describe('ServiciosService', () => {
       // Assert
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 1 },
+        include: {
+          historial: {
+            orderBy: { fechaCambio: 'desc' },
+          },
+        },
       });
       expect(result.idServicio).toBe(1);
     });
@@ -148,6 +158,11 @@ describe('ServiciosService', () => {
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 999 },
+        include: {
+          historial: {
+            orderBy: { fechaCambio: 'desc' },
+          },
+        },
       });
     });
   });
@@ -158,7 +173,7 @@ describe('ServiciosService', () => {
       const dto: UpdateServicioDto = { precio: 30.00 };
       const updated = { ...mockServicio, precio: 30.00 as any };
       
-      prismaMock.servicio.findUnique.mockResolvedValue(mockServicio);
+      prismaMock.servicio.findUnique.mockResolvedValue({ ...mockServicio, historial: [] });
       prismaMock.servicio.update.mockResolvedValue(updated);
 
       // Act
@@ -167,6 +182,11 @@ describe('ServiciosService', () => {
       // Assert
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 1 },
+        include: {
+          historial: {
+            orderBy: { fechaCambio: 'desc' },
+          },
+        },
       });
       expect(prismaMock.servicio.update).toHaveBeenCalledWith({
         where: { idServicio: 1 },
@@ -189,7 +209,7 @@ describe('ServiciosService', () => {
       // Arrange
       const deleted = { ...mockServicio, vigente: false };
       
-      prismaMock.servicio.findUnique.mockResolvedValue(mockServicio);
+      prismaMock.servicio.findUnique.mockResolvedValue({ ...mockServicio, historial: [] });
       prismaMock.servicio.update.mockResolvedValue(deleted);
 
       // Act
@@ -200,6 +220,7 @@ describe('ServiciosService', () => {
         where: { idServicio: 1 },
         data: { vigente: false },
       });
+      expect(prismaMock.servicioHistorial.create).toHaveBeenCalled();
       expect(result.vigente).toBe(false);
     });
 

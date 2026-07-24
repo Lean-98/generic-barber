@@ -65,7 +65,7 @@ describe('CajaController (e2e)', () => {
         idPersona: personaId,
         fechaHoraInicio: new Date('2026-06-15T10:00:00Z'),
         fechaHoraFin: new Date('2026-06-15T10:30:00Z'),
-        estado: 'FINALIZADO',
+        estado: 'COMPLETADO',
       },
     });
     turnoId = turno.idTurno;
@@ -87,7 +87,7 @@ describe('CajaController (e2e)', () => {
   });
 
   describe('POST /api/caja/pagos', () => {
-    it('should process payment and mark turno as PAGADO', async () => {
+    it('should process payment for completed turno', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/caja/pagos')
         .set('Authorization', `Bearer ${authToken}`)

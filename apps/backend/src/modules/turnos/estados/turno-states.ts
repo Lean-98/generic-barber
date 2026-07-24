@@ -60,73 +60,50 @@ export class ConfirmadoState implements ITurnoState {
   getEstado() { return 'CONFIRMADO'; }
 }
 
-// Estado: EN_ATENCION
-export class EnAtencionState implements ITurnoState {
+// Estado: EN_PROCESO
+export class EnProcesoState implements ITurnoState {
   confirmar() {
-    throw new BadRequestException('El turno ya está EN_ATENCION');
+    throw new BadRequestException('El turno ya está EN_PROCESO');
   }
   cancelar() {
-    throw new BadRequestException('No se puede cancelar: el turno está EN_ATENCION');
+    throw new BadRequestException('No se puede cancelar: el turno está EN_PROCESO');
   }
   iniciarAtencion() {
-    throw new BadRequestException('El turno ya está EN_ATENCION');
+    throw new BadRequestException('El turno ya está EN_PROCESO');
   }
   finalizar() {
     // Permitido
   }
   registrarPago() {
-    throw new BadRequestException('No se puede registrar pago: el turno está EN_ATENCION (finalice primero)');
+    throw new BadRequestException('No se puede registrar pago: el turno está EN_PROCESO (finalice primero)');
   }
   marcarNoShow() {
-    throw new BadRequestException('No se puede marcar no-show: el turno está EN_ATENCION');
+    throw new BadRequestException('No se puede marcar no-show: el turno está EN_PROCESO');
   }
-  getEstado() { return 'EN_ATENCION'; }
+  getEstado() { return 'EN_PROCESO'; }
 }
 
-// Estado: FINALIZADO
-export class FinalizadoState implements ITurnoState {
+// Estado: COMPLETADO
+export class CompletadoState implements ITurnoState {
   confirmar() {
-    throw new BadRequestException('El turno ya está FINALIZADO');
+    throw new BadRequestException('El turno ya está COMPLETADO');
   }
   cancelar() {
-    throw new BadRequestException('No se puede cancelar: el turno está FINALIZADO');
+    throw new BadRequestException('No se puede cancelar: el turno está COMPLETADO');
   }
   iniciarAtencion() {
-    throw new BadRequestException('El turno ya está FINALIZADO');
+    throw new BadRequestException('El turno ya está COMPLETADO');
   }
   finalizar() {
-    throw new BadRequestException('El turno ya está FINALIZADO');
+    throw new BadRequestException('El turno ya está COMPLETADO');
   }
   registrarPago() {
-    // Permitido
+    // Permitido: se valida en el servicio que no esté totalmente pagado
   }
   marcarNoShow() {
-    throw new BadRequestException('No se puede marcar no-show: el turno está FINALIZADO');
+    throw new BadRequestException('No se puede marcar no-show: el turno está COMPLETADO');
   }
-  getEstado() { return 'FINALIZADO'; }
-}
-
-// Estado: PAGADO
-export class PagadoState implements ITurnoState {
-  confirmar() {
-    throw new BadRequestException('El turno ya está PAGADO');
-  }
-  cancelar() {
-    throw new BadRequestException('No se puede cancelar: el turno está PAGADO');
-  }
-  iniciarAtencion() {
-    throw new BadRequestException('El turno ya está PAGADO');
-  }
-  finalizar() {
-    throw new BadRequestException('El turno ya está PAGADO');
-  }
-  registrarPago() {
-    throw new BadRequestException('El turno ya está PAGADO');
-  }
-  marcarNoShow() {
-    throw new BadRequestException('No se puede marcar no-show: el turno está PAGADO');
-  }
-  getEstado() { return 'PAGADO'; }
+  getEstado() { return 'COMPLETADO'; }
 }
 
 // Estado: CANCELADO

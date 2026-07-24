@@ -162,20 +162,20 @@ describe('TurnosService', () => {
       expect(result.estado).toBe('CANCELADO');
     });
 
-    it('should throw if cancelar PAGADO', async () => {
-      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'PAGADO' });
+    it('should throw if cancelar COMPLETADO', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' });
 
       await expect(service.cancelar(1)).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('Patrón State - iniciar', () => {
-    it('should iniciar CONFIRMADO -> EN_ATENCION', async () => {
+    it('should iniciar CONFIRMADO -> EN_PROCESO', async () => {
       prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'CONFIRMADO' });
-      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'EN_ATENCION' });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'EN_PROCESO' });
 
       const result = await service.iniciarAtencion(1);
-      expect(result.estado).toBe('EN_ATENCION');
+      expect(result.estado).toBe('EN_PROCESO');
     });
 
     it('should throw if iniciar PENDIENTE', async () => {
@@ -186,22 +186,22 @@ describe('TurnosService', () => {
   });
 
   describe('Patrón State - finalizar', () => {
-    it('should finalizar EN_ATENCION -> FINALIZADO', async () => {
-      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'EN_ATENCION' });
-      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'FINALIZADO' });
+    it('should finalizar EN_PROCESO -> COMPLETADO', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'EN_PROCESO' });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' });
 
       const result = await service.finalizar(1);
-      expect(result.estado).toBe('FINALIZADO');
+      expect(result.estado).toBe('COMPLETADO');
     });
   });
 
   describe('Patrón State - pagar', () => {
-    it('should pagar FINALIZADO -> PAGADO', async () => {
-      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'FINALIZADO' });
-      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'PAGADO' });
+    it('should pagar COMPLETADO -> COMPLETADO', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' });
 
       const result = await service.registrarPago(1);
-      expect(result.estado).toBe('PAGADO');
+      expect(result.estado).toBe('COMPLETADO');
     });
   });
 

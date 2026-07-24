@@ -80,21 +80,21 @@ export class TurnosController {
   }
 
   @Post(':id/iniciar')
-  @ApiOperation({ summary: 'Iniciar atención (CONFIRMADO -> EN_ATENCION)' })
+  @ApiOperation({ summary: 'Iniciar atención (CONFIRMADO -> EN_PROCESO)' })
   @ApiResponse({ status: 200, description: 'Atención iniciada' })
   async iniciar(@Param('id', ParseIntPipe) id: number) {
     return this.turnosService.iniciarAtencion(id);
   }
 
   @Post(':id/finalizar')
-  @ApiOperation({ summary: 'Finalizar atención (EN_ATENCION -> FINALIZADO)' })
+  @ApiOperation({ summary: 'Finalizar atención (EN_PROCESO -> COMPLETADO)' })
   @ApiResponse({ status: 200, description: 'Turno finalizado' })
   async finalizar(@Param('id', ParseIntPipe) id: number) {
     return this.turnosService.finalizar(id);
   }
 
   @Post(':id/pagar')
-  @ApiOperation({ summary: 'Marcar como pagado (FINALIZADO -> PAGADO)' })
+  @ApiOperation({ summary: 'Marcar como pagado (COMPLETADO)' })
   @ApiResponse({ status: 200, description: 'Turno pagado' })
   async pagar(@Param('id', ParseIntPipe) id: number) {
     return this.turnosService.registrarPago(id);

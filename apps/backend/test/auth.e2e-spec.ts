@@ -226,14 +226,4 @@ describe('AuthController (e2e)', () => {
     });
   });
 
-  describe('GET /api/servicios (protegido)', () => {
-    it('should return 401 without token', async () => {
-      // Act
-      const response = await request(app.getHttpServer())
-        .get('/api/servicios');
-
-      // Assert
-      expect(response.status).toBe(401);
-    });
-  });
 });

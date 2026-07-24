@@ -15,12 +15,18 @@ export class PrismaServiceMock {
     delete: jest.fn(),
   };
 
+  servicioHistorial = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+  };
+
   turno = {
     create: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    groupBy: jest.fn(),
   };
 
   turnoDetalle = {
