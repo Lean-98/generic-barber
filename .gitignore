@@ -1,0 +1,10 @@
+# Hoisted workspace dependencies
+/node_modules
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.idea/
+*.sublime-workspace
