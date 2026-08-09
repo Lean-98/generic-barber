@@ -174,3 +174,15 @@ model GoogleCalendarConfig {
 
   @@map("google_calendar_config")
 }
+
+model ConfiguracionNegocio {
+  id              Int      @id @default(autoincrement())
+  nombre          String   @default("Peluquería")
+  logoUrl         String?  @map("logo_url")
+  iconoUrl        String?  @map("icono_url")
+  colorPrimario   String?  @map("color_primario")
+  colorSecundario String?  @map("color_secundario")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("configuracion_negocio")
+}

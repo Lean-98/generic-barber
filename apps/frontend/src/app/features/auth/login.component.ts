@@ -3,18 +3,19 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../shared/services/auth.service';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
+import { BrandingService } from '../../core/services/branding.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, BrandMarkComponent],
   template: `
     <div class="grid min-h-screen lg:grid-cols-2">
       <!-- Editorial panel -->
       <div class="relative hidden flex-col justify-between overflow-hidden bg-neutral p-10 text-neutral-content lg:flex">
         <div class="flex items-center gap-3">
-          <span class="stripe-accent h-7 w-1.5 rounded-sm"></span>
-          <span class="font-display text-lg font-semibold">Peluquería</span>
+          <app-brand-mark />
         </div>
 
         <div class="max-w-md">
@@ -27,7 +28,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
           </p>
         </div>
 
-        <p class="text-xs text-neutral-content/40">© {{ currentYear }} Peluquería</p>
+        <p class="text-xs text-neutral-content/40">© {{ currentYear }} {{ brandingService.branding().nombre }}</p>
 
         <div class="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl"></div>
       </div>
@@ -36,8 +37,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
       <div class="flex items-center justify-center bg-base-100 p-6 sm:p-10">
         <div class="w-full max-w-sm">
           <div class="mb-8 flex items-center gap-3 lg:hidden">
-            <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
-            <span class="font-display text-lg font-semibold">Peluquería</span>
+            <app-brand-mark barHeight="h-6" />
           </div>
 
           <h2 class="font-display text-2xl font-medium">Iniciar sesión</h2>
@@ -96,6 +96,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly brandingService = inject(BrandingService);
 
   login = '';
   password = '';

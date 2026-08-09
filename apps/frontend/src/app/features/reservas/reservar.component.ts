@@ -7,6 +7,7 @@ import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { BrandingService } from '../../core/services/branding.service';
 
 @Component({
   selector: 'app-reservar',
@@ -15,14 +16,19 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
   template: `
     <div class="min-h-screen bg-base-200 py-8 px-4 md:py-12 text-base-content">
       <div class="mx-auto max-w-4xl space-y-8">
-        
+
         <!-- Header -->
         <div class="text-center space-y-3">
-          <div class="avatar placeholder mx-auto">
-            <div class="bg-primary text-primary-content w-16 rounded-2xl">
-              <app-icon name="scissors" [size]="32" />
+          @if (branding().logoUrl || branding().iconoUrl; as url) {
+            <img [src]="url" [alt]="branding().nombre" class="mx-auto h-16 w-16 rounded-2xl object-cover" />
+          } @else {
+            <div class="avatar placeholder mx-auto">
+              <div class="bg-primary text-primary-content w-16 rounded-2xl">
+                <app-icon name="scissors" [size]="32" />
+              </div>
             </div>
-          </div>
+          }
+          <p class="text-sm font-medium uppercase tracking-[0.15em] text-primary">{{ branding().nombre }}</p>
           <h1 class="text-3xl font-medium tracking-tight md:text-4xl">Reservar Turno</h1>
           <p class="text-base-content/60 max-w-md mx-auto">Seleccioná los servicios, fecha y horario para tu turno. Te enviaremos un recordatorio.</p>
         </div>
@@ -251,6 +257,8 @@ export class ReservarComponent implements OnInit {
   private readonly reservasService = inject(ReservasPublicasService);
   private readonly serviciosService = inject(ServiciosService);
   private readonly router = inject(Router);
+  private readonly brandingService = inject(BrandingService);
+  branding = this.brandingService.branding;
 
   // Servicios
   servicios = signal<Servicio[]>([]);

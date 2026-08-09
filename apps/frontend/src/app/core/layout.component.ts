@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../shared/services/auth.service';
 import { ThemeService } from './services/theme.service';
 import { IconComponent } from '../shared/ui/icon.component';
+import { BrandMarkComponent } from '../shared/ui/brand-mark.component';
 
 interface NavItem {
   label: string;
@@ -14,7 +15,7 @@ interface NavItem {
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, BrandMarkComponent],
   template: `
     <div class="min-h-screen bg-base-200">
       <!-- Mobile top bar -->
@@ -24,8 +25,7 @@ interface NavItem {
             <app-icon name="menu" [size]="20" />
           </button>
           <a routerLink="/dashboard" class="flex items-center gap-2 px-1">
-            <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
-            <span class="font-display text-lg font-semibold">Peluquería</span>
+            <app-brand-mark barHeight="h-6" />
           </a>
         </div>
         <div class="navbar-end gap-1">
@@ -49,8 +49,7 @@ interface NavItem {
           <div class="absolute inset-0 bg-black/50"></div>
           <aside class="absolute left-0 top-0 h-full w-64 bg-neutral text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
             <div class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
-              <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
-              <span class="font-display text-lg font-semibold">Peluquería</span>
+              <app-brand-mark barHeight="h-6" />
             </div>
             <ul class="flex flex-col gap-1 p-3">
               @for (item of navItems; track item.route) {
@@ -81,8 +80,7 @@ interface NavItem {
       <!-- Desktop sidebar -->
       <aside class="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col bg-neutral text-neutral-content md:flex">
         <div class="flex h-16 items-center gap-3 border-b border-white/10 px-6">
-          <span class="stripe-accent h-7 w-1.5 rounded-sm"></span>
-          <span class="font-display text-lg font-semibold tracking-tight">Peluquería</span>
+          <app-brand-mark textSize="text-lg tracking-tight" />
         </div>
 
         <nav class="flex-1 overflow-y-auto p-3">
@@ -152,7 +150,8 @@ export class LayoutComponent {
     { label: 'Clientes', route: '/personas', icon: 'users' },
     { label: 'Caja', route: '/caja', icon: 'wallet' },
     { label: 'Reportes', route: '/reportes', icon: 'bar-chart' },
-    { label: 'Configuración', route: '/configuracion/google-calendar', icon: 'settings' },
+    { label: 'Marca', route: '/configuracion/marca', icon: 'image' },
+    { label: 'Google Calendar', route: '/configuracion/google-calendar', icon: 'settings' },
   ];
 
   logout(): void {

@@ -49,6 +49,10 @@ export const routes: Routes = [
         path: 'configuracion/google-calendar',
         loadComponent: () => import('./features/config/google-calendar-config.component').then((m) => m.GoogleCalendarConfigComponent),
       },
+      {
+        path: 'configuracion/marca',
+        loadComponent: () => import('./features/config/branding-config.component').then((m) => m.BrandingConfigComponent),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
