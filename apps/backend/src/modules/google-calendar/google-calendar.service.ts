@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { google, calendar_v3 } from 'googleapis';
 import { Turno, Persona } from '@prisma/client';
+import { randomBytes, timingSafeEqual } from 'crypto';
+import { encrypt, decrypt } from '../../common/utils/crypto.util';
+
+const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutos para completar el flow
 
 /**
  * Servicio para integrar con Google Calendar API.
@@ -11,6 +15,13 @@ import { Turno, Persona } from '@prisma/client';
 @Injectable()
 export class GoogleCalendarService {
   private oauth2Client: InstanceType<typeof google.auth.OAuth2>;
+  // El callback de OAuth es público por naturaleza del protocolo (Google
+  // redirige el navegador sin credenciales de la app). Sin un `state` que
+  // ligue el callback al flow que nosotros iniciamos, cualquiera puede armar
+  // su propio flow OAuth con nuestro client_id (no es secreto), conseguir un
+  // `code` de SU propia cuenta, y lograr que alguien visite
+  // /callback?code=... para secuestrar la conexión hacia su cuenta.
+  private pendingState: { valor: string; expira: number } | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,12 +56,34 @@ export class GoogleCalendarService {
     }
 
     const scopes = ['https://www.googleapis.com/auth/calendar'];
+    const state = randomBytes(24).toString('hex');
+    this.pendingState = { valor: state, expira: Date.now() + STATE_TTL_MS };
 
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
+      state,
     });
+  }
+
+  /**
+   * Valida el `state` recibido en el callback contra el que generamos al
+   * armar la URL de autorización. Se consume: solo sirve una vez.
+   */
+  verificarState(state: string | undefined): void {
+    const pendiente = this.pendingState;
+    this.pendingState = null;
+
+    if (!state || !pendiente || Date.now() > pendiente.expira) {
+      throw new BadRequestException('El enlace de autorización expiró o es inválido, intentá conectar de nuevo');
+    }
+
+    const a = Buffer.from(state);
+    const b = Buffer.from(pendiente.valor);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      throw new BadRequestException('El enlace de autorización expiró o es inválido, intentá conectar de nuevo');
+    }
   }
 
   /**
@@ -68,14 +101,40 @@ export class GoogleCalendarService {
     await this.prisma.googleCalendarConfig.deleteMany();
     await this.prisma.googleCalendarConfig.create({
       data: {
-        accessToken: tokens.access_token!,
-        refreshToken: tokens.refresh_token!,
+        accessToken: this.cifrarToken(tokens.access_token!),
+        refreshToken: this.cifrarToken(tokens.refresh_token!),
         expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         calendarId,
       },
     });
 
     this.oauth2Client.setCredentials(tokens);
+  }
+
+  /**
+   * Los tokens de Google dan acceso de larga duración al calendario del
+   * negocio; se guardan cifrados en la base (no en texto plano) para que
+   * filtrarse la DB no signifique automáticamente filtrarse las credenciales
+   * de Google. La clave se deriva de JWT_SECRET para no requerir una env var
+   * nueva.
+   */
+  private cifrarToken(token: string): string {
+    return encrypt(token, this.getClaveCifrado());
+  }
+
+  private descifrarToken(token: string): string {
+    return decrypt(token, this.getClaveCifrado());
+  }
+
+  // Sin JWT_SECRET no hay clave: mejor fallar fuerte acá que cifrar en
+  // silencio con una clave derivada de string vacío (predecible por
+  // cualquiera que lea este archivo).
+  private getClaveCifrado(): string {
+    const secreto = this.configService.get<string>('JWT_SECRET');
+    if (!secreto) {
+      throw new Error('JWT_SECRET no está configurado: no se puede cifrar/descifrar el token de Google Calendar');
+    }
+    return secreto;
   }
 
   /**
@@ -117,8 +176,8 @@ export class GoogleCalendarService {
     }
 
     this.oauth2Client.setCredentials({
-      access_token: config.accessToken,
-      refresh_token: config.refreshToken,
+      access_token: this.descifrarToken(config.accessToken),
+      refresh_token: this.descifrarToken(config.refreshToken),
     });
 
     const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -158,8 +217,8 @@ export class GoogleCalendarService {
     }
 
     this.oauth2Client.setCredentials({
-      access_token: config.accessToken,
-      refresh_token: config.refreshToken,
+      access_token: this.descifrarToken(config.accessToken),
+      refresh_token: this.descifrarToken(config.refreshToken),
     });
 
     const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -194,8 +253,8 @@ export class GoogleCalendarService {
     }
 
     this.oauth2Client.setCredentials({
-      access_token: config.accessToken,
-      refresh_token: config.refreshToken,
+      access_token: this.descifrarToken(config.accessToken),
+      refresh_token: this.descifrarToken(config.refreshToken),
     });
 
     const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });

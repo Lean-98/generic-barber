@@ -75,7 +75,12 @@ export class GoogleCalendarController {
   @Get('callback')
   @ApiExcludeEndpoint()
   @Public()
-  async callback(@Query('code') code: string, @Query('error') error: string, @Res() res: Response) {
+  async callback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
     if (error) {
       return res.status(400).send(this.callbackHtml(false, error));
     }
@@ -85,6 +90,9 @@ export class GoogleCalendarController {
     }
 
     try {
+      // Verifica que este callback corresponda al flow que nosotros iniciamos
+      // (ver comentario en GoogleCalendarService sobre el riesgo de CSRF acá).
+      this.googleCalendarService.verificarState(state);
       await this.googleCalendarService.connect(code);
       return res.status(200).send(this.callbackHtml(true));
     } catch (err) {
