@@ -7,11 +7,12 @@ import { ServiciosService } from '../../shared/services/servicios.service';
 import { Persona } from '../../shared/models/persona.model';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-turno-form',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, PesosPipe],
   template: `
     <div class="mx-auto max-w-4xl space-y-6 text-base-content">
       <div class="flex items-center gap-4">
@@ -125,7 +126,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                 <select class="select select-bordered md:col-span-2" [(ngModel)]="servicioSeleccionadoId" name="servicioSelect">
                   <option [value]="null">Seleccionar servicio</option>
                   @for (servicio of servicios(); track servicio.idServicio) {
-                    <option [value]="servicio.idServicio">{{ servicio.nombre }} - \${{ servicio.precio }} ({{ servicio.duracionMinutos }} min)</option>
+                    <option [value]="servicio.idServicio">{{ servicio.nombre }} - {{ servicio.precio | pesos }} ({{ servicio.duracionMinutos }} min)</option>
                   }
                 </select>
                 <input type="number" class="input input-bordered" [(ngModel)]="cantidadServicio" name="cantidad" placeholder="Cantidad" min="1" />
@@ -142,7 +143,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <div class="flex items-center justify-between p-4">
                     <div>
                       <p class="font-medium">{{ item.servicio.nombre }}</p>
-                      <p class="text-sm text-base-content/60">\${{ item.servicio.precio }} x {{ item.cantidad }} = \${{ calcularSubtotal(item) }}</p>
+                      <p class="text-sm text-base-content/60">{{ item.servicio.precio | pesos }} x {{ item.cantidad }} = {{ calcularSubtotal(item) | pesos }}</p>
                     </div>
                     <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="quitarServicio(item.servicio.idServicio)">
                       <app-icon name="trash" [size]="16" />
@@ -152,7 +153,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               </div>
               <div class="flex flex-wrap items-center justify-between gap-2 rounded-box bg-base-200/50 p-4">
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} minutos</strong></span>
-                <span class="tabular-nums font-display text-lg font-semibold">Total estimado: \${{ totalEstimado() }}</span>
+                <span class="tabular-nums font-display text-lg font-semibold">Total estimado: {{ totalEstimado() | pesos }}</span>
               </div>
             } @else {
               <div class="rounded-box border border-dashed p-6 text-center text-base-content/60">

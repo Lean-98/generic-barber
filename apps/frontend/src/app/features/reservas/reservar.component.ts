@@ -1,16 +1,17 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ReservasPublicasService } from '../../shared/services/reservas-publicas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-reservar',
   standalone: true,
-  imports: [DatePipe, FormsModule, IconComponent],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
   template: `
     <div class="min-h-screen bg-base-200 py-8 px-4 md:py-12 text-base-content">
       <div class="mx-auto max-w-4xl space-y-8">
@@ -52,7 +53,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                           {{ servicio.duracionMinutos }} min
                         </p>
                       </div>
-                      <p class="tabular-nums font-semibold text-primary">\${{ servicio.precio }}</p>
+                      <p class="tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</p>
                     </div>
                     @if (servicioSeleccionado(servicio.idServicio)) {
                       <div class="mt-4 flex items-center gap-2">
@@ -77,7 +78,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
             @if (serviciosSeleccionados().length > 0) {
               <div class="mt-6 flex items-center justify-between rounded-box bg-base-200/50 p-4">
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} min</strong></span>
-                <span class="font-display tabular-nums text-lg font-semibold">Total: \${{ totalPrecio() }}</span>
+                <span class="font-display tabular-nums text-lg font-semibold">Total: {{ totalPrecio() | pesos }}</span>
               </div>
             }
           </div>
@@ -135,7 +136,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                 <div class="bg-primary text-primary-content flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">3</div>
                 <h2 class="card-title text-lg">Seleccionar horario</h2>
               </div>
-              <p class="text-sm text-base-content/60 mb-4">Slots disponibles para {{ fechaSeleccionada() | date:'fullDate' }}</p>
+              <p class="text-sm text-base-content/60 mb-4">Slots disponibles para {{ fechaSeleccionada() | fechaAr:'completa' }}</p>
               
               @if (slots().length > 0) {
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -146,7 +147,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                       [class.btn-outline]="slotSeleccionado() !== slot"
                       (click)="seleccionarSlot(slot)"
                     >
-                      {{ slot | date:'HH:mm' }}
+                      {{ slot | fechaAr:'hora' }}
                     </button>
                   }
                 </div>
@@ -206,7 +207,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               
               <div class="mt-6 flex flex-col items-end gap-3 sm:flex-row sm:justify-between">
                 <div class="text-sm text-base-content/70">
-                  Fecha: <strong>{{ slotSeleccionado() | date:'fullDate' }}</strong> a las <strong>{{ slotSeleccionado() | date:'HH:mm' }}</strong>
+                  Fecha: <strong>{{ slotSeleccionado() | fechaAr:'completa' }}</strong> a las <strong>{{ slotSeleccionado() | fechaAr:'hora' }}</strong>
                 </div>
                 <button class="btn btn-primary gap-2 w-full sm:w-auto" [class.btn-loading]="loading()" [disabled]="!puedeReservar() || loading()" (click)="reservar()">
                   @if (loading()) {

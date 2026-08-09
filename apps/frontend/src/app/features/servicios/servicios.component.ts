@@ -1,14 +1,15 @@
 import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio, ServicioHistorial, CreateServicioRequest, UpdateServicioRequest } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-servicios',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -101,7 +102,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                         <span class="text-sm text-base-content/50">—</span>
                       }
                     </td>
-                    <td class="tabular-nums font-medium">\${{ servicio.precio }}</td>
+                    <td class="tabular-nums font-medium">{{ servicio.precio | pesos }}</td>
                     <td>
                       <span class="badge badge-ghost gap-1">
                         <app-icon name="clock" [size]="12" />
@@ -228,8 +229,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
             <tbody>
               @for (h of historial(); track h.idHistorial) {
                 <tr class="hover:bg-base-200/50">
-                  <td>{{ h.fechaCambio | date:'short' }}</td>
-                  <td class="tabular-nums font-medium">\${{ h.precio }}</td>
+                  <td>{{ h.fechaCambio | fechaAr:'cortaHora' }}</td>
+                  <td class="tabular-nums font-medium">{{ h.precio | pesos }}</td>
                   <td>
                     <span class="badge badge-ghost gap-1">
                       <app-icon name="clock" [size]="12" />

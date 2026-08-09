@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TurnosService } from '../../shared/services/turnos.service';
 import { PersonasService } from '../../shared/services/personas.service';
@@ -8,11 +7,13 @@ import { Turno, TurnoDetalle } from '../../shared/models/turno.model';
 import { Persona } from '../../shared/models/persona.model';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe, RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, FechaArPipe, PesosPipe],
   template: `
     <div class="space-y-8 text-base-content">
       <!-- Header -->
@@ -42,7 +43,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
             <span class="text-sm font-medium">Ingresos hoy</span>
             <app-icon name="credit-card" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ ingresosHoy() }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ ingresosHoy() | pesos }}</div>
         </div>
 
         <div class="rounded-lg border-t-2 border-accent bg-base-100 p-5 shadow-sm">
@@ -97,8 +98,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
                         </div>
                       </td>
                       <td>
-                        <div class="font-medium">{{ turno.fechaHoraInicio | date:'shortDate' }}</div>
-                        <div class="text-sm text-base-content/60">{{ turno.fechaHoraInicio | date:'shortTime' }}</div>
+                        <div class="font-medium">{{ turno.fechaHoraInicio | fechaAr:'corta' }}</div>
+                        <div class="text-sm text-base-content/60">{{ turno.fechaHoraInicio | fechaAr:'hora' }}</div>
                       </td>
                       <td>
                         <span class="badge gap-1" [class]="getEstadoClasses(turno.estado)">
@@ -217,7 +218,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                           {{ item.servicio.duracionMinutos }} min
                         </span>
                       </td>
-                      <td class="font-medium">\${{ item.servicio.precio }}</td>
+                      <td class="font-medium">{{ item.servicio.precio | pesos }}</td>
                       <td class="text-right">
                         <span class="badge badge-primary">{{ item.cantidad }}</span>
                       </td>
@@ -249,7 +250,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                     <p class="font-medium">{{ servicio.nombre }}</p>
                     <p class="text-sm text-base-content/60">{{ servicio.duracionMinutos }} min</p>
                   </div>
-                  <span class="badge badge-ghost">\${{ servicio.precio }}</span>
+                  <span class="badge badge-ghost">{{ servicio.precio | pesos }}</span>
                 </div>
               } @empty {
                 <div class="text-center py-8 text-base-content/60">

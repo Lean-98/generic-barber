@@ -1,15 +1,16 @@
 import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { PersonasService } from '../../shared/services/personas.service';
 import { Persona, UpdatePersonaRequest } from '../../shared/models/persona.model';
 import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-personas',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -165,7 +166,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
             </div>
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Fecha de nacimiento</span>
-              <span>{{ p.fechaNacimiento ? (p.fechaNacimiento | date:'mediumDate') : '—' }}</span>
+              <span>{{ p.fechaNacimiento ? (p.fechaNacimiento | fechaAr:'media') : '—' }}</span>
             </div>
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Total turnos</span>
@@ -250,8 +251,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
               @for (turno of turnosCliente(); track turno.idTurno) {
                 <tr class="hover:bg-base-200/50">
                   <td>
-                    <div class="font-medium">{{ turno.fechaHoraInicio | date:'shortDate' }}</div>
-                    <div class="text-sm text-base-content/60">{{ turno.fechaHoraInicio | date:'shortTime' }}</div>
+                    <div class="font-medium">{{ turno.fechaHoraInicio | fechaAr:'corta' }}</div>
+                    <div class="text-sm text-base-content/60">{{ turno.fechaHoraInicio | fechaAr:'hora' }}</div>
                   </td>
                   <td>
                     <div class="flex flex-wrap gap-1">
@@ -266,7 +267,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                     <span class="badge" [class]="getEstadoClasses(turno.estado)">{{ turno.estado }}</span>
                   </td>
                   <td class="tabular-nums text-right font-medium">
-                    \${{ totalTurno(turno) }}
+                    {{ totalTurno(turno) | pesos }}
                   </td>
                 </tr>
               } @empty {

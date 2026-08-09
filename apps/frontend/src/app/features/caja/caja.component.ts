@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CajaService } from '../../shared/services/caja.service';
 import { TurnosService } from '../../shared/services/turnos.service';
@@ -7,11 +6,13 @@ import { AuthService } from '../../shared/services/auth.service';
 import { FormaPago, MovimientoCaja, TotalesCaja, CierreCaja, Pago } from '../../shared/models/caja.model';
 import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 
 @Component({
   selector: 'app-caja',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -31,21 +32,21 @@ import { IconComponent } from '../../shared/ui/icon.component';
             <span class="text-sm font-medium">Ingresos</span>
             <app-icon name="credit-card" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ totales().ingresos }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totales().ingresos | pesos }}</div>
         </div>
         <div class="rounded-lg border-t-2 border-error bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between text-base-content/50">
             <span class="text-sm font-medium">Egresos</span>
             <app-icon name="credit-card" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ totales().egresos }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totales().egresos | pesos }}</div>
         </div>
         <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between text-base-content/50">
             <span class="text-sm font-medium">Balance</span>
             <app-icon name="calendar" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium" [class.text-success]="totales().balance > 0" [class.text-error]="totales().balance < 0">\${{ totales().balance }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium" [class.text-success]="totales().balance > 0" [class.text-error]="totales().balance < 0">{{ totales().balance | pesos }}</div>
         </div>
       </div>
 
@@ -76,14 +77,14 @@ import { IconComponent } from '../../shared/ui/icon.component';
                 <tbody>
                   @for (mov of movimientos(); track mov.idMovimiento) {
                     <tr class="hover:bg-base-200/50">
-                      <td>{{ mov.fechaHora | date:'shortTime' }}</td>
+                      <td>{{ mov.fechaHora | fechaAr:'hora' }}</td>
                       <td>
                         <span class="badge" [class.badge-success]="mov.tipo === 'INGRESO'" [class.badge-error]="mov.tipo === 'EGRESO'">{{ mov.tipo }}</span>
                       </td>
                       <td>{{ mov.concepto }}</td>
                       <td>{{ mov.formaPago?.nombre }}</td>
                       <td class="tabular-nums text-right font-medium" [class.text-success]="mov.tipo === 'INGRESO'" [class.text-error]="mov.tipo === 'EGRESO'">
-                        {{ mov.tipo === 'INGRESO' ? '+' : '-' }}\${{ mov.monto }}
+                        {{ mov.tipo === 'INGRESO' ? '+' : '-' }}{{ mov.monto | pesos }}
                       </td>
                     </tr>
                   } @empty {
@@ -115,7 +116,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <option [value]="null">Seleccionar turno</option>
                   @for (turno of turnosPagables(); track turno.idTurno) {
                     <option [value]="turno.idTurno">
-                      #{{ turno.idTurno }} - {{ turno.persona?.nombre }} {{ turno.persona?.apellido }} - {{ turno.fechaHoraInicio | date:'short' }} (Total: \${{ totalTurno(turno) }})
+                      #{{ turno.idTurno }} - {{ turno.persona?.nombre }} {{ turno.persona?.apellido }} - {{ turno.fechaHoraInicio | fechaAr:'cortaHora' }} (Total: {{ totalTurno(turno) | pesos }})
                     </option>
                   }
                 </select>
@@ -150,7 +151,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               @if (pagosTurno().length > 0) {
                 <div class="alert alert-info">
                   <app-icon name="credit-card" [size]="18" />
-                  <span>Este turno ya tiene {{ pagosTurno().length }} pago(s) por total \${{ totalPagado() }}.</span>
+                  <span>Este turno ya tiene {{ pagosTurno().length }} pago(s) por total {{ totalPagado() | pesos }}.</span>
                 </div>
               }
 
@@ -220,30 +221,30 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <div class="space-y-3">
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Efectivo</span>
-                      <span class="tabular-nums font-medium">\${{ cierre.totalEfectivo }}</span>
+                      <span class="tabular-nums font-medium">{{ cierre.totalEfectivo | pesos }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Tarjeta</span>
-                      <span class="tabular-nums font-medium">\${{ cierre.totalTarjeta }}</span>
+                      <span class="tabular-nums font-medium">{{ cierre.totalTarjeta | pesos }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Transferencia</span>
-                      <span class="tabular-nums font-medium">\${{ cierre.totalTransferencia }}</span>
+                      <span class="tabular-nums font-medium">{{ cierre.totalTransferencia | pesos }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Otros</span>
-                      <span class="tabular-nums font-medium">\${{ cierre.totalOtros }}</span>
+                      <span class="tabular-nums font-medium">{{ cierre.totalOtros | pesos }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="font-semibold">Total Esperado</span>
-                      <span class="tabular-nums font-semibold">\${{ cierre.totalEsperado }}</span>
+                      <span class="tabular-nums font-semibold">{{ cierre.totalEsperado | pesos }}</span>
                     </div>
                   </div>
                   <div class="space-y-4">
                     @if (cierre.horaFin) {
                       <div class="alert alert-success">
                         <app-icon name="check-circle" [size]="18" />
-                        <span>Cierre confirmado el {{ cierre.horaFin | date:'short' }} con diferencia de \${{ cierre.diferencia }}</span>
+                        <span>Cierre confirmado el {{ cierre.horaFin | fechaAr:'cortaHora' }} con diferencia de {{ cierre.diferencia | pesos }}</span>
                       </div>
                     } @else {
                       <div class="form-control">
@@ -293,19 +294,19 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <tbody>
                     @for (c of historialCierres(); track c.idCierre) {
                       <tr class="hover:bg-base-200/50">
-                        <td>{{ c.fecha | date:'mediumDate' }}</td>
-                        <td>{{ c.horaInicio | date:'shortTime' }}</td>
+                        <td>{{ c.fecha | fechaAr:'media' }}</td>
+                        <td>{{ c.horaInicio | fechaAr:'hora' }}</td>
                         <td>
                           @if (c.horaFin) {
-                            {{ c.horaFin | date:'shortTime' }}
+                            {{ c.horaFin | fechaAr:'hora' }}
                           } @else {
                             <span class="badge badge-warning badge-sm">Pendiente</span>
                           }
                         </td>
-                        <td class="tabular-nums font-medium">\${{ c.totalEsperado }}</td>
-                        <td class="tabular-nums font-medium">{{ c.horaFin ? '\$' + c.totalReal : '—' }}</td>
+                        <td class="tabular-nums font-medium">{{ c.totalEsperado | pesos }}</td>
+                        <td class="tabular-nums font-medium">{{ c.horaFin ? (c.totalReal | pesos) : '—' }}</td>
                         <td class="tabular-nums font-medium" [class.text-success]="c.diferencia >= 0" [class.text-error]="c.diferencia < 0">
-                          {{ c.horaFin ? '\$' + c.diferencia : '—' }}
+                          {{ c.horaFin ? (c.diferencia | pesos) : '—' }}
                         </td>
                       </tr>
                     } @empty {

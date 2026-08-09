@@ -1,9 +1,9 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { DatePipe, CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { TurnosService } from '../../shared/services/turnos.service';
 import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
+import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 
 interface DiaCalendario {
   fecha: Date;
@@ -22,7 +22,7 @@ interface TurnoVisual {
 @Component({
   selector: 'app-turnos',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, FechaArPipe],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -36,7 +36,7 @@ interface TurnoVisual {
               <app-icon name="arrow-left" [size]="16" />
             </button>
             <span class="join-item bg-base-200 px-3 py-2 text-sm font-medium flex items-center">
-              {{ fechaSemana() | date:'dd MMM' }} - {{ finSemana() | date:'dd MMM yyyy' }}
+              {{ fechaSemana() | fechaAr:'diaMes' }} - {{ finSemana() | fechaAr:'diaMesAnio' }}
             </span>
             <button class="btn join-item btn-sm" (click)="semanaSiguiente()">
               <app-icon name="arrow-right" [size]="16" />
@@ -89,10 +89,10 @@ interface TurnoVisual {
                         </div>
                       </td>
                       <td>
-                        <div class="font-medium">{{ turno.fechaHoraInicio | date:'shortDate' }}</div>
+                        <div class="font-medium">{{ turno.fechaHoraInicio | fechaAr:'corta' }}</div>
                         <div class="text-sm text-base-content/60 flex items-center gap-1">
                           <app-icon name="clock" [size]="14" />
-                          {{ turno.fechaHoraInicio | date:'shortTime' }}
+                          {{ turno.fechaHoraInicio | fechaAr:'hora' }}
                         </div>
                       </td>
                       <td>
@@ -165,7 +165,7 @@ interface TurnoVisual {
                   @for (dia of dias(); track dia.key) {
                     <div class="p-2 text-center">
                       <div class="text-sm font-medium text-base-content/70">{{ dia.label }}</div>
-                      <div class="text-lg font-bold" [class.text-primary]="esHoy(dia.fecha)">{{ dia.fecha | date:'d' }}</div>
+                      <div class="text-lg font-bold" [class.text-primary]="esHoy(dia.fecha)">{{ dia.fecha | fechaAr:'diaNumero' }}</div>
                     </div>
                   }
                 </div>
@@ -217,14 +217,14 @@ interface TurnoVisual {
                             [class.text-error-content]="item.turno.estado === 'CANCELADO' || item.turno.estado === 'NO_SHOW'"
                             [class.border-error]="item.turno.estado === 'CANCELADO' || item.turno.estado === 'NO_SHOW'"
                             (click)="verTurno(item.turno.idTurno); $event.stopPropagation()"
-                            [title]="item.turno.persona?.nombre + ' ' + item.turno.persona?.apellido + ' - ' + (item.turno.fechaHoraInicio | date:'shortTime')"
+                            [title]="item.turno.persona?.nombre + ' ' + item.turno.persona?.apellido + ' - ' + (item.turno.fechaHoraInicio | fechaAr:'hora')"
                           >
                             <div class="font-semibold truncate leading-tight">
                               {{ item.turno.persona?.nombre }} {{ item.turno.persona?.apellido }}
                             </div>
                             <div class="opacity-90 leading-tight">
-                              {{ item.turno.fechaHoraInicio | date:'shortTime' }} -
-                              {{ item.turno.fechaHoraFin | date:'shortTime' }}
+                              {{ item.turno.fechaHoraInicio | fechaAr:'hora' }} -
+                              {{ item.turno.fechaHoraFin | fechaAr:'hora' }}
                             </div>
                             @if (item.height > 30) {
                               <div class="opacity-80 leading-tight truncate">
