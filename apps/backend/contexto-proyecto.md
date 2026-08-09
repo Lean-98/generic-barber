@@ -58,6 +58,7 @@ peluqueria-frontend/
 - **Signals**: Uso de `signal()` para estado reactivo (AuthService, componentes)
 - **Tailwind CSS v3**: Configurado con variables CSS propias (colores `primary`, `secondary`, `destructive`, etc.) + DaisyUI plugin
 - **DaisyUI**: Componentes CSS listos para usar (`btn`, `input`, `card`, `badge`, `alert`, `divider`, `stats`, `table`, `navbar`, etc.)
+- **Modo oscuro**: Toggle en sidebar/navbar con `data-theme="dark"` de DaisyUI, persistido en `localStorage`. Body y main usan `bg-base-200`/`bg-base-100` y `text-base-content` para correcto contraste en ambos temas.
 - **Iconos SVG**: Componente `app-icon` con iconos SVG inline propios (sin dependencias externas)
 - **Lazy Loading**: Todas las páginas cargan bajo demanda
 - **HTTP Client**: Con interceptor JWT automático
@@ -69,8 +70,8 @@ peluqueria-frontend/
 |--------|------|-------------|
 | Login | `/login` | Formulario de inicio de sesión (admin/peluquero) |
 | Dashboard | `/dashboard` | Resumen administrativo: stats del día, próximos turnos, últimos clientes, servicios más solicitados y servicios activos |
-| Turnos | `/turnos` | Lista de turnos con acciones de transición de estado |
-| Nuevo Turno | `/turnos/nuevo` | Formulario completo para crear turnos (admin) |
+| Turnos | `/turnos` | Lista de turnos con acciones de transición de estado + vista calendario semanal (Lun-Dom, 9:00-18:00) |
+| Nuevo Turno | `/turnos/nuevo` | Formulario completo para crear turnos (admin); acepta query params `fecha` y `hora` |
 | Reservar Turno | `/reservar` | Página pública para que clientes pidan turnos |
 | Servicios | `/servicios` | CRUD completo: alta, edición, categorías, toggle vigente, historial de precios/duración |
 | Personas | `/personas` | CRUD completo: alta, búsqueda/filtro, detalle, edición, historial de turnos, eliminación |
@@ -81,7 +82,7 @@ peluqueria-frontend/
 ### Componentes UI (DaisyUI)
 - `navbar`, `menu`, `stats`, `table`, `card`, `alert`, `badge`, `btn`, `form-control`, `input`, `select`, `textarea`, `divider`, `avatar`
 - Estados de turnos con colores semánticos: `badge-warning` (PENDIENTE), `badge-info` (CONFIRMADO), `badge-primary` (EN_PROCESO), `badge-success` (COMPLETADO), `badge-error` (CANCELADO/NO_SHOW)
-- Iconos SVG inline: `calendar`, `users`, `scissors`, `plus`, `arrow-left/right`, `check`, `x`, `log-out`, `user`, `search`, `trash`, `credit-card`, `clock`, `menu`, `alert-circle`, `check-circle`, `loader`, `edit`, `wallet`, `trending-up`, `trending-down`, `layout-grid`, `bar-chart`
+- Iconos SVG inline: `calendar`, `users`, `scissors`, `plus`, `arrow-left/right`, `check`, `x`, `log-out`, `user`, `search`, `trash`, `credit-card`, `clock`, `menu`, `alert-circle`, `check-circle`, `loader`, `edit`, `wallet`, `trending-up`, `trending-down`, `layout-grid`, `bar-chart`, `sun`, `moon`
 - Modales nativos HTML5 `<dialog>` para detalle, edición, historial y confirmaciones
 - Loading states: `btn-loading`, spinner animado en botones
 - Empty states: mensajes e iconos cuando no hay datos

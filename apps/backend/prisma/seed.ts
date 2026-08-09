@@ -9,10 +9,14 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
-function addHours(date: Date, hours: number): Date {
+function addMinutes(date: Date, minutes: number): Date {
   const result = new Date(date);
-  result.setHours(result.getHours() + hours);
+  result.setMinutes(result.getMinutes() + minutes);
   return result;
+}
+
+function addHours(date: Date, hours: number): Date {
+  return addMinutes(date, hours * 60);
 }
 
 function setTime(date: Date, hour: number, minute = 0): Date {
@@ -27,6 +31,10 @@ function startOfDay(date: Date): Date {
 
 function endOfDay(date: Date): Date {
   return setTime(date, 23, 59);
+}
+
+function seSolapa(inicio: Date, fin: Date, existentes: Array<{ inicio: Date; fin: Date }>): boolean {
+  return existentes.some((t) => inicio < t.fin && fin > t.inicio);
 }
 
 function pseudoRandom(seed: number): number {
@@ -194,19 +202,8 @@ async function main() {
       ? Math.floor(pseudoRandom(dia + 1000) * 4) + 4
       : Math.floor(pseudoRandom(dia + 1000) * 4) + 3;
 
-    const horasOcupadas = new Set<number>();
+    const turnosDelDia: Array<{ inicio: Date; fin: Date }> = [];
     for (let i = 0; i < cantidadTurnos; i++) {
-      let slotIndex = Math.floor(pseudoRandom(dia * 100 + i * 7) * slots.length);
-      // Evitar superposición simple
-      while (horasOcupadas.has(slotIndex)) {
-        slotIndex = (slotIndex + 1) % slots.length;
-      }
-      horasOcupadas.add(slotIndex);
-
-      const [horaStr, minutoStr] = slots[slotIndex].split(':');
-      const hora = parseInt(horaStr, 10);
-      const minuto = parseInt(minutoStr, 10);
-
       const clienteIdx = Math.floor(pseudoRandom(dia * 1000 + i * 13) * clientes.length);
       const cantidadServicios = weightedRandom([1, 2], [75, 25], dia * 500 + i * 3);
       const serviciosIds: number[] = [];
@@ -214,25 +211,47 @@ async function main() {
       for (let j = 0; j < cantidadServicios; j++) {
         serviciosIds.push(pickRandom(serviciosBase, dia * 200 + i * 5 + j * 11));
       }
+      const duracionTotal = serviciosIds.reduce((sum, id) => sum + servicios[id].duracionMinutos, 0);
 
-      let estado: string;
-      if (dia < 0) {
-        // Pasados: mayoría completados, algunos cancelados/no-show
-        estado = weightedRandom(
-          ['COMPLETADO', 'CANCELADO', 'NO_SHOW'],
-          [80, 12, 8],
-          dia * 300 + i * 2,
-        );
-      } else if (dia === 0) {
-        // Hoy: completados por la mañana, pendientes/confirmados por la tarde
-        estado = hora < 12 ? 'COMPLETADO' : weightedRandom(['CONFIRMADO', 'PENDIENTE', 'COMPLETADO'], [40, 35, 25], i * 9);
-      } else {
-        // Futuros
-        estado = weightedRandom(['PENDIENTE', 'CONFIRMADO'], [55, 45], dia * 400 + i * 4);
+      let slotIndex = Math.floor(pseudoRandom(dia * 100 + i * 7) * slots.length);
+      let intentos = 0;
+      let encontrado = false;
+      const fecha = addDays(hoy, dia);
+      const cierre = setTime(fecha, 18, 0);
+
+      while (intentos < slots.length && !encontrado) {
+        const [horaStr, minutoStr] = slots[slotIndex].split(':');
+        const hora = parseInt(horaStr, 10);
+        const minuto = parseInt(minutoStr, 10);
+        const inicio = setTime(fecha, hora, minuto);
+        const fin = addMinutes(inicio, duracionTotal);
+
+        if (fin <= cierre && !seSolapa(inicio, fin, turnosDelDia)) {
+          let estado: string;
+          if (dia < 0) {
+            // Pasados: mayoría completados, algunos cancelados/no-show
+            estado = weightedRandom(
+              ['COMPLETADO', 'CANCELADO', 'NO_SHOW'],
+              [80, 12, 8],
+              dia * 300 + i * 2,
+            );
+          } else if (dia === 0) {
+            // Hoy: completados por la mañana, pendientes/confirmados por la tarde
+            estado = hora < 12 ? 'COMPLETADO' : weightedRandom(['CONFIRMADO', 'PENDIENTE', 'COMPLETADO'], [40, 35, 25], i * 9);
+          } else {
+            // Futuros
+            estado = weightedRandom(['PENDIENTE', 'CONFIRMADO'], [55, 45], dia * 400 + i * 4);
+          }
+
+          turnosDelDia.push({ inicio, fin });
+          turnosFuturos.push({ diaOffset: dia, hora, minuto, clienteIdx, serviciosIds, estado });
+          totalTurnos++;
+          encontrado = true;
+        }
+
+        slotIndex = (slotIndex + 1) % slots.length;
+        intentos++;
       }
-
-      turnosFuturos.push({ diaOffset: dia, hora, minuto, clienteIdx, serviciosIds, estado });
-      totalTurnos++;
     }
   }
 

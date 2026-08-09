@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Delete, Query, UseGuards, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Delete, Query, Res, UseGuards, BadRequestException } from '@nestjs/common';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExcludeEndpoint, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { GoogleCalendarService } from './google-calendar.service';
 
 @ApiTags('Google Calendar')
@@ -68,6 +70,48 @@ export class GoogleCalendarController {
       message: 'Google Calendar conectado exitosamente',
       connected: true,
     };
+  }
+
+  @Get('callback')
+  @ApiExcludeEndpoint()
+  @Public()
+  async callback(@Query('code') code: string, @Query('error') error: string, @Res() res: Response) {
+    if (error) {
+      return res.status(400).send(this.callbackHtml(false, error));
+    }
+
+    if (!code) {
+      return res.status(400).send(this.callbackHtml(false, 'No se recibió el código de autorización'));
+    }
+
+    try {
+      await this.googleCalendarService.connect(code);
+      return res.status(200).send(this.callbackHtml(true));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      return res.status(400).send(this.callbackHtml(false, message));
+    }
+  }
+
+  private callbackHtml(success: boolean, message?: string): string {
+    const status = success ? 'success' : 'error';
+    const payload = JSON.stringify({ type: 'GOOGLE_CALENDAR_CALLBACK', status, message: message || null });
+    return `
+<!DOCTYPE html>
+<html>
+  <head><title>Google Calendar</title></head>
+  <body>
+    <script>
+      if (window.opener) {
+        window.opener.postMessage(${payload}, '*');
+      }
+      window.close();
+    </script>
+    <p>${success ? 'Conectado correctamente.' : 'Error: ' + (message || 'desconocido')}</p>
+    <p>Podés cerrar esta ventana.</p>
+  </body>
+</html>
+    `.trim();
   }
 
   @Delete('disconnect')
