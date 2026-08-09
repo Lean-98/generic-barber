@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, Matches, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsUrl, Matches, MaxLength, ValidateIf } from 'class-validator';
 
 const HEX_COLOR_REGEX = /^(#[0-9A-Fa-f]{6})?$/;
 
@@ -14,16 +14,18 @@ export class UpdateConfiguracionDto {
     description: 'URL del logo alojado en Cloudinary (string vacío para quitarlo)',
     example: 'https://res.cloudinary.com/demo/image/upload/logo.png',
   })
-  @IsString()
   @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'logoUrl debe ser una URL https válida' })
   logoUrl?: string;
 
   @ApiPropertyOptional({
     description: 'URL del ícono/favicon alojado en Cloudinary (string vacío para quitarlo)',
     example: 'https://res.cloudinary.com/demo/image/upload/icono.png',
   })
-  @IsString()
   @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'iconoUrl debe ser una URL https válida' })
   iconoUrl?: string;
 
   @ApiPropertyOptional({ description: 'Color primario en hexadecimal (string vacío para quitarlo)', example: '#A9762F' })
