@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { ServiciosModule } from './modules/servicios/servicios.module';
 import { TurnosModule } from './modules/turnos/turnos.module';
@@ -16,6 +18,14 @@ import { ConfiguracionModule } from './modules/configuracion/configuracion.modul
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([
+      {
+        // Límite general: generoso para no molestar el uso normal del panel.
+        name: 'default',
+        ttl: 60_000,
+        limit: 120,
+      },
+    ]),
     PrismaModule,
     AuthModule,
     ServiciosModule,
@@ -25,6 +35,12 @@ import { ConfiguracionModule } from './modules/configuracion/configuracion.modul
     GoogleCalendarModule,
     ReportesModule,
     ConfiguracionModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
