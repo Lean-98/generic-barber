@@ -82,13 +82,7 @@ describe('TurnosService', () => {
       prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
       prismaMock.turno.findMany.mockResolvedValue([]);
       prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
-      prismaMock.turnoDetalle.create.mockResolvedValue({
-        idTurnoDetalle: 1,
-        idTurno: 1,
-        idServicio: 1,
-        precioReal: 25.0,
-        cantidad: 1,
-      });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
       prismaMock.turno.findUnique.mockResolvedValue({
         ...mockTurno,
         detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],

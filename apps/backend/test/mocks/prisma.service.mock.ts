@@ -31,6 +31,7 @@ export class PrismaServiceMock {
 
   turnoDetalle = {
     create: jest.fn(),
+    createMany: jest.fn(),
     findMany: jest.fn(),
   };
 

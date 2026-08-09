@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ServicioReservaDto {
@@ -37,8 +37,7 @@ export class ReservaPublicaDto {
   telefono?: string;
 
   @ApiProperty({ description: 'Fecha y hora de inicio del turno', example: '2026-06-15T10:00:00.000Z' })
-  @IsString()
-  @IsNotEmpty()
+  @IsDateString()
   fechaHoraInicio: string;
 
   @ApiPropertyOptional({ description: 'Observaciones', example: 'Es mi primera vez' })

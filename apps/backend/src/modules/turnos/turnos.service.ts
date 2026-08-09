@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Turno } from '@prisma/client';
+import { Prisma, Turno } from '@prisma/client';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { horaArAUtc } from '../../common/utils/fecha-ar.util';
 
 @Injectable()
 export class TurnosService {
@@ -41,35 +42,56 @@ export class TurnosService {
     const fechaHoraInicio = new Date(data.fechaHoraInicio);
     const fechaHoraFin = new Date(fechaHoraInicio.getTime() + duracionTotal * 60000);
 
-    // 4. Verificar disponibilidad (no solaparse con turnos existentes)
-    await this.verificarDisponibilidad(fechaHoraInicio, fechaHoraFin);
-
-    // 5. Crear turno con estado PENDIENTE
-    const turno = await this.prisma.turno.create({
-      data: {
-        idPersona: data.idPersona,
-        fechaHoraInicio,
-        fechaHoraFin,
-        estado: 'PENDIENTE',
-        observacion: data.observacion,
-      },
-      include: { persona: true },
-    });
-
-    // 6. Crear detalles del turno
     for (const servicioDto of data.servicios) {
-      const servicio = servicios.find((s) => s.idServicio === servicioDto.idServicio);
-      if (!servicio) {
+      if (!servicios.find((s) => s.idServicio === servicioDto.idServicio)) {
         throw new BadRequestException(`Servicio ${servicioDto.idServicio} no encontrado en la lista de servicios válidos`);
       }
-      await this.prisma.turnoDetalle.create({
-        data: {
-          idTurno: turno.idTurno,
-          idServicio: servicioDto.idServicio,
-          precioReal: servicio.precio,
-          cantidad: servicioDto.cantidad || 1,
+    }
+
+    // 4, 5 y 6. Verificar disponibilidad y crear turno + detalles de forma atómica.
+    // Sin esto, dos reservas concurrentes para el mismo horario (algo bastante
+    // probable en la página pública) pueden pasar ambas la validación de
+    // solapamiento antes de que la primera se confirme, y terminar dobles.
+    // Serializable hace que Postgres aborte una de las dos transacciones en
+    // conflicto en vez de dejarlas pasar a las dos.
+    let turno: Turno & { persona: typeof persona };
+    try {
+      turno = await this.prisma.$transaction(
+        async (tx) => {
+          await this.verificarDisponibilidad(fechaHoraInicio, fechaHoraFin, undefined, tx);
+
+          const nuevoTurno = await tx.turno.create({
+            data: {
+              idPersona: data.idPersona,
+              fechaHoraInicio,
+              fechaHoraFin,
+              estado: 'PENDIENTE',
+              observacion: data.observacion,
+            },
+            include: { persona: true },
+          });
+
+          await tx.turnoDetalle.createMany({
+            data: data.servicios.map((servicioDto) => {
+              const servicio = servicios.find((s) => s.idServicio === servicioDto.idServicio)!;
+              return {
+                idTurno: nuevoTurno.idTurno,
+                idServicio: servicioDto.idServicio,
+                precioReal: servicio.precio,
+                cantidad: servicioDto.cantidad || 1,
+              };
+            }),
+          });
+
+          return nuevoTurno;
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2034') {
+        throw new BadRequestException('Ese horario se acaba de ocupar, elegí otro horario');
+      }
+      throw err;
     }
 
     // 7. Sincronizar con Google Calendar (silencioso, no falla si no está configurado)
@@ -162,23 +184,6 @@ export class TurnosService {
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<void> {
-    const turno = await this.findOne(id);
-
-    // Si tiene un evento en Google Calendar, eliminarlo
-    if (turno.googleEventId) {
-      try {
-        await this.googleCalendarService.deleteEvent(turno.googleEventId);
-      } catch {
-        // Silencioso
-      }
-    }
-
-    await this.prisma.turno.delete({
-      where: { idTurno: id },
-    });
-  }
-
   // Transiciones del patrón State
   async confirmar(id: number): Promise<Turno> {
     return this.cambiarEstado(id, 'CONFIRMADO', (estado) => estado.confirmar());
@@ -251,7 +256,12 @@ export class TurnosService {
     });
   }
 
-  async verificarDisponibilidad(fechaHoraInicio: Date, fechaHoraFin: Date, idTurno?: number): Promise<void> {
+  async verificarDisponibilidad(
+    fechaHoraInicio: Date,
+    fechaHoraFin: Date,
+    idTurno?: number,
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
     const where: any = {
       AND: [
         { estado: { not: 'CANCELADO' } },
@@ -279,7 +289,7 @@ export class TurnosService {
       where.idTurno = { not: idTurno };
     }
 
-    const solapados = await this.prisma.turno.findMany({ where });
+    const solapados = await client.turno.findMany({ where });
     if (solapados.length > 0) {
       throw new BadRequestException(
         `Ya existe un turno en ese horario (${solapados[0].fechaHoraInicio.toISOString()} - ${solapados[0].fechaHoraFin.toISOString()})`,
@@ -307,10 +317,8 @@ export class TurnosService {
     const duracionTotal = servicios.reduce((total, s) => total + s.duracionMinutos, 0);
 
     const fecha = new Date(fechaStr);
-    const inicioJornada = new Date(fecha);
-    inicioJornada.setUTCHours(9, 0, 0, 0);
-    const finJornada = new Date(fecha);
-    finJornada.setUTCHours(18, 0, 0, 0);
+    const inicioJornada = horaArAUtc(fecha, 9);
+    const finJornada = horaArAUtc(fecha, 18);
 
     // Obtener turnos ocupados del día
     const turnosOcupados = await this.prisma.turno.findMany({

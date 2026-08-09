@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { inicioDiaAr, finDiaAr } from '../../common/utils/fecha-ar.util';
 
 export interface IngresosPorDia {
   fecha: string;
@@ -48,10 +49,8 @@ export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
 
   private getRangoFechas(desde?: string, hasta?: string): { inicio: Date; fin: Date } {
-    const inicio = desde ? new Date(desde) : new Date();
-    const fin = hasta ? new Date(hasta) : new Date();
-    inicio.setHours(0, 0, 0, 0);
-    fin.setHours(23, 59, 59, 999);
+    const inicio = inicioDiaAr(desde ? new Date(desde) : new Date());
+    const fin = finDiaAr(hasta ? new Date(hasta) : new Date());
     return { inicio, fin };
   }
 
