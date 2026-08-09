@@ -9,27 +9,48 @@ import { IconComponent } from '../../shared/ui/icon.component';
   standalone: true,
   imports: [FormsModule, IconComponent],
   template: `
-    <div class="flex min-h-screen items-center justify-center bg-base-200 p-4 text-base-content">
-      <div class="card w-full max-w-md bg-base-100 shadow-lg">
-        <div class="card-body space-y-6">
-          <div class="text-center">
-            <div class="avatar placeholder mx-auto mb-4">
-              <div class="bg-primary text-primary-content w-14 rounded-xl">
-                <app-icon name="scissors" [size]="28" />
-              </div>
-            </div>
-            <h1 class="text-2xl font-bold">Peluquería</h1>
-            <p class="text-base-content/60 text-sm">Ingresá tus credenciales para continuar</p>
+    <div class="grid min-h-screen lg:grid-cols-2">
+      <!-- Editorial panel -->
+      <div class="relative hidden flex-col justify-between overflow-hidden bg-neutral p-10 text-neutral-content lg:flex">
+        <div class="flex items-center gap-3">
+          <span class="stripe-accent h-7 w-1.5 rounded-sm"></span>
+          <span class="font-display text-lg font-semibold">Peluquería</span>
+        </div>
+
+        <div class="max-w-md">
+          <p class="mb-3 text-sm uppercase tracking-[0.2em] text-neutral-content/50">Panel de gestión</p>
+          <h1 class="font-display text-5xl font-medium leading-[1.05] tracking-tight">
+            El día a día del salón, en un solo lugar.
+          </h1>
+          <p class="mt-5 text-neutral-content/60">
+            Turnos, caja y clientes al alcance de la mano para que el equipo se enfoque en el corte, no en la planilla.
+          </p>
+        </div>
+
+        <p class="text-xs text-neutral-content/40">© {{ currentYear }} Peluquería</p>
+
+        <div class="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl"></div>
+      </div>
+
+      <!-- Form panel -->
+      <div class="flex items-center justify-center bg-base-100 p-6 sm:p-10">
+        <div class="w-full max-w-sm">
+          <div class="mb-8 flex items-center gap-3 lg:hidden">
+            <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
+            <span class="font-display text-lg font-semibold">Peluquería</span>
           </div>
 
-          <form (ngSubmit)="onSubmit()" class="space-y-4">
+          <h2 class="font-display text-2xl font-medium">Iniciar sesión</h2>
+          <p class="mt-1 text-sm text-base-content/60">Ingresá tus credenciales para continuar.</p>
+
+          <form (ngSubmit)="onSubmit()" class="mt-8 space-y-4">
             <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Usuario o Email</span>
+              <label class="label pb-1.5">
+                <span class="label-text text-sm font-medium">Usuario o email</span>
               </label>
               <input
                 type="text"
-                class="input input-bordered w-full"
+                class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
                 [class.input-error]="error()"
                 [(ngModel)]="login"
                 name="login"
@@ -39,12 +60,12 @@ import { IconComponent } from '../../shared/ui/icon.component';
             </div>
 
             <div class="form-control">
-              <label class="label">
-                <span class="label-text font-medium">Contraseña</span>
+              <label class="label pb-1.5">
+                <span class="label-text text-sm font-medium">Contraseña</span>
               </label>
               <input
                 type="password"
-                class="input input-bordered w-full"
+                class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
                 [class.input-error]="error()"
                 [(ngModel)]="password"
                 name="password"
@@ -53,15 +74,15 @@ import { IconComponent } from '../../shared/ui/icon.component';
               />
             </div>
 
-            <button type="submit" class="btn btn-primary w-full" [class.btn-loading]="loading()" [disabled]="loading()">
+            <button type="submit" class="btn btn-primary mt-2 w-full" [disabled]="loading()">
               @if (loading()) {
                 <app-icon name="loader" [size]="18" className="animate-spin-slow" />
               }
-              {{ loading() ? 'Ingresando...' : 'Ingresar' }}
+              {{ loading() ? 'Ingresando…' : 'Ingresar' }}
             </button>
 
             @if (error()) {
-              <div class="alert alert-error alert-sm py-2 text-sm">
+              <div class="alert alert-error py-2.5 text-sm">
                 <app-icon name="alert-circle" [size]="18" />
                 <span>{{ error() }}</span>
               </div>
@@ -80,6 +101,7 @@ export class LoginComponent {
   password = '';
   loading = signal(false);
   error = signal('');
+  currentYear = new Date().getFullYear();
 
   onSubmit(): void {
     if (!this.login || !this.password) {

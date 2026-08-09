@@ -1,12 +1,13 @@
 import { Injectable, signal, effect } from '@angular/core';
 
+export type ThemeName = 'barber' | 'barber-noche';
+
 @Injectable({
   providedIn: 'root',
 })
 export class ThemeService {
   private readonly STORAGE_KEY = 'peluqueria-theme';
-  private readonly THEMES = ['light', 'dark'] as const;
-  theme = signal<'light' | 'dark'>('light');
+  theme = signal<ThemeName>('barber');
 
   constructor() {
     const saved = this.getStoredTheme();
@@ -20,21 +21,21 @@ export class ThemeService {
   }
 
   toggle(): void {
-    this.theme.set(this.theme() === 'light' ? 'dark' : 'light');
+    this.theme.set(this.theme() === 'barber' ? 'barber-noche' : 'barber');
   }
 
-  private getStoredTheme(): 'light' | 'dark' {
-    if (typeof window === 'undefined') return 'light';
+  private getStoredTheme(): ThemeName {
+    if (typeof window === 'undefined') return 'barber';
     const saved = localStorage.getItem(this.STORAGE_KEY);
-    return saved === 'dark' ? 'dark' : 'light';
+    return saved === 'barber-noche' ? 'barber-noche' : 'barber';
   }
 
-  private storeTheme(theme: 'light' | 'dark'): void {
+  private storeTheme(theme: ThemeName): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem(this.STORAGE_KEY, theme);
   }
 
-  private applyTheme(theme: 'light' | 'dark'): void {
+  private applyTheme(theme: ThemeName): void {
     if (typeof document === 'undefined') return;
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);

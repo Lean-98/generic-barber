@@ -18,25 +18,25 @@ interface NavItem {
   template: `
     <div class="min-h-screen bg-base-200">
       <!-- Mobile top bar -->
-      <nav class="navbar sticky top-0 z-50 border-b border-base-300 bg-base-100/95 px-4 backdrop-blur shadow-sm md:hidden">
+      <nav class="navbar sticky top-0 z-50 bg-neutral px-4 text-neutral-content shadow-sm md:hidden">
         <div class="navbar-start gap-2">
-          <button class="btn btn-ghost btn-square text-base-content" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
+          <button class="btn btn-ghost btn-square text-neutral-content" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
             <app-icon name="menu" [size]="20" />
           </button>
-          <a routerLink="/dashboard" class="btn btn-ghost px-2 text-lg font-bold text-base-content">
-            <app-icon name="scissors" [size]="22" className="text-primary" />
-            <span>Peluquería</span>
+          <a routerLink="/dashboard" class="flex items-center gap-2 px-1">
+            <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
+            <span class="font-display text-lg font-semibold">Peluquería</span>
           </a>
         </div>
-        <div class="navbar-end gap-2">
-          <button class="btn btn-ghost btn-square btn-sm text-base-content" (click)="toggleTheme()" [attr.aria-label]="themeService.theme() === 'dark' ? 'Modo claro' : 'Modo oscuro'">
-            @if (themeService.theme() === 'dark') {
+        <div class="navbar-end gap-1">
+          <button class="btn btn-ghost btn-square btn-sm text-neutral-content" (click)="toggleTheme()" [attr.aria-label]="themeService.theme() === 'barber-noche' ? 'Modo claro' : 'Modo oscuro'">
+            @if (themeService.theme() === 'barber-noche') {
               <app-icon name="sun" [size]="18" />
             } @else {
               <app-icon name="moon" [size]="18" />
             }
           </button>
-          <button class="btn btn-ghost btn-sm gap-2 text-base-content" (click)="logout()">
+          <button class="btn btn-ghost btn-sm gap-2 text-neutral-content" (click)="logout()">
             <app-icon name="log-out" [size]="18" />
             <span class="hidden sm:inline">Salir</span>
           </button>
@@ -47,29 +47,29 @@ interface NavItem {
       @if (menuOpen()) {
         <div class="fixed inset-0 z-40 md:hidden" (click)="menuOpen.set(false)">
           <div class="absolute inset-0 bg-black/50"></div>
-          <aside class="absolute left-0 top-0 h-full w-64 border-r border-base-300 bg-base-100 shadow-xl" (click)="$event.stopPropagation()">
-            <div class="flex h-16 items-center gap-2 border-b border-base-300 px-4">
-              <app-icon name="scissors" [size]="22" className="text-primary" />
-              <span class="text-lg font-bold text-base-content">Peluquería</span>
+          <aside class="absolute left-0 top-0 h-full w-64 bg-neutral text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
+            <div class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
+              <span class="stripe-accent h-6 w-1.5 rounded-sm"></span>
+              <span class="font-display text-lg font-semibold">Peluquería</span>
             </div>
-            <ul class="menu menu-lg gap-1 p-4">
+            <ul class="flex flex-col gap-1 p-3">
               @for (item of navItems; track item.route) {
                 <li>
                   <a
                     [routerLink]="item.route"
-                    class="text-base-content hover:bg-base-200"
-                    routerLinkActive="bg-primary text-primary-content hover:bg-primary"
+                    class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                    routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                     [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
                     (click)="menuOpen.set(false)"
                   >
-                    <app-icon [name]="item.icon" [size]="20" />
+                    <app-icon [name]="item.icon" [size]="18" />
                     {{ item.label }}
                   </a>
                 </li>
               }
-              <li class="mt-4 border-t border-base-300 pt-4">
-                <a class="text-base-content hover:bg-base-200" (click)="logout()">
-                  <app-icon name="log-out" [size]="20" />
+              <li class="mt-3 border-t border-white/10 pt-3">
+                <a class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:bg-white/5 hover:text-neutral-content" (click)="logout()">
+                  <app-icon name="log-out" [size]="18" />
                   Salir
                 </a>
               </li>
@@ -79,23 +79,23 @@ interface NavItem {
       }
 
       <!-- Desktop sidebar -->
-      <aside class="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col border-r border-base-300 bg-base-100 shadow-sm md:flex">
-        <div class="flex h-16 items-center gap-3 border-b border-base-300 px-6">
-          <app-icon name="scissors" [size]="24" className="text-primary" />
-          <span class="text-lg font-bold text-base-content">Peluquería</span>
+      <aside class="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col bg-neutral text-neutral-content md:flex">
+        <div class="flex h-16 items-center gap-3 border-b border-white/10 px-6">
+          <span class="stripe-accent h-7 w-1.5 rounded-sm"></span>
+          <span class="font-display text-lg font-semibold tracking-tight">Peluquería</span>
         </div>
 
-        <nav class="flex-1 overflow-y-auto p-4">
-          <ul class="menu menu-lg gap-2">
+        <nav class="flex-1 overflow-y-auto p-3">
+          <ul class="flex flex-col gap-1">
             @for (item of navItems; track item.route) {
               <li>
                 <a
                   [routerLink]="item.route"
-                  class="text-base-content hover:bg-base-200"
-                  routerLinkActive="bg-primary text-primary-content hover:bg-primary"
+                  class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                  routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
                 >
-                  <app-icon [name]="item.icon" [size]="20" />
+                  <app-icon [name]="item.icon" [size]="18" />
                   {{ item.label }}
                 </a>
               </li>
@@ -103,30 +103,28 @@ interface NavItem {
           </ul>
         </nav>
 
-        <div class="border-t border-base-300 p-4 space-y-3">
-          <button class="btn btn-ghost btn-sm w-full justify-start gap-2 text-base-content hover:bg-base-200" (click)="toggleTheme()">
-            @if (themeService.theme() === 'dark') {
-              <app-icon name="sun" [size]="18" />
+        <div class="space-y-3 border-t border-white/10 p-4">
+          <button class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:bg-white/5 hover:text-neutral-content" (click)="toggleTheme()">
+            @if (themeService.theme() === 'barber-noche') {
+              <app-icon name="sun" [size]="16" />
               <span>Modo claro</span>
             } @else {
-              <app-icon name="moon" [size]="18" />
+              <app-icon name="moon" [size]="16" />
               <span>Modo oscuro</span>
             }
           </button>
 
           @if (authService.currentUser(); as user) {
-            <div class="flex items-center gap-3">
-              <div class="avatar placeholder">
-                <div class="bg-primary text-primary-content w-10 rounded-full">
-                  <span class="text-sm">{{ user.usuario.charAt(0).toUpperCase() }}</span>
-                </div>
+            <div class="flex items-center gap-3 rounded-md bg-white/5 p-2.5">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-content">
+                {{ user.usuario.charAt(0).toUpperCase() }}
               </div>
               <div class="flex-1 overflow-hidden">
-                <p class="truncate text-sm font-medium text-base-content">{{ user.usuario }}</p>
-                <p class="truncate text-xs text-base-content/60">{{ user.email }}</p>
+                <p class="truncate text-sm font-medium">{{ user.usuario }}</p>
+                <p class="truncate text-xs text-neutral-content/50">{{ user.email }}</p>
               </div>
-              <button class="btn btn-ghost btn-square btn-sm text-base-content hover:bg-base-200" (click)="logout()" aria-label="Salir">
-                <app-icon name="log-out" [size]="18" />
+              <button class="btn btn-ghost btn-square btn-sm text-neutral-content/70 hover:text-neutral-content" (click)="logout()" aria-label="Salir">
+                <app-icon name="log-out" [size]="16" />
               </button>
             </div>
           }

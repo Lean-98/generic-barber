@@ -18,7 +18,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
       <!-- Header -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 class="font-display text-3xl font-medium tracking-tight">Dashboard</h1>
           <p class="text-base-content/60 mt-1">Resumen del día de hoy</p>
         </div>
         <a routerLink="/turnos/nuevo" class="btn btn-primary gap-2">
@@ -29,44 +29,36 @@ import { IconComponent } from '../../shared/ui/icon.component';
 
       <!-- Stats -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="stats bg-primary text-primary-content shadow-sm">
-          <div class="stat">
-            <div class="stat-figure">
-              <app-icon name="calendar" [size]="28" />
-            </div>
-            <div class="stat-title text-primary-content/80">Turnos Hoy</div>
-            <div class="stat-value text-3xl">{{ turnosHoy().length }}</div>
+        <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Turnos hoy</span>
+            <app-icon name="calendar" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ turnosHoy().length }}</div>
         </div>
 
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-success">
-              <app-icon name="credit-card" [size]="28" />
-            </div>
-            <div class="stat-title">Ingresos Hoy</div>
-            <div class="stat-value text-3xl">\${{ ingresosHoy() }}</div>
+        <div class="rounded-lg border-t-2 border-secondary bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Ingresos hoy</span>
+            <app-icon name="credit-card" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ ingresosHoy() }}</div>
         </div>
 
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-primary">
-              <app-icon name="users" [size]="28" />
-            </div>
-            <div class="stat-title">Clientes</div>
-            <div class="stat-value text-3xl">{{ clientes().length }}</div>
+        <div class="rounded-lg border-t-2 border-accent bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Clientes</span>
+            <app-icon name="users" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ clientes().length }}</div>
         </div>
 
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-primary">
-              <app-icon name="scissors" [size]="28" />
-            </div>
-            <div class="stat-title">Servicios</div>
-            <div class="stat-value text-3xl">{{ servicios().length }}</div>
+        <div class="rounded-lg border-t-2 border-base-300 bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Servicios</span>
+            <app-icon name="scissors" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ servicios().length }}</div>
         </div>
       </div>
 
