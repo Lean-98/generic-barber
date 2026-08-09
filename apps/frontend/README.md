@@ -1,59 +1,73 @@
-# PeluqueriaFrontend
+# Peluquería Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.4.
+SPA Angular del Sistema de Gestión de Peluquería, generada con [Angular CLI](https://github.com/angular/angular-cli) (v20.0.4).
+
+> Parte del monorepo [Authentic Barber](../../README.md). Las dependencias se instalan desde la raíz del repo (`npm install`), no dentro de esta carpeta. El binario `ng` no está hoisteado a la raíz, así que usá los scripts de `npm` (que lo resuelven localmente) en lugar de invocar `ng` directamente, salvo que estés parado en `apps/frontend/`.
 
 ## Development server
 
-To start a local development server, run:
+Desde `apps/frontend/`:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+O desde la raíz del monorepo:
+
+```bash
+npm run dev:frontend
+```
+
+Una vez levantado el servidor, abrí `http://localhost:4200/`. La app se recarga automáticamente al modificar los archivos fuente.
 
 ## Code scaffolding
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Parado en `apps/frontend/`, Angular CLI incluye herramientas de scaffolding. Para generar un componente nuevo:
 
 ```bash
-ng generate component component-name
+npx ng generate component component-name
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Para ver todos los schematics disponibles (`components`, `directives`, `pipes`, etc.):
 
 ```bash
-ng generate --help
+npx ng generate --help
 ```
 
 ## Building
 
-To build the project run:
+Desde `apps/frontend/`:
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+O desde la raíz:
+
+```bash
+npm run build:frontend
+```
+
+Esto compila el proyecto y guarda los artefactos en `dist/`. Por defecto, el build de producción optimiza la app para performance y tamaño.
 
 ## Running unit tests
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Con [Karma](https://karma-runner.github.io), desde `apps/frontend/`:
 
 ```bash
-ng test
+npm test
+```
+
+O desde la raíz:
+
+```bash
+npm run test:frontend
 ```
 
 ## Running end-to-end tests
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Angular CLI no incluye un framework de e2e por defecto; hay que elegir uno según necesidad.
 
 ## Additional Resources
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Para más información sobre Angular CLI, ver la [referencia de comandos](https://angular.dev/tools/cli).

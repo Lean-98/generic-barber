@@ -2,6 +2,8 @@
 
 Backend API para el Sistema de Gestión de Peluquería.
 
+> Parte del monorepo [Authentic Barber](../../README.md). Las dependencias se instalan desde la raíz del repo (`npm install`), no dentro de esta carpeta.
+
 ## Stack
 
 - **Framework**: NestJS
@@ -13,7 +15,7 @@ Backend API para el Sistema de Gestión de Peluquería.
 ## Estructura del Proyecto
 
 ```
-peluqueria-backend/
+apps/backend/
 ├── docker-compose.yml          # PostgreSQL en Docker
 ├── prisma/
 │   └── schema.prisma           # Esquema de base de datos
@@ -35,29 +37,33 @@ peluqueria-backend/
 
 ## Primeros pasos
 
-### 1. Levantar la base de datos
+Todos los comandos `npm run <script>` de esta sección se pueden ejecutar parado en `apps/backend/`, o desde la raíz del monorepo con `npm run <script> --workspace=apps/backend`.
+
+### 1. Instalar dependencias (desde la raíz del monorepo)
 
 ```bash
-cp .env.example .env
-npm run db:up
+cd ../..
+npm install
 ```
 
-### 2. Instalar dependencias
+### 2. Levantar la base de datos
 
 ```bash
-npm install
+cd apps/backend
+cp .env.example .env
+npm run db:up
 ```
 
 ### 3. Generar el cliente de Prisma
 
 ```bash
-npx prisma generate
+npm run prisma:generate
 ```
 
 ### 4. Ejecutar migraciones
 
 ```bash
-npx prisma migrate dev --name init
+npm run prisma:migrate
 ```
 
 ### 5. Iniciar la aplicación
