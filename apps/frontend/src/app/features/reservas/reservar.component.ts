@@ -22,7 +22,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               <app-icon name="scissors" [size]="32" />
             </div>
           </div>
-          <h1 class="text-3xl font-bold tracking-tight md:text-4xl">Reservar Turno</h1>
+          <h1 class="text-3xl font-medium tracking-tight md:text-4xl">Reservar Turno</h1>
           <p class="text-base-content/60 max-w-md mx-auto">Seleccioná los servicios, fecha y horario para tu turno. Te enviaremos un recordatorio.</p>
         </div>
 
@@ -52,7 +52,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                           {{ servicio.duracionMinutos }} min
                         </p>
                       </div>
-                      <p class="font-bold text-primary">\${{ servicio.precio }}</p>
+                      <p class="tabular-nums font-semibold text-primary">\${{ servicio.precio }}</p>
                     </div>
                     @if (servicioSeleccionado(servicio.idServicio)) {
                       <div class="mt-4 flex items-center gap-2">
@@ -77,7 +77,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
             @if (serviciosSeleccionados().length > 0) {
               <div class="mt-6 flex items-center justify-between rounded-box bg-base-200/50 p-4">
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} min</strong></span>
-                <span class="text-lg font-bold">Total: \${{ totalPrecio() }}</span>
+                <span class="font-display tabular-nums text-lg font-semibold">Total: \${{ totalPrecio() }}</span>
               </div>
             }
           </div>

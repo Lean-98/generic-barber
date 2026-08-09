@@ -13,7 +13,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Servicios</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Servicios</h1>
           <p class="text-base-content/60 mt-1">Servicios que ofrecés en tu peluquería</p>
         </div>
         <div class="flex items-center gap-2">
@@ -101,7 +101,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                         <span class="text-sm text-base-content/50">—</span>
                       }
                     </td>
-                    <td class="font-medium">\${{ servicio.precio }}</td>
+                    <td class="tabular-nums font-medium">\${{ servicio.precio }}</td>
                     <td>
                       <span class="badge badge-ghost gap-1">
                         <app-icon name="clock" [size]="12" />
@@ -229,7 +229,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               @for (h of historial(); track h.idHistorial) {
                 <tr class="hover:bg-base-200/50">
                   <td>{{ h.fechaCambio | date:'short' }}</td>
-                  <td class="font-medium">\${{ h.precio }}</td>
+                  <td class="tabular-nums font-medium">\${{ h.precio }}</td>
                   <td>
                     <span class="badge badge-ghost gap-1">
                       <app-icon name="clock" [size]="12" />

@@ -20,7 +20,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Reportes</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Reportes</h1>
           <p class="text-base-content/60 mt-1">Estadísticas e ingresos de tu peluquería</p>
         </div>
         <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -39,36 +39,36 @@ import { IconComponent } from '../../shared/ui/icon.component';
 
       <!-- Resumen -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-success"><app-icon name="trending-up" [size]="28" /></div>
-            <div class="stat-title">Ingresos</div>
-            <div class="stat-value text-2xl text-success">\${{ resumen().totalIngresos | number:'1.2-2' }}</div>
+        <div class="rounded-lg border-t-2 border-success bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Ingresos</span>
+            <app-icon name="trending-up" [size]="18" />
+          </div>
+          <div class="font-display tabular-nums mt-2 text-2xl font-medium text-success">\${{ resumen().totalIngresos | number:'1.2-2' }}</div>
+        </div>
+        <div class="rounded-lg border-t-2 border-error bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Egresos</span>
+            <app-icon name="trending-down" [size]="18" />
+          </div>
+          <div class="font-display tabular-nums mt-2 text-2xl font-medium text-error">\${{ resumen().totalEgresos | number:'1.2-2' }}</div>
+        </div>
+        <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Balance</span>
+            <app-icon name="wallet" [size]="18" />
+          </div>
+          <div class="font-display tabular-nums mt-2 text-2xl font-medium" [class.text-success]="resumen().balance >= 0" [class.text-error]="resumen().balance < 0">
+            \${{ resumen().balance | number:'1.2-2' }}
           </div>
         </div>
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-error"><app-icon name="trending-down" [size]="28" /></div>
-            <div class="stat-title">Egresos</div>
-            <div class="stat-value text-2xl text-error">\${{ resumen().totalEgresos | number:'1.2-2' }}</div>
+        <div class="rounded-lg border-t-2 border-accent bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Turnos</span>
+            <app-icon name="calendar" [size]="18" />
           </div>
-        </div>
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-primary"><app-icon name="wallet" [size]="28" /></div>
-            <div class="stat-title">Balance</div>
-            <div class="stat-value text-2xl" [class.text-success]="resumen().balance >= 0" [class.text-error]="resumen().balance < 0">
-              \${{ resumen().balance | number:'1.2-2' }}
-            </div>
-          </div>
-        </div>
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-info"><app-icon name="calendar" [size]="28" /></div>
-            <div class="stat-title">Turnos</div>
-            <div class="stat-value text-2xl">{{ resumen().totalTurnos }}</div>
-            <div class="stat-desc">{{ resumen().turnosPagados }} pagados · {{ resumen().turnosCancelados }} cancelados</div>
-          </div>
+          <div class="font-display tabular-nums mt-2 text-2xl font-medium">{{ resumen().totalTurnos }}</div>
+          <div class="mt-1 text-xs text-base-content/50">{{ resumen().turnosPagados }} pagados · {{ resumen().turnosCancelados }} cancelados</div>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <div>
                     <div class="flex justify-between text-sm mb-1">
                       <span class="font-medium text-base-content">{{ item.fecha | date:'EEEE d' }}</span>
-                      <span class="text-success">\${{ item.ingresos | number:'1.2-2' }}</span>
+                      <span class="tabular-nums text-success">\${{ item.ingresos | number:'1.2-2' }}</span>
                     </div>
                     <div class="h-2 w-full rounded-full bg-base-200">
                       <div class="h-2 rounded-full bg-success" [style.width.%]="maxIngresos > 0 ? (item.ingresos / maxIngresos) * 100 : 0"></div>
@@ -138,7 +138,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <div>
                     <div class="flex justify-between text-sm mb-1">
                       <span class="font-medium text-base-content">{{ item.nombre }}</span>
-                      <span class="text-base-content">\${{ item.monto | number:'1.2-2' }}</span>
+                      <span class="tabular-nums text-base-content">\${{ item.monto | number:'1.2-2' }}</span>
                     </div>
                     <div class="h-2 w-full rounded-full bg-base-200">
                       <div class="h-2 rounded-full bg-info" [style.width.%]="maxPago > 0 ? (item.monto / maxPago) * 100 : 0"></div>
@@ -171,7 +171,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                       <tr class="hover:bg-base-200/50">
                         <td>{{ item.nombre }}</td>
                         <td class="text-right">{{ item.cantidad }}</td>
-                        <td class="text-right text-success">\${{ item.ingresos | number:'1.2-2' }}</td>
+                        <td class="tabular-nums text-right text-success">\${{ item.ingresos | number:'1.2-2' }}</td>
                       </tr>
                     }
                   </tbody>
@@ -203,7 +203,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                     <tr class="hover:bg-base-200/50">
                       <td>{{ item.nombre }} {{ item.apellido }}</td>
                       <td class="text-right">{{ item.cantidadTurnos }}</td>
-                      <td class="text-right text-success">\${{ item.ingresos | number:'1.2-2' }}</td>
+                      <td class="tabular-nums text-right text-success">\${{ item.ingresos | number:'1.2-2' }}</td>
                     </tr>
                   }
                 </tbody>

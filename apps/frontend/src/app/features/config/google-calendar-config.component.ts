@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
   template: `
     <div class="space-y-6 text-base-content">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Google Calendar</h1>
+        <h1 class="text-3xl font-medium tracking-tight">Google Calendar</h1>
         <p class="text-base-content/60 mt-1">Configuración de la integración con Google Calendar</p>
       </div>
 

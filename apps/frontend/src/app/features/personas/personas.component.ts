@@ -14,7 +14,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Clientes</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Clientes</h1>
           <p class="text-base-content/60 mt-1">Base de clientes de tu peluquería</p>
         </div>
       </div>
@@ -77,10 +77,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <tr class="hover:bg-base-200/50">
                     <td>
                       <div class="flex items-center gap-3">
-                        <div class="avatar placeholder">
-                          <div class="bg-primary text-primary-content w-10 rounded-full">
-                            <span class="text-sm">{{ persona.nombre.charAt(0) }}{{ persona.apellido.charAt(0) }}</span>
-                          </div>
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-content">
+                          {{ persona.nombre.charAt(0) }}{{ persona.apellido.charAt(0) }}
                         </div>
                         <div class="font-medium">{{ persona.nombre }} {{ persona.apellido }}</div>
                       </div>
@@ -144,13 +142,11 @@ import { IconComponent } from '../../shared/ui/icon.component';
       <div class="modal-box max-w-lg">
         @if (personaSeleccionada(); as p) {
           <div class="flex items-center gap-4 mb-6">
-            <div class="avatar placeholder">
-              <div class="bg-primary text-primary-content w-16 rounded-full">
-                <span class="text-xl">{{ p.nombre.charAt(0) }}{{ p.apellido.charAt(0) }}</span>
-              </div>
+            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-primary text-xl font-semibold text-primary-content">
+              {{ p.nombre.charAt(0) }}{{ p.apellido.charAt(0) }}
             </div>
             <div>
-              <h3 class="text-2xl font-bold">{{ p.nombre }} {{ p.apellido }}</h3>
+              <h3 class="text-2xl font-medium">{{ p.nombre }} {{ p.apellido }}</h3>
               <p class="text-base-content/60">Cliente</p>
             </div>
           </div>
@@ -269,7 +265,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <td>
                     <span class="badge" [class]="getEstadoClasses(turno.estado)">{{ turno.estado }}</span>
                   </td>
-                  <td class="text-right font-medium">
+                  <td class="tabular-nums text-right font-medium">
                     \${{ totalTurno(turno) }}
                   </td>
                 </tr>

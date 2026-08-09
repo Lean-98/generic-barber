@@ -16,7 +16,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Caja</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Caja</h1>
           <p class="text-base-content/60 mt-1">Pagos, movimientos y cierre de caja</p>
         </div>
         <div class="flex items-center gap-2">
@@ -26,26 +26,26 @@ import { IconComponent } from '../../shared/ui/icon.component';
 
       <!-- Totales -->
       <div class="grid gap-4 sm:grid-cols-3">
-        <div class="stats bg-success text-success-content shadow-sm">
-          <div class="stat">
-            <div class="stat-figure"><app-icon name="credit-card" [size]="28" /></div>
-            <div class="stat-title text-success-content/80">Ingresos</div>
-            <div class="stat-value text-3xl">\${{ totales().ingresos }}</div>
+        <div class="rounded-lg border-t-2 border-success bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Ingresos</span>
+            <app-icon name="credit-card" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ totales().ingresos }}</div>
         </div>
-        <div class="stats bg-error text-error-content shadow-sm">
-          <div class="stat">
-            <div class="stat-figure"><app-icon name="credit-card" [size]="28" /></div>
-            <div class="stat-title text-error-content/80">Egresos</div>
-            <div class="stat-value text-3xl">\${{ totales().egresos }}</div>
+        <div class="rounded-lg border-t-2 border-error bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Egresos</span>
+            <app-icon name="credit-card" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">\${{ totales().egresos }}</div>
         </div>
-        <div class="stats bg-base-100 shadow-sm">
-          <div class="stat">
-            <div class="stat-figure text-primary"><app-icon name="calendar" [size]="28" /></div>
-            <div class="stat-title">Balance</div>
-            <div class="stat-value text-3xl" [class.text-success]="totales().balance > 0" [class.text-error]="totales().balance < 0">\${{ totales().balance }}</div>
+        <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between text-base-content/50">
+            <span class="text-sm font-medium">Balance</span>
+            <app-icon name="calendar" [size]="18" />
           </div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium" [class.text-success]="totales().balance > 0" [class.text-error]="totales().balance < 0">\${{ totales().balance }}</div>
         </div>
       </div>
 
@@ -82,7 +82,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
                       </td>
                       <td>{{ mov.concepto }}</td>
                       <td>{{ mov.formaPago?.nombre }}</td>
-                      <td class="text-right font-medium" [class.text-success]="mov.tipo === 'INGRESO'" [class.text-error]="mov.tipo === 'EGRESO'">
+                      <td class="tabular-nums text-right font-medium" [class.text-success]="mov.tipo === 'INGRESO'" [class.text-error]="mov.tipo === 'EGRESO'">
                         {{ mov.tipo === 'INGRESO' ? '+' : '-' }}\${{ mov.monto }}
                       </td>
                     </tr>
@@ -220,23 +220,23 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   <div class="space-y-3">
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Efectivo</span>
-                      <span class="font-medium">\${{ cierre.totalEfectivo }}</span>
+                      <span class="tabular-nums font-medium">\${{ cierre.totalEfectivo }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Tarjeta</span>
-                      <span class="font-medium">\${{ cierre.totalTarjeta }}</span>
+                      <span class="tabular-nums font-medium">\${{ cierre.totalTarjeta }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Transferencia</span>
-                      <span class="font-medium">\${{ cierre.totalTransferencia }}</span>
+                      <span class="tabular-nums font-medium">\${{ cierre.totalTransferencia }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
                       <span class="text-base-content/60">Otros</span>
-                      <span class="font-medium">\${{ cierre.totalOtros }}</span>
+                      <span class="tabular-nums font-medium">\${{ cierre.totalOtros }}</span>
                     </div>
                     <div class="flex justify-between py-2 border-b">
-                      <span class="font-bold">Total Esperado</span>
-                      <span class="font-bold">\${{ cierre.totalEsperado }}</span>
+                      <span class="font-semibold">Total Esperado</span>
+                      <span class="tabular-nums font-semibold">\${{ cierre.totalEsperado }}</span>
                     </div>
                   </div>
                   <div class="space-y-4">
@@ -302,9 +302,9 @@ import { IconComponent } from '../../shared/ui/icon.component';
                             <span class="badge badge-warning badge-sm">Pendiente</span>
                           }
                         </td>
-                        <td class="font-medium">\${{ c.totalEsperado }}</td>
-                        <td class="font-medium">{{ c.horaFin ? '\$' + c.totalReal : '—' }}</td>
-                        <td class="font-medium" [class.text-success]="c.diferencia >= 0" [class.text-error]="c.diferencia < 0">
+                        <td class="tabular-nums font-medium">\${{ c.totalEsperado }}</td>
+                        <td class="tabular-nums font-medium">{{ c.horaFin ? '\$' + c.totalReal : '—' }}</td>
+                        <td class="tabular-nums font-medium" [class.text-success]="c.diferencia >= 0" [class.text-error]="c.diferencia < 0">
                           {{ c.horaFin ? '\$' + c.diferencia : '—' }}
                         </td>
                       </tr>

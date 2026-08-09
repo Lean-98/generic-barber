@@ -27,7 +27,7 @@ interface TurnoVisual {
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Turnos</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Turnos</h1>
           <p class="text-base-content/60 mt-1">Gestión de turnos y estados</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -80,10 +80,8 @@ interface TurnoVisual {
                     <tr class="hover:bg-base-200/50">
                       <td>
                         <div class="flex items-center gap-3">
-                          <div class="avatar placeholder">
-                            <div class="bg-neutral text-neutral-content w-8 rounded-full">
-                              <span class="text-xs">{{ iniciales(turno.persona) }}</span>
-                            </div>
+                          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral text-xs font-semibold text-neutral-content">
+                            {{ iniciales(turno.persona) }}
                           </div>
                           <div>
                             <div class="font-medium">{{ turno.persona?.nombre }} {{ turno.persona?.apellido }}</div>

@@ -19,7 +19,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
           <app-icon name="arrow-left" [size]="20" />
         </button>
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Nuevo Turno</h1>
+          <h1 class="text-3xl font-medium tracking-tight">Nuevo Turno</h1>
           <p class="text-base-content/60 mt-1">Completá los datos del cliente, servicios y horario</p>
         </div>
       </div>
@@ -52,10 +52,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
                   @for (cliente of clientesEncontrados(); track cliente.idPersona) {
                     <div class="flex items-center justify-between p-4 hover:bg-base-200/50 transition-colors">
                       <div class="flex items-center gap-3">
-                        <div class="avatar placeholder">
-                          <div class="bg-primary text-primary-content w-10 rounded-full">
-                            <span class="text-sm">{{ cliente.nombre.charAt(0) }}{{ cliente.apellido.charAt(0) }}</span>
-                          </div>
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-content">
+                          {{ cliente.nombre.charAt(0) }}{{ cliente.apellido.charAt(0) }}
                         </div>
                         <div>
                           <p class="font-medium">{{ cliente.nombre }} {{ cliente.apellido }}</p>
@@ -97,10 +95,8 @@ import { IconComponent } from '../../shared/ui/icon.component';
             } @else {
               <div class="alert alert-success">
                 <div class="flex items-center gap-3">
-                  <div class="avatar placeholder">
-                    <div class="bg-primary text-primary-content w-10 rounded-full">
-                      <span class="text-sm">{{ clienteSeleccionado()!.nombre.charAt(0) }}{{ clienteSeleccionado()!.apellido.charAt(0) }}</span>
-                    </div>
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-content">
+                    {{ clienteSeleccionado()!.nombre.charAt(0) }}{{ clienteSeleccionado()!.apellido.charAt(0) }}
                   </div>
                   <div class="flex-1">
                     <p class="font-medium">{{ clienteSeleccionado()!.nombre }} {{ clienteSeleccionado()!.apellido }}</p>
@@ -156,7 +152,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
               </div>
               <div class="flex flex-wrap items-center justify-between gap-2 rounded-box bg-base-200/50 p-4">
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} minutos</strong></span>
-                <span class="text-lg font-bold">Total estimado: \${{ totalEstimado() }}</span>
+                <span class="tabular-nums font-display text-lg font-semibold">Total estimado: \${{ totalEstimado() }}</span>
               </div>
             } @else {
               <div class="rounded-box border border-dashed p-6 text-center text-base-content/60">
