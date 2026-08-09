@@ -1,0 +1,395 @@
+{
+  "version": 1,
+  "skills": {
+    "angular-best-practices": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices/SKILL.md",
+      "computedHash": "8a0f0f438f5fc7ec25cae5b336f587156089e03f1cb9de436bc323e9f11e1416"
+    },
+    "angular-best-practices-material": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-material/SKILL.md",
+      "computedHash": "05c2889accf2e7fd3823f68efd12867ce8825910c9c29b9d0842f345a2887eac"
+    },
+    "angular-best-practices-ngrx": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-ngrx/SKILL.md",
+      "computedHash": "3ced41dfe6d6738c27627675a4a8f48228badcd6470654173cc235d04d812a6f"
+    },
+    "angular-best-practices-primeng": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-primeng/SKILL.md",
+      "computedHash": "9cbe2d007fde9ada2627fd60474b48490010f9f2071e2107ced9add84c1b2403"
+    },
+    "angular-best-practices-rule-creator": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/angular-best-practices-rule-creator/SKILL.md",
+      "computedHash": "7444d40134927c438df8041ffdc07d18e9e90c088b296a13a68f1cf6d1bd4e59"
+    },
+    "angular-best-practices-rules-reviewer": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/angular-best-practices-rules-reviewer/SKILL.md",
+      "computedHash": "fe92ce478be33f4401a9084fdc3fe30fdb3a38014fdcc6efa5524661ca420d22"
+    },
+    "angular-best-practices-signalstore": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-signalstore/SKILL.md",
+      "computedHash": "08b30f59d0205215720e6a057e4bd94db544d3b3eaccfe064768c9c8713d9bb2"
+    },
+    "angular-best-practices-spartan": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-spartan/SKILL.md",
+      "computedHash": "89da02751972cc693c29f37edb75dab3051147ea9d4a03690915aa79afaff8b8"
+    },
+    "angular-best-practices-tanstack": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-tanstack/SKILL.md",
+      "computedHash": "3ae45da35237307d6366165c1514d3853f3f7cd69269e9bae43abe27362160fd"
+    },
+    "angular-best-practices-transloco": {
+      "source": "alfredoperez/angular-best-practices",
+      "sourceType": "github",
+      "skillPath": "skills/angular-best-practices-transloco/SKILL.md",
+      "computedHash": "a48a7414b082426948dcd1a18797a1764b3f716aba498a6f8d652cd0ce9a666e"
+    },
+    "angular-component": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-component/SKILL.md",
+      "computedHash": "fa1049900beb037dd5afddd0dc6059aed588bfa1e11cc3a96f76bd90a0a6b0d8"
+    },
+    "angular-di": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-di/SKILL.md",
+      "computedHash": "a4114618b61f892c9ae64319e1a8b8c4344e7a8cef751e5960478320a60fad02"
+    },
+    "angular-directives": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-directives/SKILL.md",
+      "computedHash": "93e94cd061553df25245a73bb825e313b5efc291fd0efc1669c5d4e65bdb8778"
+    },
+    "angular-forms": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-forms/SKILL.md",
+      "computedHash": "d77e6a1b359b198f1ef8115ff806d2308d433551f65faa042759ec57b9ab0970"
+    },
+    "angular-http": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-http/SKILL.md",
+      "computedHash": "9ee3a3d956fa649ba842a78a781eae73750e3519bda9b7f3de64b4f3430fe37f"
+    },
+    "angular-routing": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-routing/SKILL.md",
+      "computedHash": "d8239cfd29d1ad23ac00388c4b439dd64711327540731afb6c073497cbf0e311"
+    },
+    "angular-signals": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-signals/SKILL.md",
+      "computedHash": "abab334ccceb7845ed6ef6ad9b67eb64cf41678f41b27671ccdad1d1e99c46f7"
+    },
+    "angular-ssr": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-ssr/SKILL.md",
+      "computedHash": "9b72bb2d2a627e4c4254bf7f2077b0c8fa3f5f2f6d3ce7831cd5d7ec246b9499"
+    },
+    "angular-testing": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-testing/SKILL.md",
+      "computedHash": "7e3bafbc292c9ad06bace8cd788e9e239e54854a62bcef6f531ce997b08cc4c8"
+    },
+    "angular-tooling": {
+      "source": "analogjs/angular-skills",
+      "sourceType": "github",
+      "skillPath": "skills/angular-tooling/SKILL.md",
+      "computedHash": "9cea0bc527619a1811503315e3edbbeb9afb492c887bd7fd5d78ddfac55417ef"
+    },
+    "animate": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/animate/SKILL.md",
+      "computedHash": "5c7094be3a84f8083dc081d15467d0199836a7ca43891bc83f6ce22bcf23de08"
+    },
+    "animation-vocabulary": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/animation-vocabulary/SKILL.md",
+      "computedHash": "39319fc9a33c15be08666b3685f58666f042ff36bb902b7814c0834a5ba99df4"
+    },
+    "apple-design": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/apple-design/SKILL.md",
+      "computedHash": "8b94db67cb9edaad5f1501010804caa610131f1d2dfda0a27664b2e858deade3"
+    },
+    "brandkit": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/brandkit/SKILL.md",
+      "computedHash": "b63012f3c3d21197e0185d3e9cc7ec40c589fb10e0b5a32a561739de31aa3f20"
+    },
+    "design-taste-frontend": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill/SKILL.md",
+      "computedHash": "6d838b246d0e35d0b53f4f23f98ba7a1dd561937e64f7d0c7553b0928e376c3e"
+    },
+    "design-taste-frontend-v1": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill-v1/SKILL.md",
+      "computedHash": "d704ab912c4d0ca954ffa858983da755ae4cd5cad9ba22554db5557382f5bd34"
+    },
+    "e2e-testing-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/e2e-testing-patterns/SKILL.md",
+      "computedHash": "6daed3254a84348588532aca327ec82a57cafefd7c97c50e75879788f7c1a18d"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "41b0a4dc1a27164fe297845a6c6850a39e9242c42c9be999967fcee9df2c5974"
+    },
+    "find-animation-opportunities": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-animation-opportunities/SKILL.md",
+      "computedHash": "8fb8492eb8fbed1313cb430b5831d925d9b8964ca24f3c41a6244cbd1fd98732"
+    },
+    "full-output-enforcement": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/output-skill/SKILL.md",
+      "computedHash": "26bd29ce4c5e02c7666b2d503609bf466bd32290822e91f0e984147048dbb924"
+    },
+    "gpt-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/gpt-tasteskill/SKILL.md",
+      "computedHash": "cc8f0c601d8240a124e1d11634351a2be7b8a72fd807c75e5b6bf7afcd5ddee0"
+    },
+    "high-end-visual-design": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/soft-skill/SKILL.md",
+      "computedHash": "7db385e4c5370e5a7fca9704a1361b056e4504ea6a03924bb86f33a4f00b5c73"
+    },
+    "image-to-code": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/image-to-code-skill/SKILL.md",
+      "computedHash": "58517b03b2a01f4c9ba65861559d03df931400871bbc200978c975b24bb92c73"
+    },
+    "imagegen-frontend-mobile": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/imagegen-frontend-mobile/SKILL.md",
+      "computedHash": "9ab7f4f6ce66a3cff02bbf5894e5bd5af50bf5d6ef0adffdc88e8fab772fe44f"
+    },
+    "imagegen-frontend-web": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/imagegen-frontend-web/SKILL.md",
+      "computedHash": "65f5ae59fa317567809438310b1c54f78cd133426deb43e4d3d4ca4c8f541628"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "7788a0d533a1c7ee5a4cb0051405310409b197dd0ee409c760783361f2cdd0b5"
+    },
+    "improve-animations": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/improve-animations/SKILL.md",
+      "computedHash": "eeb219a407e325b687af88db25771cc3018e3148245604112f5ac6990b6fd79c"
+    },
+    "industrial-brutalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/brutalist-skill/SKILL.md",
+      "computedHash": "8fc355c4aadb7d29c53ca28bc41be3cd6eea765d121e3737c4dc2d0f90a8effa"
+    },
+    "iris-development": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/iris-development/SKILL.md",
+      "computedHash": "39ecfe66377a3f21dff8ba13f69b0a2da1e2cb2112a37a8cc84effec7b4f61fd"
+    },
+    "jwt-security": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "jwt-security/SKILL.md",
+      "computedHash": "07d22bb08ad8ac8ffcb90885bb04c04ec7e6f5498eb63580ca6072a4c1694c80"
+    },
+    "minimalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/minimalist-skill/SKILL.md",
+      "computedHash": "08873a3131d3be27bef9bf3304b310b16b44ca6e3561aebe532797be3443f6bd"
+    },
+    "multi-stage-dockerfile": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/multi-stage-dockerfile/SKILL.md",
+      "computedHash": "698bf93a84dae18fd7bd0b1d35c21427307fde78fbdf4624be9726f5f98189ca"
+    },
+    "nestjs-best-practices": {
+      "source": "kadajett/agent-nestjs-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nestjs-best-practices/SKILL.md",
+      "computedHash": "58f8a630637be3acce1f118c747d68160346ada8a43d76cb52a5b4c4edaa2d37"
+    },
+    "nestjs-testing-expert": {
+      "source": "shipshitdev/library",
+      "sourceType": "github",
+      "skillPath": "skills/nestjs-testing-expert/SKILL.md",
+      "computedHash": "3386ff2422f985c3db03312edfb77f503f49c5fc15521550e44b9fe43286d583"
+    },
+    "openapi-spec-generation": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/documentation-generation/skills/openapi-spec-generation/SKILL.md",
+      "computedHash": "d062c891d58ef7e38c56360d4c325aff70247d1b5880b8b299098d7e51e38294"
+    },
+    "owasp-security": {
+      "source": "agamm/claude-code-owasp",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/owasp-security/SKILL.md",
+      "computedHash": "3441937e14d1be92267310c4b6b17db2ecc04a6d7f60ded24abc122bfb4ae04c"
+    },
+    "pick-ui-library": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pick-ui-library/SKILL.md",
+      "computedHash": "f8d4d2cf4677bf54b14f35f62a741add93541bfcb67863315a40164365161b49"
+    },
+    "prisma-cli": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-cli/SKILL.md",
+      "computedHash": "129e77cba93984b88d66cf0f66d5788f5487431f17f189a1ab2d839976874e3b"
+    },
+    "prisma-client-api": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-client-api/SKILL.md",
+      "computedHash": "cbbabff961c8e16b2d59f8c1ffb4e7e20be52154e778ab95121e0211d6d09969"
+    },
+    "prisma-database-setup": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-database-setup/SKILL.md",
+      "computedHash": "6a991a2530a6da7131e3fc71c353e8278702d0146b8b6e1d2fdfc2d3d0a21bd2"
+    },
+    "prisma-postgres": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-postgres/SKILL.md",
+      "computedHash": "0422727e18019add9208b86ce862964025acc011ff31fba1d59a01b836bd6272"
+    },
+    "prototype": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/prototype/SKILL.md",
+      "computedHash": "f246d1f47566481d9207e1aa574bdee5454257d862919a6591283e9af2f57eab"
+    },
+    "redesign-existing-projects": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/redesign-skill/SKILL.md",
+      "computedHash": "b405eee0e0e80fc243f731d9aa368bca307e356db7e6157d27101d369dac6726"
+    },
+    "redis-clustering": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-clustering/SKILL.md",
+      "computedHash": "3ad7c57f2b6f4079622fa0f328332e4ad8e4fbcdced744dafe466ed517472a9c"
+    },
+    "redis-connections": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-connections/SKILL.md",
+      "computedHash": "89f90c57841683ae4ff3d5495f63a1174f9a949a32bc1934a702c593713bb7df"
+    },
+    "redis-core": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-core/SKILL.md",
+      "computedHash": "9954849fe0906529fcad7b640874c6941d713a3877140618259411e416c8ba6a"
+    },
+    "redis-observability": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-observability/SKILL.md",
+      "computedHash": "6c7e83d86fcf70c75f12c5a90e965876ed0b6bdfae7c6674db48558644de9eae"
+    },
+    "redis-search": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-search/SKILL.md",
+      "computedHash": "30ee692a1df0764892678b6ce79c131c6721daeb2a828629f3856a01d6d13739"
+    },
+    "redis-security": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-security/SKILL.md",
+      "computedHash": "121eaa640a86472cc615cc7f8c3c940cd3b08f5dcfde524a2964f8c573b340c1"
+    },
+    "redis-semantic-cache": {
+      "source": "redis/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/redis-semantic-cache/SKILL.md",
+      "computedHash": "e11aa70e98d5e2332095fae263d0cb55c757048419dd4740bc23fe23df16b9f9"
+    },
+    "review-animations": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/review-animations/SKILL.md",
+      "computedHash": "b9f669af5ae280c19a592a94611520335a81de25c88f225bf60ae4b2d66c8c7c"
+    },
+    "stitch-design-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/stitch-skill/SKILL.md",
+      "computedHash": "13322f38406cd3abf16ba45e35bdc9b18002d0153a79b4612b97aefc65d5a335"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "cd61afd28f594e8b6712b61749209cbb4466e3eec4e4223793bbd97fc85c1b63"
+    },
+    "typescript-advanced-types": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/javascript-typescript/skills/typescript-advanced-types/SKILL.md",
+      "computedHash": "8cbf2bf600f392d7260e476e3202932a876e2281cda3b15a8b6a5a43f383252d"
+    },
+    "vitest": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "943d436114c677802426741980146c07560bf375297666b03062444f4b98a785"
+    }
+  }
+}
