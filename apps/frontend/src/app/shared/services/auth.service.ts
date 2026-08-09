@@ -2,13 +2,14 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, RegisterRequest, UserProfile } from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private readonly apiUrl = environment.apiUrl;
 
   currentUser = signal<UserProfile | null>(null);
   isAuthenticated = signal<boolean>(!!localStorage.getItem('access_token'));

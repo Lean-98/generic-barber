@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import {
   ClienteReporte,
   IngresosPorDia,
@@ -16,7 +17,7 @@ import {
 })
 export class ReportesService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/api/reportes';
+  private readonly apiUrl = `${environment.apiUrl}/reportes`;
 
   getResumen(desde?: string, hasta?: string): Observable<ReporteResumen> {
     return this.http.get<ReporteResumen>(`${this.apiUrl}/resumen`, { params: this.buildParams(desde, hasta) });

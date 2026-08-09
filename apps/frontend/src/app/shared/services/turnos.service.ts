@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { Turno, CreateTurnoRequest, UpdateTurnoRequest } from '../models/turno.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TurnosService {
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -27,7 +28,7 @@ export class TurnosService {
   }
 
   cancelar(id: number): Observable<Turno> {
-    return this.http.post<Turno>(`${this.apiUrl}/turnos/${id}/cancelar`, {});
+    return this.http.delete<Turno>(`${this.apiUrl}/turnos/${id}`);
   }
 
   iniciarAtencion(id: number): Observable<Turno> {

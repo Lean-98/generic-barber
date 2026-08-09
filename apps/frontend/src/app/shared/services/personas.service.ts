@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { Persona, CreatePersonaRequest, UpdatePersonaRequest } from '../models/persona.model';
 import { Turno } from '../models/turno.model';
 
@@ -8,7 +9,7 @@ import { Turno } from '../models/turno.model';
   providedIn: 'root',
 })
 export class PersonasService {
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private readonly http: HttpClient) {}
 

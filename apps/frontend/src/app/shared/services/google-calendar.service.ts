@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface GoogleCalendarStatus {
   configured: boolean;
@@ -14,7 +15,7 @@ export interface GoogleCalendarStatus {
   providedIn: 'root',
 })
 export class GoogleCalendarService {
-  private readonly apiUrl = 'http://localhost:3000/api/google-calendar';
+  private readonly apiUrl = `${environment.apiUrl}/google-calendar`;
 
   constructor(private readonly http: HttpClient) {}
 
