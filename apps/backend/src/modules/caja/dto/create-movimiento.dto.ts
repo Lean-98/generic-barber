@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsInt, IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsNumber, IsInt, IsString, IsEnum, IsOptional, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MovimientoTipo } from '../../../common/enums/movimiento-tipo.enum';
 
@@ -11,6 +11,7 @@ export class CreateMovimientoDto {
 
   @ApiProperty({ description: 'Monto', example: 25.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
   @Type(() => Number)
   monto: number;
 

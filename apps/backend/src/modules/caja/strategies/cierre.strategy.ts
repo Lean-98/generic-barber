@@ -1,4 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { inicioDiaAr, finDiaAr } from '../../../common/utils/fecha-ar.util';
 
 /**
  * Interfaz del patrón Strategy para calcular totales de cierre de caja.
@@ -10,32 +11,44 @@ export interface ICierreStrategy {
 }
 
 /**
+ * Suma los INGRESO y resta los EGRESO del día para las formas de pago dadas.
+ * El total de una forma de pago es lo que debería haber en esa "caja" al
+ * cierre: lo que entró menos lo que salió (ej. plata retirada del cajón
+ * para comprar insumos), no solo lo que entró.
+ */
+async function calcularNeto(prisma: PrismaService, fecha: Date, idsFormaPago: number[]): Promise<number> {
+  if (idsFormaPago.length === 0) return 0;
+
+  const inicio = inicioDiaAr(fecha);
+  const fin = finDiaAr(fecha);
+
+  const movimientos = await prisma.movimientoCaja.findMany({
+    where: {
+      idFormaPago: { in: idsFormaPago },
+      fechaHora: { gte: inicio, lte: fin },
+      tipo: { in: ['INGRESO', 'EGRESO'] },
+    },
+  });
+
+  return movimientos.reduce((neto, m) => {
+    const monto = Number(m.monto);
+    return m.tipo === 'INGRESO' ? neto + monto : neto - monto;
+  }, 0);
+}
+
+/**
  * Estrategia concreta: Efectivo
  */
 export class EfectivoStrategy implements ICierreStrategy {
   nombre = 'Efectivo';
 
   async calcularTotal(prisma: PrismaService, fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setUTCHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setUTCHours(23, 59, 59, 999);
-
     const formaPago = await prisma.formaPago.findFirst({
       where: { nombre: 'Efectivo' },
     });
-
     if (!formaPago) return 0;
 
-    const movimientos = await prisma.movimientoCaja.findMany({
-      where: {
-        idFormaPago: formaPago.idFormaPago,
-        fechaHora: { gte: inicio, lte: fin },
-        tipo: 'INGRESO',
-      },
-    });
-
-    return movimientos.reduce((sum, m) => sum + Number(m.monto), 0);
+    return calcularNeto(prisma, fecha, [formaPago.idFormaPago]);
   }
 }
 
@@ -47,30 +60,11 @@ export class TarjetaStrategy implements ICierreStrategy {
   nombre = 'Tarjeta';
 
   async calcularTotal(prisma: PrismaService, fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setUTCHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setUTCHours(23, 59, 59, 999);
-
     const formasPago = await prisma.formaPago.findMany({
-      where: {
-        nombre: { in: ['Tarjeta de Crédito', 'Tarjeta de Débito'] },
-      },
+      where: { nombre: { in: ['Tarjeta de Crédito', 'Tarjeta de Débito'] } },
     });
 
-    if (formasPago.length === 0) return 0;
-
-    const ids = formasPago.map((fp) => fp.idFormaPago);
-
-    const movimientos = await prisma.movimientoCaja.findMany({
-      where: {
-        idFormaPago: { in: ids },
-        fechaHora: { gte: inicio, lte: fin },
-        tipo: 'INGRESO',
-      },
-    });
-
-    return movimientos.reduce((sum, m) => sum + Number(m.monto), 0);
+    return calcularNeto(prisma, fecha, formasPago.map((fp) => fp.idFormaPago));
   }
 }
 
@@ -81,26 +75,12 @@ export class TransferenciaStrategy implements ICierreStrategy {
   nombre = 'Transferencia';
 
   async calcularTotal(prisma: PrismaService, fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setUTCHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setUTCHours(23, 59, 59, 999);
-
     const formaPago = await prisma.formaPago.findFirst({
       where: { nombre: 'Transferencia' },
     });
-
     if (!formaPago) return 0;
 
-    const movimientos = await prisma.movimientoCaja.findMany({
-      where: {
-        idFormaPago: formaPago.idFormaPago,
-        fechaHora: { gte: inicio, lte: fin },
-        tipo: 'INGRESO',
-      },
-    });
-
-    return movimientos.reduce((sum, m) => sum + Number(m.monto), 0);
+    return calcularNeto(prisma, fecha, [formaPago.idFormaPago]);
   }
 }
 
@@ -111,30 +91,13 @@ export class OtrosStrategy implements ICierreStrategy {
   nombre = 'Otros';
 
   async calcularTotal(prisma: PrismaService, fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setUTCHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setUTCHours(23, 59, 59, 999);
-
     const formasPago = await prisma.formaPago.findMany({
       where: {
         nombre: { notIn: ['Efectivo', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Transferencia'] },
       },
     });
 
-    if (formasPago.length === 0) return 0;
-
-    const ids = formasPago.map((fp) => fp.idFormaPago);
-
-    const movimientos = await prisma.movimientoCaja.findMany({
-      where: {
-        idFormaPago: { in: ids },
-        fechaHora: { gte: inicio, lte: fin },
-        tipo: 'INGRESO',
-      },
-    });
-
-    return movimientos.reduce((sum, m) => sum + Number(m.monto), 0);
+    return calcularNeto(prisma, fecha, formasPago.map((fp) => fp.idFormaPago));
   }
 }
 

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
-import { Pago } from '@prisma/client';
+import { Pago, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PagosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreatePagoDto): Promise<Pago> {
-    return this.prisma.pago.create({
+  async create(data: CreatePagoDto, client: PrismaService | Prisma.TransactionClient = this.prisma): Promise<Pago> {
+    return client.pago.create({
       data: {
         idTurno: data.idTurno,
         idFormaPago: data.idFormaPago,

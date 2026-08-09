@@ -45,21 +45,27 @@ export class CajaFacade {
       );
     }
 
-    // 2. Registrar pago
-    const pago = await this.pagosService.create(dto);
-
-    // 3. Crear movimiento de caja
+    // 2 y 3. Registrar pago y crear movimiento de caja en una sola transacción:
+    // si el movimiento fallara después de guardar el pago, quedaría plata
+    // cobrada que nunca aparece en los totales de caja.
     const formaPago = await this.prisma.formaPago.findUnique({
       where: { idFormaPago: dto.idFormaPago },
     });
 
-    const movimiento = await this.movimientosService.create({
-      tipo: MovimientoTipo.INGRESO,
-      monto: dto.monto,
-      concepto: `Pago turno #${dto.idTurno} - ${formaPago?.nombre || 'N/A'}`,
-      idFormaPago: dto.idFormaPago,
-      idUsuario,
-      idTurno: dto.idTurno,
+    const [pago, movimiento] = await this.prisma.$transaction(async (tx) => {
+      const pagoCreado = await this.pagosService.create(dto, tx);
+      const movimientoCreado = await this.movimientosService.create(
+        {
+          tipo: MovimientoTipo.INGRESO,
+          monto: dto.monto,
+          concepto: `Pago turno #${dto.idTurno} - ${formaPago?.nombre || 'N/A'}`,
+          idFormaPago: dto.idFormaPago,
+          idUsuario,
+          idTurno: dto.idTurno,
+        },
+        tx,
+      );
+      return [pagoCreado, movimientoCreado];
     });
 
     // 4. Verificar si el turno está completamente pagado

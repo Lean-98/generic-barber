@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsInt, IsOptional, IsString, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePagoDto {
@@ -15,6 +15,7 @@ export class CreatePagoDto {
 
   @ApiProperty({ description: 'Monto del pago', example: 25.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
   @Type(() => Number)
   monto: number;
 

@@ -17,11 +17,6 @@ export class CierreService {
       throw new BadRequestException('Ya existe un cierre para esta fecha');
     }
 
-    const inicio = new Date(fecha);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setHours(23, 59, 59, 999);
-
     // Calcular totales esperados usando Strategy
     const efectivo = getCierreStrategy('Efectivo');
     const tarjeta = getCierreStrategy('Tarjeta');

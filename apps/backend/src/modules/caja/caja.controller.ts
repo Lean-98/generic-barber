@@ -99,8 +99,9 @@ export class CajaController {
   @ApiResponse({ status: 200, description: 'Cierre confirmado' })
   async confirmarCierre(
     @Body() dto: ConfirmarCierreDto,
+    @CurrentUser() user: any,
   ) {
-    return this.cajaService.cierre.confirmarCierre(dto.idCierre, dto.totalReal, dto.idUsuario);
+    return this.cajaService.cierre.confirmarCierre(dto.idCierre, dto.totalReal, user.usuario);
   }
 
   @Get('cierre')

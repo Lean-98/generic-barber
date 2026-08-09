@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsString, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ConfirmarCierreDto {
@@ -10,10 +10,12 @@ export class ConfirmarCierreDto {
 
   @ApiProperty({ description: 'Monto real contado', example: 500.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @Type(() => Number)
   totalReal: number;
 
-  @ApiProperty({ description: 'Usuario que cierra', example: 'admin' })
+  @ApiPropertyOptional({ description: 'Ignorado: quién cierra se toma del usuario autenticado', example: 'admin' })
   @IsString()
-  idUsuario: string;
+  @IsOptional()
+  idUsuario?: string;
 }

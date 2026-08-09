@@ -1,14 +1,18 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MovimientoCaja } from '@prisma/client';
+import { MovimientoCaja, Prisma } from '@prisma/client';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
+import { inicioDiaAr, finDiaAr } from '../../common/utils/fecha-ar.util';
 
 @Injectable()
 export class MovimientosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateMovimientoDto): Promise<MovimientoCaja> {
-    return this.prisma.movimientoCaja.create({
+  async create(
+    data: CreateMovimientoDto,
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<MovimientoCaja> {
+    return client.movimientoCaja.create({
       data: {
         fechaHora: new Date(),
         tipo: data.tipo,
@@ -22,10 +26,8 @@ export class MovimientosService {
   }
 
   async findByFecha(fecha: Date): Promise<MovimientoCaja[]> {
-    const inicio = new Date(fecha);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setHours(23, 59, 59, 999);
+    const inicio = inicioDiaAr(fecha);
+    const fin = finDiaAr(fecha);
 
     return this.prisma.movimientoCaja.findMany({
       where: {
@@ -52,10 +54,8 @@ export class MovimientosService {
   }
 
   async calcularTotalIngresos(fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setHours(23, 59, 59, 999);
+    const inicio = inicioDiaAr(fecha);
+    const fin = finDiaAr(fecha);
 
     const result = await this.prisma.movimientoCaja.aggregate({
       where: {
@@ -69,10 +69,8 @@ export class MovimientosService {
   }
 
   async calcularTotalEgresos(fecha: Date): Promise<number> {
-    const inicio = new Date(fecha);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fecha);
-    fin.setHours(23, 59, 59, 999);
+    const inicio = inicioDiaAr(fecha);
+    const fin = finDiaAr(fecha);
 
     const result = await this.prisma.movimientoCaja.aggregate({
       where: {
