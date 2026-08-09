@@ -14,7 +14,7 @@ export class RegisterDto {
   @ApiProperty({ description: 'Contraseña', example: 'password123' })
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
   password: string;
 
   @ApiProperty({ description: 'Nombre del peluquero', example: 'Juan' })

@@ -46,8 +46,45 @@ describe('AuthController (e2e)', () => {
   });
 
   describe('POST /api/auth/register', () => {
-    it('should register a new user and return 201', async () => {
+    async function loginComoAdmin(): Promise<string> {
+      const persona = await prisma.persona.create({
+        data: { nombre: 'Admin', apellido: 'Test' },
+      });
+      const hashPass = await bcrypt.hash('admin123', 10);
+      await prisma.usuarioWeb.create({
+        data: {
+          usuario: 'admin',
+          email: 'admin@test.com',
+          hashPass,
+          rol: 'ADMIN',
+          idPersona: persona.idPersona,
+        },
+      });
+      const login = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ login: 'admin', password: 'admin123' });
+      return login.body.access_token;
+    }
+
+    it('should reject registration without authentication', async () => {
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          usuario: 'peluquero1',
+          email: 'peluquero@test.com',
+          password: 'password123',
+          nombre: 'Juan',
+          apellido: 'Pérez',
+        });
+
+      // Assert
+      expect(response.status).toBe(401);
+    });
+
+    it('should register a new user and return 201 when authenticated', async () => {
       // Arrange
+      const token = await loginComoAdmin();
       const payload = {
         usuario: 'peluquero1',
         email: 'peluquero@test.com',
@@ -60,6 +97,7 @@ describe('AuthController (e2e)', () => {
       // Act
       const response = await request(app.getHttpServer())
         .post('/api/auth/register')
+        .set('Authorization', `Bearer ${token}`)
         .send(payload);
 
       // Assert
@@ -75,6 +113,7 @@ describe('AuthController (e2e)', () => {
 
     it('should return 409 when username already exists', async () => {
       // Arrange
+      const token = await loginComoAdmin();
       const payload = {
         usuario: 'peluquero1',
         email: 'peluquero@test.com',
@@ -85,11 +124,13 @@ describe('AuthController (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/api/auth/register')
+        .set('Authorization', `Bearer ${token}`)
         .send(payload);
 
       // Act
       const response = await request(app.getHttpServer())
         .post('/api/auth/register')
+        .set('Authorization', `Bearer ${token}`)
         .send({ ...payload, email: 'otro@test.com' });
 
       // Assert
