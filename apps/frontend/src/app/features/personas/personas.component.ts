@@ -18,31 +18,10 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
           <h1 class="text-3xl font-medium tracking-tight">Clientes</h1>
           <p class="text-base-content/60 mt-1">Base de clientes de tu peluquería</p>
         </div>
-      </div>
-
-      <!-- Agregar cliente -->
-      <div class="card bg-base-100 shadow-sm">
-        <div class="card-body">
-          <h2 class="card-title text-lg mb-4">Agregar cliente</h2>
-          <form (ngSubmit)="crear()" class="grid gap-4 md:grid-cols-6">
-            <div class="md:col-span-1">
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Nombre" required />
-            </div>
-            <div class="md:col-span-1">
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoApellido" name="apellido" placeholder="Apellido" required />
-            </div>
-            <div class="md:col-span-2">
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="Teléfono" />
-            </div>
-            <div class="md:col-span-1">
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoInstagram" name="instagram" placeholder="Instagram" />
-            </div>
-            <button type="submit" class="btn btn-primary gap-2">
-              <app-icon name="plus" [size]="18" />
-              Agregar
-            </button>
-          </form>
-        </div>
+        <button class="btn btn-primary gap-2" (click)="abrirCrear()">
+          <app-icon name="plus" [size]="18" />
+          Agregar
+        </button>
       </div>
 
       <!-- Filtro -->
@@ -137,6 +116,53 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
         </div>
       </div>
     </div>
+
+    <!-- Modal crear -->
+    <dialog #crearModal class="modal">
+      <div class="modal-box max-w-lg">
+        <h3 class="text-lg font-bold mb-4">Agregar cliente</h3>
+        <form (ngSubmit)="crear()" class="space-y-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Nombre</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Nombre" required />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Apellido</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoApellido" name="apellido" placeholder="Apellido" required />
+            </div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Email</span></label>
+            <input type="email" class="input input-bordered w-full" [(ngModel)]="nuevoMail" name="mail" />
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Teléfono</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="Teléfono" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Instagram</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoInstagram" name="instagram" placeholder="Instagram" />
+            </div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Fecha de nacimiento</span></label>
+            <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaFechaNacimiento" name="fechaNacimiento" />
+          </div>
+          <div class="modal-action">
+            <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
+            <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoApellido">
+              <app-icon name="plus" [size]="18" />
+              Agregar
+            </button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button (click)="cerrarCrear()">close</button>
+      </form>
+    </dialog>
 
     <!-- Modal detalle -->
     <dialog #detalleModal class="modal">
@@ -315,6 +341,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 export class PersonasComponent implements OnInit {
   private readonly personasService = inject(PersonasService);
 
+  @ViewChild('crearModal') crearModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('detalleModal') detalleModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('editarModal') editarModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('turnosModal') turnosModalRef!: ElementRef<HTMLDialogElement>;
@@ -340,11 +367,14 @@ export class PersonasComponent implements OnInit {
   turnosCliente = signal<Turno[]>([]);
   guardando = signal(false);
   eliminando = signal(false);
+  creando = signal(false);
 
   nuevoNombre = '';
   nuevoApellido = '';
+  nuevoMail = '';
   nuevoTelefono = '';
   nuevoInstagram = '';
+  nuevaFechaNacimiento = '';
 
   ngOnInit(): void {
     this.loadPersonas();
@@ -362,20 +392,40 @@ export class PersonasComponent implements OnInit {
     this.filtro.set('');
   }
 
+  abrirCrear(): void {
+    this.nuevoNombre = '';
+    this.nuevoApellido = '';
+    this.nuevoMail = '';
+    this.nuevoTelefono = '';
+    this.nuevoInstagram = '';
+    this.nuevaFechaNacimiento = '';
+    this.crearModalRef.nativeElement.showModal();
+  }
+
+  cerrarCrear(): void {
+    this.crearModalRef.nativeElement.close();
+  }
+
   crear(): void {
     if (!this.nuevoNombre || !this.nuevoApellido) return;
 
+    this.creando.set(true);
     this.personasService.create({
       nombre: this.nuevoNombre,
       apellido: this.nuevoApellido,
+      mail: this.nuevoMail || undefined,
       telefono: this.nuevoTelefono || undefined,
       instagram: this.nuevoInstagram || undefined,
-    }).subscribe(() => {
-      this.nuevoNombre = '';
-      this.nuevoApellido = '';
-      this.nuevoTelefono = '';
-      this.nuevoInstagram = '';
-      this.loadPersonas();
+      fechaNacimiento: this.nuevaFechaNacimiento || undefined,
+    }).subscribe({
+      next: () => {
+        this.creando.set(false);
+        this.cerrarCrear();
+        this.loadPersonas();
+      },
+      error: () => {
+        this.creando.set(false);
+      },
     });
   }
 
@@ -403,7 +453,13 @@ export class PersonasComponent implements OnInit {
   }
 
   editar(persona: Persona): void {
-    this.personaEditando.set({ ...persona });
+    this.personaEditando.set({
+      ...persona,
+      // El backend devuelve fechaNacimiento como ISO datetime completo
+      // ("1990-05-15T00:00:00.000Z"); <input type="date"> solo acepta
+      // "yyyy-MM-dd" y si no matchea exacto lo muestra vacío.
+      fechaNacimiento: persona.fechaNacimiento?.slice(0, 10),
+    });
     this.editarModalRef.nativeElement.showModal();
   }
 

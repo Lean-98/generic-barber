@@ -22,31 +22,10 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
             <span class="label-text text-sm">Mostrar no vigentes</span>
             <input type="checkbox" class="toggle toggle-sm toggle-primary" [(ngModel)]="mostrarNoVigentes" (change)="toggleVigentes()" />
           </label>
-        </div>
-      </div>
-
-      <!-- Agregar servicio -->
-      <div class="card bg-base-100 shadow-sm">
-        <div class="card-body">
-          <h2 class="card-title text-lg mb-4">Agregar servicio</h2>
-          <form (ngSubmit)="crear()" class="grid gap-4 md:grid-cols-6">
-            <div class="md:col-span-2">
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Nombre del servicio" required />
-            </div>
-            <div>
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaCategoria" name="categoria" placeholder="Categoría" />
-            </div>
-            <div>
-              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevoPrecio" name="precio" placeholder="Precio" required />
-            </div>
-            <div>
-              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Duración (min)" required />
-            </div>
-            <button type="submit" class="btn btn-primary gap-2">
-              <app-icon name="plus" [size]="18" />
-              Agregar
-            </button>
-          </form>
+          <button class="btn btn-primary gap-2" (click)="abrirCrear()">
+            <app-icon name="plus" [size]="18" />
+            Agregar
+          </button>
         </div>
       </div>
 
@@ -155,6 +134,53 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
         </div>
       </div>
     </div>
+
+    <!-- Modal crear -->
+    <dialog #crearModal class="modal">
+      <div class="modal-box max-w-lg">
+        <h3 class="text-lg font-bold mb-4">Agregar servicio</h3>
+        <form (ngSubmit)="crear()" class="space-y-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text">Nombre</span></label>
+            <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Nombre del servicio" required />
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Categoría</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaCategoria" name="categoria" placeholder="Categoría" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">URL Imagen</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaUrlImagen" name="urlImagen" />
+            </div>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Precio</span></label>
+              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevoPrecio" name="precio" placeholder="Precio" required />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Duración (min)</span></label>
+              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Duración (min)" required />
+            </div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Descripción</span></label>
+            <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevaDescripcion" name="descripcion"></textarea>
+          </div>
+          <div class="modal-action">
+            <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
+            <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoPrecio || !nuevaDuracion">
+              <app-icon name="plus" [size]="18" />
+              Agregar
+            </button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button (click)="cerrarCrear()">close</button>
+      </form>
+    </dialog>
 
     <!-- Modal editar -->
     <dialog #editarModal class="modal">
@@ -290,6 +316,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 export class ServiciosComponent implements OnInit {
   private readonly serviciosService = inject(ServiciosService);
 
+  @ViewChild('crearModal') crearModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('editarModal') editarModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('historialModal') historialModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('eliminarModal') eliminarModalRef!: ElementRef<HTMLDialogElement>;
@@ -315,11 +342,14 @@ export class ServiciosComponent implements OnInit {
   historial = signal<ServicioHistorial[]>([]);
   guardando = signal(false);
   eliminando = signal(false);
+  creando = signal(false);
 
   nuevoNombre = '';
   nuevaCategoria = '';
   nuevoPrecio = '';
   nuevaDuracion = '';
+  nuevaDescripcion = '';
+  nuevaUrlImagen = '';
 
   ngOnInit(): void {
     this.loadServicios();
@@ -342,6 +372,20 @@ export class ServiciosComponent implements OnInit {
     this.categoriaFiltro.set(cat);
   }
 
+  abrirCrear(): void {
+    this.nuevoNombre = '';
+    this.nuevaCategoria = '';
+    this.nuevoPrecio = '';
+    this.nuevaDuracion = '';
+    this.nuevaDescripcion = '';
+    this.nuevaUrlImagen = '';
+    this.crearModalRef.nativeElement.showModal();
+  }
+
+  cerrarCrear(): void {
+    this.crearModalRef.nativeElement.close();
+  }
+
   crear(): void {
     if (!this.nuevoNombre || !this.nuevoPrecio || !this.nuevaDuracion) return;
 
@@ -350,15 +394,21 @@ export class ServiciosComponent implements OnInit {
       categoria: this.nuevaCategoria || undefined,
       precio: Number(this.nuevoPrecio),
       duracionMinutos: Number(this.nuevaDuracion),
+      descripcion: this.nuevaDescripcion || undefined,
+      urlImagen: this.nuevaUrlImagen || undefined,
     };
 
-    this.serviciosService.create(data).subscribe(() => {
-      this.nuevoNombre = '';
-      this.nuevaCategoria = '';
-      this.nuevoPrecio = '';
-      this.nuevaDuracion = '';
-      this.loadServicios();
-      this.loadCategorias();
+    this.creando.set(true);
+    this.serviciosService.create(data).subscribe({
+      next: () => {
+        this.creando.set(false);
+        this.cerrarCrear();
+        this.loadServicios();
+        this.loadCategorias();
+      },
+      error: () => {
+        this.creando.set(false);
+      },
     });
   }
 

@@ -5,8 +5,12 @@ import { BrandingService } from '../../core/services/branding.service';
   selector: 'app-brand-mark',
   standalone: true,
   template: `
-    @if (icono(); as url) {
-      <img [src]="url" [alt]="nombre()" class="shrink-0 rounded-sm object-cover" [class]="barHeight + ' ' + barHeight.replace('h-', 'w-')" />
+    @if (imagen(); as url) {
+      @if (hero) {
+        <img [src]="url" [alt]="nombre()" class="w-auto shrink-0 object-contain" [class]="barHeight" />
+      } @else {
+        <img [src]="url" [alt]="nombre()" class="shrink-0 rounded-sm object-cover" [class]="barHeight + ' ' + barHeight.replace('h-', 'w-')" />
+      }
     } @else {
       <span class="stripe-accent w-1.5 shrink-0 rounded-sm" [class]="barHeight"></span>
     }
@@ -14,6 +18,12 @@ import { BrandingService } from '../../core/services/branding.service';
       <span class="font-display truncate font-semibold" [class]="textSize">{{ nombre() }}</span>
     }
   `,
+  // El host es un custom element (display: inline por defecto) y el reset de
+  // Tailwind pone `img { display: block }`, así que sin esto la imagen rompe
+  // el flujo y el nombre queda apilado debajo en vez de al lado. `contents`
+  // saca al host del box model: img y span pasan a ser hijos flex directos
+  // del contenedor que use este componente (ej. `flex items-center gap-3`).
+  styles: [':host { display: contents; }'],
 })
 export class BrandMarkComponent {
   private readonly brandingService = inject(BrandingService);
@@ -21,8 +31,11 @@ export class BrandMarkComponent {
   @Input() barHeight = 'h-7';
   @Input() textSize = 'text-lg';
   @Input() showName = true;
+  /** Marca "hero": muestra el logo completo, en su proporción real, sin recortarlo a un cuadrado. */
+  @Input() hero = false;
 
   private readonly branding = this.brandingService.branding;
   nombre = computed(() => this.branding().nombre);
-  icono = computed(() => this.branding().iconoUrl || this.branding().logoUrl);
+  // El logo es la marca principal; el ícono es el sustituto compacto cuando no hay logo cargado.
+  imagen = computed(() => this.branding().logoUrl || this.branding().iconoUrl);
 }
