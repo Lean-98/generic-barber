@@ -1,3 +1,10 @@
+export interface HorarioDia {
+  dia: number; // 0 = domingo ... 6 = sábado (convención Date.getDay())
+  cerrado: boolean;
+  abre?: string; // "HH:mm"
+  cierra?: string; // "HH:mm"
+}
+
 export interface ConfiguracionNegocio {
   id?: number;
   nombre: string;
@@ -5,6 +12,18 @@ export interface ConfiguracionNegocio {
   iconoUrl: string | null;
   colorPrimario: string | null;
   colorSecundario: string | null;
+  heroImageUrl: string | null;
+  descripcion: string | null;
+  telefono: string | null;
+  email: string | null;
+  direccion: string | null;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
+  googleReviewsUrl: string | null;
+  whatsappUrl: string | null;
+  politicaReservas: string | null;
+  horarios: HorarioDia[] | null;
+  galeriaUrls: string[] | null;
   updatedAt?: string;
 }
 
@@ -14,4 +33,16 @@ export interface UpdateConfiguracionRequest {
   iconoUrl?: string;
   colorPrimario?: string;
   colorSecundario?: string;
+  descripcion?: string;
+  heroImageUrl?: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  googleReviewsUrl?: string;
+  whatsappUrl?: string;
+  politicaReservas?: string;
+  horarios?: HorarioDia[];
+  galeriaUrls?: string[];
 }

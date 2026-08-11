@@ -1,16 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ConfiguracionNegocio } from '@prisma/client';
+import { ConfiguracionNegocio, Prisma } from '@prisma/client';
 import { UpdateConfiguracionDto } from './dto/update-configuracion.dto';
 
 const CONFIG_ID = 1;
-const DEFAULT_BRANDING: ConfiguracionNegocio = {
+const DEFAULT_CONFIG: ConfiguracionNegocio = {
   id: CONFIG_ID,
   nombre: 'Peluquería',
   logoUrl: null,
   iconoUrl: null,
   colorPrimario: null,
   colorSecundario: null,
+  heroImageUrl: null,
+  descripcion: null,
+  telefono: null,
+  email: null,
+  direccion: null,
+  instagramUrl: null,
+  facebookUrl: null,
+  googleReviewsUrl: null,
+  whatsappUrl: null,
+  politicaReservas: null,
+  horarios: null,
+  galeriaUrls: null,
   updatedAt: new Date(0),
 };
 
@@ -20,7 +32,7 @@ export class ConfiguracionService {
 
   async getBranding(): Promise<ConfiguracionNegocio> {
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
-    return config ?? DEFAULT_BRANDING;
+    return config ?? DEFAULT_CONFIG;
   }
 
   async updateBranding(dto: UpdateConfiguracionDto): Promise<ConfiguracionNegocio> {
@@ -32,12 +44,14 @@ export class ConfiguracionService {
     });
   }
 
-  private sanitize(dto: UpdateConfiguracionDto): Record<string, string | null> {
-    const clean: Record<string, string | null> = {};
+  private sanitize(
+    dto: UpdateConfiguracionDto,
+  ): Prisma.ConfiguracionNegocioUpdateInput & Prisma.ConfiguracionNegocioCreateInput {
+    const clean: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(dto)) {
       if (value === undefined) continue;
       clean[key] = value === '' ? null : value;
     }
-    return clean;
+    return clean as Prisma.ConfiguracionNegocioUpdateInput & Prisma.ConfiguracionNegocioCreateInput;
   }
 }

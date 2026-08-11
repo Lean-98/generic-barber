@@ -1,7 +1,48 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUrl, Matches, MaxLength, ValidateIf } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  MaxLength,
+  Max,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 
 const HEX_COLOR_REGEX = /^(#[0-9A-Fa-f]{6})?$/;
+const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export class HorarioDiaDto {
+  @ApiPropertyOptional({ description: 'Día de la semana, 0 = domingo (convención Date.getDay())', example: 1 })
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  dia: number;
+
+  @ApiPropertyOptional({ description: 'Si el negocio está cerrado ese día', example: false })
+  @IsBoolean()
+  cerrado: boolean;
+
+  @ApiPropertyOptional({ description: 'Hora de apertura (HH:mm)', example: '09:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(HORA_REGEX, { message: 'abre debe tener formato HH:mm' })
+  abre?: string;
+
+  @ApiPropertyOptional({ description: 'Hora de cierre (HH:mm)', example: '18:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(HORA_REGEX, { message: 'cierra debe tener formato HH:mm' })
+  cierra?: string;
+}
 
 export class UpdateConfiguracionDto {
   @ApiPropertyOptional({ description: 'Nombre del negocio', example: 'Barbería El Corte' })
@@ -39,4 +80,84 @@ export class UpdateConfiguracionDto {
   @IsOptional()
   @Matches(HEX_COLOR_REGEX, { message: 'colorSecundario debe ser un color hexadecimal, ej: #7A2E2E' })
   colorSecundario?: string;
+
+  // --- Landing page ---
+
+  @ApiPropertyOptional({ description: 'Descripción / "Acerca de" del negocio, usada en la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  descripcion?: string;
+
+  @ApiPropertyOptional({ description: 'URL de la imagen de portada de la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'heroImageUrl debe ser una URL https válida' })
+  heroImageUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Teléfono de contacto, usado en la landing' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  telefono?: string;
+
+  @ApiPropertyOptional({ description: 'Email de contacto, usado en la landing (string vacío para quitarlo)' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsEmail({}, { message: 'email debe ser un email válido' })
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'Dirección del negocio, usada en la landing' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  direccion?: string;
+
+  @ApiPropertyOptional({ description: 'URL del perfil de Instagram, usada en la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'instagramUrl debe ser una URL https válida' })
+  instagramUrl?: string;
+
+  @ApiPropertyOptional({ description: 'URL de la página de Facebook, usada en la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'facebookUrl debe ser una URL https válida' })
+  facebookUrl?: string;
+
+  @ApiPropertyOptional({ description: 'URL para dejar una reseña en Google, usada en la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'googleReviewsUrl debe ser una URL https válida' })
+  googleReviewsUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Link de WhatsApp (wa.me/...), usado en la landing (string vacío para quitarlo)',
+    example: 'https://wa.me/5491112345678',
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '')
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'whatsappUrl debe ser una URL https válida' })
+  whatsappUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Política de reservas, usada en la landing (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  politicaReservas?: string;
+
+  @ApiPropertyOptional({ description: 'Horarios de atención, usados en la landing (un elemento por día)', type: [HorarioDiaDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @ValidateNested({ each: true })
+  @Type(() => HorarioDiaDto)
+  horarios?: HorarioDiaDto[];
+
+  @ApiPropertyOptional({ description: 'URLs de fotos para la galería de la landing (https)', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { each: true, message: 'cada foto de la galería debe ser una URL https válida' })
+  galeriaUrls?: string[];
 }

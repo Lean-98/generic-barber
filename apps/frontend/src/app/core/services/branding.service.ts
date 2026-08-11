@@ -9,6 +9,18 @@ const DEFAULT_BRANDING: ConfiguracionNegocio = {
   iconoUrl: null,
   colorPrimario: null,
   colorSecundario: null,
+  heroImageUrl: null,
+  descripcion: null,
+  telefono: null,
+  email: null,
+  direccion: null,
+  instagramUrl: null,
+  facebookUrl: null,
+  googleReviewsUrl: null,
+  whatsappUrl: null,
+  politicaReservas: null,
+  horarios: null,
+  galeriaUrls: null,
 };
 
 @Injectable({

@@ -176,13 +176,25 @@ model GoogleCalendarConfig {
 }
 
 model ConfiguracionNegocio {
-  id              Int      @id @default(autoincrement())
-  nombre          String   @default("Peluquería")
-  logoUrl         String?  @map("logo_url")
-  iconoUrl        String?  @map("icono_url")
-  colorPrimario   String?  @map("color_primario")
-  colorSecundario String?  @map("color_secundario")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               Int      @id @default(autoincrement())
+  nombre           String   @default("Peluquería")
+  logoUrl          String?  @map("logo_url")
+  iconoUrl         String?  @map("icono_url")
+  colorPrimario    String?  @map("color_primario")
+  colorSecundario  String?  @map("color_secundario")
+  heroImageUrl     String?  @map("hero_image_url")
+  descripcion      String?
+  telefono         String?
+  email            String?
+  direccion        String?
+  instagramUrl     String?  @map("instagram_url")
+  facebookUrl      String?  @map("facebook_url")
+  googleReviewsUrl String?  @map("google_reviews_url")
+  whatsappUrl      String?  @map("whatsapp_url")
+  politicaReservas String?  @map("politica_reservas")
+  horarios         Json?
+  galeriaUrls      Json?    @map("galeria_urls")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")
 }

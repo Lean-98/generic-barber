@@ -15,15 +15,15 @@ export class ConfiguracionController {
 
   @Get('branding')
   @Public()
-  @ApiOperation({ summary: 'Obtener la identidad de marca del negocio (nombre, logo, colores)' })
-  @ApiResponse({ status: 200, description: 'Configuración de marca actual (valores por defecto si no fue configurada)' })
+  @ApiOperation({ summary: 'Obtener la configuración pública del negocio (marca + landing: nombre, logo, colores, hero, contacto, horarios, etc.)' })
+  @ApiResponse({ status: 200, description: 'Configuración actual (valores por defecto si no fue configurada)' })
   async getBranding(): Promise<ConfiguracionNegocio> {
     return this.configuracionService.getBranding();
   }
 
   @Put('branding')
-  @ApiOperation({ summary: 'Actualizar la identidad de marca del negocio' })
-  @ApiResponse({ status: 200, description: 'Configuración de marca actualizada' })
+  @ApiOperation({ summary: 'Actualizar la configuración del negocio (marca + landing)' })
+  @ApiResponse({ status: 200, description: 'Configuración actualizada' })
   async updateBranding(@Body() dto: UpdateConfiguracionDto): Promise<ConfiguracionNegocio> {
     return this.configuracionService.updateBranding(dto);
   }

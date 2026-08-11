@@ -4,6 +4,11 @@ import { LayoutComponent } from './core/layout.component';
 
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/landing/landing.component').then((m) => m.LandingComponent),
+  },
+  {
     path: 'login',
     canActivate: [publicGuard],
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
@@ -53,7 +58,6 @@ export const routes: Routes = [
         path: 'configuracion/marca',
         loadComponent: () => import('./features/config/branding-config.component').then((m) => m.BrandingConfigComponent),
       },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
 ];
