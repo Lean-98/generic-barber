@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CajaService } from '../../shared/services/caja.service';
 import { TurnosService } from '../../shared/services/turnos.service';
@@ -8,6 +8,7 @@ import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-caja',
@@ -329,13 +330,14 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
     </div>
   `,
 })
-export class CajaComponent implements OnInit {
+export class CajaComponent implements OnInit, OnDestroy {
   private readonly cajaService = inject(CajaService);
   private readonly turnosService = inject(TurnosService);
   private readonly authService = inject(AuthService);
+  private mensajeTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   // Fecha
-  fecha = signal(new Date().toISOString().split('T')[0]);
+  fecha = signal(fechaLocal());
 
   // Tabs
   tabActivo = signal<'movimientos' | 'pago' | 'egreso' | 'cierre'>('movimientos');
@@ -382,6 +384,24 @@ export class CajaComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarDatos();
+  }
+
+  ngOnDestroy(): void {
+    if (this.mensajeTimeoutId) {
+      clearTimeout(this.mensajeTimeoutId);
+    }
+  }
+
+  private mostrarMensaje(texto: string, ok: boolean): void {
+    if (this.mensajeTimeoutId) {
+      clearTimeout(this.mensajeTimeoutId);
+    }
+    this.exito.set(ok);
+    this.mensaje.set(texto);
+    this.mensajeTimeoutId = setTimeout(() => {
+      this.mensaje.set('');
+      this.mensajeTimeoutId = null;
+    }, 5000);
   }
 
   cargarDatos(): void {
@@ -433,8 +453,7 @@ export class CajaComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.guardando.set(false);
-        this.exito.set(true);
-        this.mensaje.set('Pago registrado correctamente');
+        this.mostrarMensaje('Pago registrado correctamente', true);
         this.pagoTurnoId.set(null);
         this.pagoFormaPagoId.set(null);
         this.pagoMonto.set(null);
@@ -444,8 +463,7 @@ export class CajaComponent implements OnInit {
       },
       error: (err) => {
         this.guardando.set(false);
-        this.exito.set(false);
-        this.mensaje.set(err?.error?.message || 'Error al registrar el pago');
+        this.mostrarMensaje(err?.error?.message || 'Error al registrar el pago', false);
       },
     });
   }
@@ -467,8 +485,7 @@ export class CajaComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.guardando.set(false);
-        this.exito.set(true);
-        this.mensaje.set('Egreso registrado correctamente');
+        this.mostrarMensaje('Egreso registrado correctamente', true);
         this.egresoConcepto.set('');
         this.egresoFormaPagoId.set(null);
         this.egresoMonto.set(null);
@@ -476,8 +493,7 @@ export class CajaComponent implements OnInit {
       },
       error: (err) => {
         this.guardando.set(false);
-        this.exito.set(false);
-        this.mensaje.set(err?.error?.message || 'Error al registrar el egreso');
+        this.mostrarMensaje(err?.error?.message || 'Error al registrar el egreso', false);
       },
     });
   }
@@ -488,15 +504,13 @@ export class CajaComponent implements OnInit {
     this.cajaService.iniciarCierre(this.fecha()).subscribe({
       next: (cierre) => {
         this.guardando.set(false);
-        this.exito.set(true);
-        this.mensaje.set('Cierre iniciado correctamente');
+        this.mostrarMensaje('Cierre iniciado correctamente', true);
         this.cierreActual.set(cierre);
         this.cargarDatos();
       },
       error: (err) => {
         this.guardando.set(false);
-        this.exito.set(false);
-        this.mensaje.set(err?.error?.message || 'Error al iniciar el cierre');
+        this.mostrarMensaje(err?.error?.message || 'Error al iniciar el cierre', false);
       },
     });
   }
@@ -516,15 +530,13 @@ export class CajaComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.guardando.set(false);
-        this.exito.set(true);
-        this.mensaje.set('Cierre confirmado correctamente');
+        this.mostrarMensaje('Cierre confirmado correctamente', true);
         this.cierreTotalReal.set(null);
         this.cargarDatos();
       },
       error: (err) => {
         this.guardando.set(false);
-        this.exito.set(false);
-        this.mensaje.set(err?.error?.message || 'Error al confirmar el cierre');
+        this.mostrarMensaje(err?.error?.message || 'Error al confirmar el cierre', false);
       },
     });
   }

@@ -9,6 +9,7 @@ import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -320,7 +321,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.turnosService.findAll().subscribe((t) => {
       this.turnos.set(t);
-      const hoy = new Date().toISOString().split('T')[0];
+      const hoy = fechaLocal();
       this.turnosHoy.set(t.filter((turno) => turno.fechaHoraInicio.startsWith(hoy)));
     });
     this.personasService.findAll().subscribe((c) => this.clientes.set(c));

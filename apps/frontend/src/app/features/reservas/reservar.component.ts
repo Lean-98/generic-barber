@@ -8,6 +8,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { BrandingService } from '../../core/services/branding.service';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-reservar',
@@ -355,7 +356,7 @@ export class ReservarComponent implements OnInit {
       fecha.setDate(inicio.getDate() + i);
       const nombres = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
       return {
-        fecha: fecha.toISOString().split('T')[0],
+        fecha: fechaLocal(fecha),
         nombre: nombres[i],
         diaNumero: fecha.getDate(),
         habilitado: fecha >= hoy,

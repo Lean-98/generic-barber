@@ -4,6 +4,7 @@ import { TurnosService } from '../../shared/services/turnos.service';
 import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 interface DiaCalendario {
   fecha: Date;
@@ -263,7 +264,7 @@ export class TurnosComponent implements OnInit {
       return {
         fecha,
         label: nombres[i],
-        key: fecha.toISOString().split('T')[0],
+        key: fechaLocal(fecha),
       };
     });
   });
@@ -294,7 +295,7 @@ export class TurnosComponent implements OnInit {
       })
       .forEach((turno) => {
         const fecha = new Date(turno.fechaHoraInicio);
-        const key = fecha.toISOString().split('T')[0];
+        const key = fechaLocal(fecha);
         if (!porDia[key]) porDia[key] = [];
         porDia[key].push(turno);
       });
@@ -381,9 +382,7 @@ export class TurnosComponent implements OnInit {
   }
 
   nuevoTurnoSlot(fecha: Date, hora: number, minuto: number): void {
-    const fechaHora = new Date(fecha);
-    fechaHora.setHours(hora, minuto, 0, 0);
-    const fechaStr = fechaHora.toISOString().split('T')[0];
+    const fechaStr = fechaLocal(fecha);
     const horaStr = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
     this.router.navigate(['/turnos/nuevo'], { queryParams: { fecha: fechaStr, hora: horaStr } });
   }

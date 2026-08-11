@@ -8,6 +8,7 @@ import { Persona } from '../../shared/models/persona.model';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-turno-form',
@@ -254,7 +255,7 @@ export class TurnoFormComponent implements OnInit {
     this.serviciosService.findAll().subscribe((s) => this.servicios.set(s));
 
     const params = this.route.snapshot.queryParams;
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = fechaLocal();
     this.fecha.set(params['fecha'] || hoy);
     this.hora.set(params['hora'] || '09:00');
   }

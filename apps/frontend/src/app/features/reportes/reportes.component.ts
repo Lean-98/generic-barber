@@ -12,6 +12,7 @@ import {
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-reportes',
@@ -294,6 +295,6 @@ export class ReportesComponent implements OnInit {
   }
 
   private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return fechaLocal(date);
   }
 }
