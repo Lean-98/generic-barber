@@ -295,7 +295,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                   <tbody>
                     @for (c of historialCierres(); track c.idCierre) {
                       <tr class="hover:bg-base-200/50">
-                        <td>{{ c.fecha | fechaAr:'media' }}</td>
+                        <td>{{ c.fecha | fechaAr:'media':true }}</td>
                         <td>{{ c.horaInicio | fechaAr:'hora' }}</td>
                         <td>
                           @if (c.horaFin) {
@@ -414,7 +414,7 @@ export class CajaComponent implements OnInit, OnDestroy {
       error: () => this.cierreActual.set(null),
     });
     this.cajaService.findHistorialCierres().subscribe((h) => this.historialCierres.set(h));
-    this.turnosService.findAll().subscribe((t) => this.turnos.set(t));
+    this.turnosService.findAll(undefined, undefined, 1, 200).subscribe((res) => this.turnos.set(res.data));
   }
 
   totalTurno(turno: Turno): number {

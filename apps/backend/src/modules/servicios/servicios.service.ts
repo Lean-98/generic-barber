@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Servicio } from '@prisma/client';
+import { Prisma, Servicio } from '@prisma/client';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
+import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class ServiciosService {
@@ -33,14 +34,21 @@ export class ServiciosService {
     return servicio;
   }
 
-  async findAll(vigente?: boolean, categoria?: string): Promise<Servicio[]> {
-    const where: any = {};
+  async findAll(vigente?: boolean, categoria?: string, page = 1, limit = 20): Promise<PaginatedResult<Servicio>> {
+    const where: Prisma.ServicioWhereInput = {};
     if (vigente !== undefined) where.vigente = vigente;
     if (categoria) where.categoria = { equals: categoria, mode: 'insensitive' };
-    return this.prisma.servicio.findMany({
-      where,
-      orderBy: { nombre: 'asc' },
-    });
+
+    const [data, total] = await Promise.all([
+      this.prisma.servicio.findMany({
+        where,
+        orderBy: { nombre: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.servicio.count({ where }),
+    ]);
+    return paginar(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<Servicio & { historial: any[] }> {

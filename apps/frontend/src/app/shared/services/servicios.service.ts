@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Servicio, CreateServicioRequest, UpdateServicioRequest } from '../models/servicio.model';
+import { PaginatedResult } from '../models/paginated-result.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,14 +13,11 @@ export class ServiciosService {
 
   constructor(private readonly http: HttpClient) {}
 
-  findAll(vigente?: boolean, categoria?: string): Observable<Servicio[]> {
-    let url = `${this.apiUrl}/servicios`;
-    const params = new URLSearchParams();
-    if (vigente !== undefined) params.set('vigente', String(vigente));
-    if (categoria) params.set('categoria', categoria);
-    const query = params.toString();
-    if (query) url += `?${query}`;
-    return this.http.get<Servicio[]>(url);
+  findAll(vigente?: boolean, categoria?: string, page = 1, limit = 20): Observable<PaginatedResult<Servicio>> {
+    const params: Record<string, string> = { page: String(page), limit: String(limit) };
+    if (vigente !== undefined) params['vigente'] = String(vigente);
+    if (categoria) params['categoria'] = categoria;
+    return this.http.get<PaginatedResult<Servicio>>(`${this.apiUrl}/servicios`, { params });
   }
 
   findCategorias(): Observable<string[]> {

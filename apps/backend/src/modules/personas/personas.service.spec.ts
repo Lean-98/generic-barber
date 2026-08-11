@@ -96,6 +96,7 @@ describe('PersonasService', () => {
       // Arrange
       const personas = [mockPersona, { ...mockPersona, idPersona: 2, apellido: 'García' }];
       prismaMock.persona.findMany.mockResolvedValue(personas);
+      prismaMock.persona.count.mockResolvedValue(2);
 
       // Act
       const result = await service.findAll();
@@ -103,8 +104,11 @@ describe('PersonasService', () => {
       // Assert
       expect(prismaMock.persona.findMany).toHaveBeenCalledWith({
         orderBy: { apellido: 'asc' },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toHaveLength(2);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
     });
   });
 
@@ -174,6 +178,7 @@ describe('PersonasService', () => {
     it('should search by text query', async () => {
       // Arrange
       prismaMock.persona.findMany.mockResolvedValue([mockPersona]);
+      prismaMock.persona.count.mockResolvedValue(1);
 
       // Act
       const result = await service.searchByName('juan');
@@ -189,8 +194,10 @@ describe('PersonasService', () => {
           ],
         },
         orderBy: { apellido: 'asc' },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
     });
   });
 

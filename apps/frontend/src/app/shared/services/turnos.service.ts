@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Turno, CreateTurnoRequest, UpdateTurnoRequest } from '../models/turno.model';
+import { PaginatedResult } from '../models/paginated-result.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,11 +13,11 @@ export class TurnosService {
 
   constructor(private readonly http: HttpClient) {}
 
-  findAll(fechaDesde?: string, fechaHasta?: string): Observable<Turno[]> {
-    let params: Record<string, string> = {};
+  findAll(fechaDesde?: string, fechaHasta?: string, page = 1, limit = 20): Observable<PaginatedResult<Turno>> {
+    const params: Record<string, string> = { page: String(page), limit: String(limit) };
     if (fechaDesde) params['fechaDesde'] = fechaDesde;
     if (fechaHasta) params['fechaHasta'] = fechaHasta;
-    return this.http.get<Turno[]>(`${this.apiUrl}/turnos`, { params });
+    return this.http.get<PaginatedResult<Turno>>(`${this.apiUrl}/turnos`, { params });
   }
 
   create(data: CreateTurnoRequest): Observable<Turno> {

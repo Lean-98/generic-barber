@@ -1,15 +1,18 @@
-import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio, ServicioHistorial, CreateServicioRequest, UpdateServicioRequest } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { PaginationComponent } from '../../shared/ui/pagination.component';
+
+const LIMITE_PAGINA = 20;
 
 @Component({
   selector: 'app-servicios',
   standalone: true,
-  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe, PaginationComponent],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -59,7 +62,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                 </tr>
               </thead>
               <tbody>
-                @for (servicio of serviciosFiltrados(); track servicio.idServicio) {
+                @for (servicio of servicios(); track servicio.idServicio) {
                   <tr class="hover:bg-base-200/50" [class.opacity-60]="!servicio.vigente">
                     <td>
                       <div class="flex items-center gap-3">
@@ -131,6 +134,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
               </tbody>
             </table>
           </div>
+          <app-pagination [page]="pagina()" [totalPages]="totalPaginas()" [total]="total()" (pageChange)="irAPagina($event)" />
         </div>
       </div>
     </div>
@@ -325,17 +329,9 @@ export class ServiciosComponent implements OnInit {
   categorias = signal<string[]>([]);
   categoriaFiltro = signal('');
   mostrarNoVigentes = true;
-
-  serviciosFiltrados = computed(() => {
-    let lista = this.servicios();
-    if (!this.mostrarNoVigentes) {
-      lista = lista.filter((s) => s.vigente);
-    }
-    if (this.categoriaFiltro()) {
-      lista = lista.filter((s) => s.categoria === this.categoriaFiltro());
-    }
-    return lista;
-  });
+  pagina = signal(1);
+  totalPaginas = signal(1);
+  total = signal(0);
 
   servicioSeleccionado = signal<Servicio | null>(null);
   servicioEditando = signal<Servicio | null>(null);
@@ -357,19 +353,33 @@ export class ServiciosComponent implements OnInit {
   }
 
   loadServicios(): void {
-    this.serviciosService.findAll().subscribe((s) => this.servicios.set(s));
+    const vigente = this.mostrarNoVigentes ? undefined : true;
+    const categoria = this.categoriaFiltro() || undefined;
+    this.serviciosService.findAll(vigente, categoria, this.pagina(), LIMITE_PAGINA).subscribe((res) => {
+      this.servicios.set(res.data);
+      this.total.set(res.total);
+      this.totalPaginas.set(res.totalPages);
+    });
   }
 
   loadCategorias(): void {
     this.serviciosService.findCategorias().subscribe((c) => this.categorias.set(c));
   }
 
+  irAPagina(pagina: number): void {
+    this.pagina.set(pagina);
+    this.loadServicios();
+  }
+
   toggleVigentes(): void {
-    // El computed se recalcula automáticamente
+    this.pagina.set(1);
+    this.loadServicios();
   }
 
   filtrarCategoria(cat: string): void {
     this.categoriaFiltro.set(cat);
+    this.pagina.set(1);
+    this.loadServicios();
   }
 
   abrirCrear(): void {

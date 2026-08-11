@@ -52,7 +52,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
             <span class="text-sm font-medium">Clientes</span>
             <app-icon name="users" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ clientes().length }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totalClientes() }}</div>
         </div>
 
         <div class="rounded-lg border-t-2 border-base-300 bg-base-100 p-5 shadow-sm">
@@ -60,7 +60,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
             <span class="text-sm font-medium">Servicios</span>
             <app-icon name="scissors" [size]="18" />
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ servicios().length }}</div>
+          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totalServicios() }}</div>
         </div>
       </div>
 
@@ -280,6 +280,8 @@ export class DashboardComponent implements OnInit {
   turnosHoy = signal<Turno[]>([]);
   clientes = signal<Persona[]>([]);
   servicios = signal<Servicio[]>([]);
+  totalClientes = signal(0);
+  totalServicios = signal(0);
 
   ultimosClientes = computed(() =>
     [...this.clientes()]
@@ -319,13 +321,19 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.turnosService.findAll().subscribe((t) => {
-      this.turnos.set(t);
+    this.turnosService.findAll(undefined, undefined, 1, 200).subscribe((res) => {
+      this.turnos.set(res.data);
       const hoy = fechaLocal();
-      this.turnosHoy.set(t.filter((turno) => turno.fechaHoraInicio.startsWith(hoy)));
+      this.turnosHoy.set(res.data.filter((turno) => turno.fechaHoraInicio.startsWith(hoy)));
     });
-    this.personasService.findAll().subscribe((c) => this.clientes.set(c));
-    this.serviciosService.findAll().subscribe((s) => this.servicios.set(s));
+    this.personasService.findAll(1, 200).subscribe((res) => {
+      this.clientes.set(res.data);
+      this.totalClientes.set(res.total);
+    });
+    this.serviciosService.findAll(undefined, undefined, 1, 200).subscribe((res) => {
+      this.servicios.set(res.data);
+      this.totalServicios.set(res.total);
+    });
   }
 
   iniciales(persona?: { nombre?: string; apellido?: string }): string {

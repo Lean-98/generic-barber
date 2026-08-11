@@ -13,6 +13,7 @@ export class PrismaServiceMock {
     findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
   };
 
   servicioHistorial = {
@@ -27,6 +28,7 @@ export class PrismaServiceMock {
     update: jest.fn(),
     delete: jest.fn(),
     groupBy: jest.fn(),
+    count: jest.fn(),
   };
 
   turnoDetalle = {
@@ -42,6 +44,7 @@ export class PrismaServiceMock {
     findFirst: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
   };
 
   usuarioWeb = {

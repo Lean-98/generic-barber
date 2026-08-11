@@ -5,6 +5,9 @@ import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
+import { PaginationComponent } from '../../shared/ui/pagination.component';
+
+const LIMITE_PAGINA = 20;
 
 interface DiaCalendario {
   fecha: Date;
@@ -23,7 +26,7 @@ interface TurnoVisual {
 @Component({
   selector: 'app-turnos',
   standalone: true,
-  imports: [RouterLink, IconComponent, FechaArPipe],
+  imports: [RouterLink, IconComponent, FechaArPipe, PaginationComponent],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -77,7 +80,7 @@ interface TurnoVisual {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (turno of turnos(); track turno.idTurno) {
+                  @for (turno of turnosLista(); track turno.idTurno) {
                     <tr class="hover:bg-base-200/50">
                       <td>
                         <div class="flex items-center gap-3">
@@ -153,6 +156,7 @@ interface TurnoVisual {
                 </tbody>
               </table>
             </div>
+            <app-pagination [page]="pagina()" [totalPages]="totalPaginas()" [total]="totalTurnos()" (pageChange)="irAPagina($event)" />
           </div>
         </div>
       } @else {
@@ -252,7 +256,11 @@ export class TurnosComponent implements OnInit {
   private readonly turnosService = inject(TurnosService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  turnos = signal<Turno[]>([]);
+  turnosLista = signal<Turno[]>([]);
+  turnosSemana = signal<Turno[]>([]);
+  pagina = signal(1);
+  totalPaginas = signal(1);
+  totalTurnos = signal(0);
   vista = signal<'lista' | 'calendario'>('lista');
   fechaSemana = signal(this.inicioSemana(new Date()));
 
@@ -288,7 +296,7 @@ export class TurnosComponent implements OnInit {
     const fin = this.addDays(inicio, 7);
     const porDia: Record<string, Turno[]> = {};
 
-    this.turnos()
+    this.turnosSemana()
       .filter((t) => {
         const fecha = new Date(t.fechaHoraInicio);
         return fecha >= inicio && fecha < fin;
@@ -362,23 +370,51 @@ export class TurnosComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadTurnos();
+    this.loadTurnosLista();
+    this.loadTurnosSemana();
   }
 
+  /** Refresca ambas vistas: se usa después de crear/mutar un turno, ya que no sabemos cuál está visible. */
   loadTurnos(): void {
-    this.turnosService.findAll().subscribe((t) => this.turnos.set(t));
+    this.loadTurnosLista();
+    this.loadTurnosSemana();
+  }
+
+  loadTurnosLista(): void {
+    this.turnosService.findAll(undefined, undefined, this.pagina(), LIMITE_PAGINA).subscribe((res) => {
+      this.turnosLista.set(res.data);
+      this.totalTurnos.set(res.total);
+      this.totalPaginas.set(res.totalPages);
+    });
+  }
+
+  loadTurnosSemana(): void {
+    // Ventana un día más ancha que la semana visible en cada punta: evita que
+    // el corte UTC vs. hora local (ver fecha-local.util.ts) recorte turnos
+    // del último día. El filtro de turnosPorDia ya descarta lo que sobre.
+    const desde = fechaLocal(this.addDays(this.fechaSemana(), -1));
+    const hasta = fechaLocal(this.addDays(this.finSemana(), 1));
+    this.turnosService.findAll(desde, hasta, 1, 200).subscribe((res) => this.turnosSemana.set(res.data));
+  }
+
+  irAPagina(pagina: number): void {
+    this.pagina.set(pagina);
+    this.loadTurnosLista();
   }
 
   semanaAnterior(): void {
     this.fechaSemana.set(this.addDays(this.fechaSemana(), -7));
+    this.loadTurnosSemana();
   }
 
   semanaSiguiente(): void {
     this.fechaSemana.set(this.addDays(this.fechaSemana(), 7));
+    this.loadTurnosSemana();
   }
 
   hoy(): void {
     this.fechaSemana.set(this.inicioSemana(new Date()));
+    this.loadTurnosSemana();
   }
 
   nuevoTurnoSlot(fecha: Date, hora: number, minuto: number): void {

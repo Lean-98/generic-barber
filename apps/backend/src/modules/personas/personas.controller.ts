@@ -18,6 +18,9 @@ import { PersonasService } from './personas.service';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { Persona } from '@prisma/client';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { SearchPersonasQueryDto } from './dto/search-personas-query.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @ApiTags('Personas')
 @ApiBearerAuth()
@@ -35,18 +38,18 @@ export class PersonasController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los clientes' })
-  @ApiResponse({ status: 200, description: 'Lista de clientes' })
-  async findAll(): Promise<Persona[]> {
-    return this.personasService.findAll();
+  @ApiOperation({ summary: 'Obtener todos los clientes (paginado)' })
+  @ApiResponse({ status: 200, description: 'Página de clientes' })
+  async findAll(@Query() { page, limit }: PaginationQueryDto): Promise<PaginatedResult<Persona>> {
+    return this.personasService.findAll(page, limit);
   }
 
   @Get('search')
-  @ApiOperation({ summary: 'Buscar clientes por nombre, apellido, email o teléfono' })
+  @ApiOperation({ summary: 'Buscar clientes por nombre, apellido, email o teléfono (paginado)' })
   @ApiQuery({ name: 'q', required: true, description: 'Texto de búsqueda' })
-  @ApiResponse({ status: 200, description: 'Clientes encontrados' })
-  async search(@Query('q') query: string): Promise<Persona[]> {
-    return this.personasService.searchByName(query);
+  @ApiResponse({ status: 200, description: 'Página de clientes encontrados' })
+  async search(@Query() { q, page, limit }: SearchPersonasQueryDto): Promise<PaginatedResult<Persona>> {
+    return this.personasService.searchByName(q, page, limit);
   }
 
   @Get(':id')

@@ -98,6 +98,7 @@ describe('ServiciosService', () => {
       // Arrange
       const servicios = [mockServicio, { ...mockServicio, idServicio: 2 }];
       prismaMock.servicio.findMany.mockResolvedValue(servicios);
+      prismaMock.servicio.count.mockResolvedValue(2);
 
       // Act
       const result = await service.findAll();
@@ -106,14 +107,18 @@ describe('ServiciosService', () => {
       expect(prismaMock.servicio.findMany).toHaveBeenCalledWith({
         where: {},
         orderBy: { nombre: 'asc' },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toHaveLength(2);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
     });
 
     it('should filter by vigente=true', async () => {
       // Arrange
       const servicios = [mockServicio];
       prismaMock.servicio.findMany.mockResolvedValue(servicios);
+      prismaMock.servicio.count.mockResolvedValue(1);
 
       // Act
       const result = await service.findAll(true);
@@ -122,8 +127,10 @@ describe('ServiciosService', () => {
       expect(prismaMock.servicio.findMany).toHaveBeenCalledWith({
         where: { vigente: true },
         orderBy: { nombre: 'asc' },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
     });
   });
 

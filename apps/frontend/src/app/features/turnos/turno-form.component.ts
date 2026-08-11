@@ -252,7 +252,7 @@ export class TurnoFormComponent implements OnInit {
   error = signal('');
 
   ngOnInit(): void {
-    this.serviciosService.findAll().subscribe((s) => this.servicios.set(s));
+    this.serviciosService.findAll(undefined, undefined, 1, 200).subscribe((res) => this.servicios.set(res.data));
 
     const params = this.route.snapshot.queryParams;
     const hoy = fechaLocal();
@@ -265,7 +265,7 @@ export class TurnoFormComponent implements OnInit {
       this.clientesEncontrados.set([]);
       return;
     }
-    this.personasService.search(this.busquedaCliente).subscribe((c) => this.clientesEncontrados.set(c));
+    this.personasService.search(this.busquedaCliente).subscribe((res) => this.clientesEncontrados.set(res.data));
   }
 
   seleccionarCliente(cliente: Persona): void {

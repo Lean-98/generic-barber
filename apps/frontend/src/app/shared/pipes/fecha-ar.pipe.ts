@@ -23,15 +23,24 @@ export type FechaArFormato =
   standalone: true,
 })
 export class FechaArPipe implements PipeTransform {
-  transform(value: string | Date | null | undefined, formato: FechaArFormato = 'corta'): string {
+  /**
+   * `soloFecha`: para valores que representan un día calendario sin hora
+   * (ej. `CierreCaja.fecha`, `Persona.fechaNacimiento`, columnas `@db.Date`
+   * que Prisma siempre reconstruye en medianoche UTC). Con los getters
+   * locales, medianoche UTC cae a las 21:00 del día anterior en Argentina
+   * (UTC-3) y el pipe le resta un día al valor. Los getters UTC devuelven
+   * el día tal cual está guardado, sin aplicar conversión de huso horario.
+   */
+  transform(value: string | Date | null | undefined, formato: FechaArFormato = 'corta', soloFecha = false): string {
     const fecha = value instanceof Date ? value : value ? new Date(value) : null;
     if (!fecha || isNaN(fecha.getTime())) return '—';
 
-    const dia = fecha.getDate();
+    const dia = soloFecha ? fecha.getUTCDate() : fecha.getDate();
+    const mes = soloFecha ? fecha.getUTCMonth() : fecha.getMonth();
+    const anio = soloFecha ? fecha.getUTCFullYear() : fecha.getFullYear();
+    const diaSemana = soloFecha ? fecha.getUTCDay() : fecha.getDay();
     const diaPad = String(dia).padStart(2, '0');
-    const mesPad = String(fecha.getMonth() + 1).padStart(2, '0');
-    const mes = fecha.getMonth();
-    const anio = fecha.getFullYear();
+    const mesPad = String(mes + 1).padStart(2, '0');
     const horaStr = `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
 
     switch (formato) {
@@ -44,7 +53,7 @@ export class FechaArPipe implements PipeTransform {
       case 'media':
         return `${dia} ${MESES_CORTOS[mes]} ${anio}`;
       case 'completa':
-        return `${DIAS_LARGOS[fecha.getDay()]} ${dia} de ${MESES_LARGOS[mes]} de ${anio}`;
+        return `${DIAS_LARGOS[diaSemana]} ${dia} de ${MESES_LARGOS[mes]} de ${anio}`;
       case 'diaMes':
         return `${diaPad} ${MESES_CORTOS[mes]}`;
       case 'diaMesAnio':
@@ -52,7 +61,7 @@ export class FechaArPipe implements PipeTransform {
       case 'diaNumero':
         return `${dia}`;
       case 'diaSemana':
-        return `${DIAS_LARGOS[fecha.getDay()]} ${dia}`;
+        return `${DIAS_LARGOS[diaSemana]} ${dia}`;
       default:
         return `${diaPad}/${mesPad}/${anio}`;
     }

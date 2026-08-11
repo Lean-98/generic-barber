@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Persona } from '@prisma/client';
+import { Persona, Prisma } from '@prisma/client';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
+import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class PersonasService {
@@ -21,10 +22,16 @@ export class PersonasService {
     });
   }
 
-  async findAll(): Promise<Persona[]> {
-    return this.prisma.persona.findMany({
-      orderBy: { apellido: 'asc' },
-    });
+  async findAll(page = 1, limit = 20): Promise<PaginatedResult<Persona>> {
+    const [data, total] = await Promise.all([
+      this.prisma.persona.findMany({
+        orderBy: { apellido: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.persona.count(),
+    ]);
+    return paginar(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<Persona> {
@@ -66,18 +73,25 @@ export class PersonasService {
     });
   }
 
-  async searchByName(query: string): Promise<Persona[]> {
-    return this.prisma.persona.findMany({
-      where: {
-        OR: [
-          { nombre: { contains: query, mode: 'insensitive' } },
-          { apellido: { contains: query, mode: 'insensitive' } },
-          { mail: { contains: query, mode: 'insensitive' } },
-          { telefono: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { apellido: 'asc' },
-    });
+  async searchByName(query: string, page = 1, limit = 20): Promise<PaginatedResult<Persona>> {
+    const where: Prisma.PersonaWhereInput = {
+      OR: [
+        { nombre: { contains: query, mode: 'insensitive' } },
+        { apellido: { contains: query, mode: 'insensitive' } },
+        { mail: { contains: query, mode: 'insensitive' } },
+        { telefono: { contains: query, mode: 'insensitive' } },
+      ],
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.persona.findMany({
+        where,
+        orderBy: { apellido: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.persona.count({ where }),
+    ]);
+    return paginar(data, total, page, limit);
   }
 
   async findByInstagram(instagram: string): Promise<Persona | null> {

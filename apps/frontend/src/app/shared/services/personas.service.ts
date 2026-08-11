@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Persona, CreatePersonaRequest, UpdatePersonaRequest } from '../models/persona.model';
 import { Turno } from '../models/turno.model';
+import { PaginatedResult } from '../models/paginated-result.model';
 
 @Injectable({
   providedIn: 'root',
@@ -13,8 +14,10 @@ export class PersonasService {
 
   constructor(private readonly http: HttpClient) {}
 
-  findAll(): Observable<Persona[]> {
-    return this.http.get<Persona[]>(`${this.apiUrl}/personas`);
+  findAll(page = 1, limit = 20): Observable<PaginatedResult<Persona>> {
+    return this.http.get<PaginatedResult<Persona>>(`${this.apiUrl}/personas`, {
+      params: { page: String(page), limit: String(limit) },
+    });
   }
 
   findOne(id: number): Observable<Persona> {
@@ -33,9 +36,9 @@ export class PersonasService {
     return this.http.delete<Persona>(`${this.apiUrl}/personas/${id}`);
   }
 
-  search(query: string): Observable<Persona[]> {
-    return this.http.get<Persona[]>(`${this.apiUrl}/personas/search`, {
-      params: { q: query },
+  search(query: string, page = 1, limit = 20): Observable<PaginatedResult<Persona>> {
+    return this.http.get<PaginatedResult<Persona>>(`${this.apiUrl}/personas/search`, {
+      params: { q: query, page: String(page), limit: String(limit) },
     });
   }
 

@@ -12,11 +12,12 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TurnosService } from './turnos.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
+import { FindTurnosQueryDto } from './dto/find-turnos-query.dto';
 
 @ApiTags('Turnos')
 @ApiBearerAuth()
@@ -34,15 +35,10 @@ export class TurnosController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los turnos' })
-  @ApiQuery({ name: 'fechaDesde', required: false, description: 'Fecha desde (ISO 8601)' })
-  @ApiQuery({ name: 'fechaHasta', required: false, description: 'Fecha hasta (ISO 8601)' })
-  @ApiResponse({ status: 200, description: 'Lista de turnos' })
-  async findAll(
-    @Query('fechaDesde') fechaDesde?: string,
-    @Query('fechaHasta') fechaHasta?: string,
-  ) {
-    return this.turnosService.findAll(fechaDesde, fechaHasta);
+  @ApiOperation({ summary: 'Obtener todos los turnos (paginado)' })
+  @ApiResponse({ status: 200, description: 'Página de turnos' })
+  async findAll(@Query() { fechaDesde, fechaHasta, page, limit }: FindTurnosQueryDto) {
+    return this.turnosService.findAll(fechaDesde, fechaHasta, page, limit);
   }
 
   @Get(':id')

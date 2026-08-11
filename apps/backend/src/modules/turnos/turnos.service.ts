@@ -6,6 +6,7 @@ import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { horaArAUtc } from '../../common/utils/fecha-ar.util';
+import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class TurnosService {
@@ -110,26 +111,32 @@ export class TurnosService {
     return this.findOne(turno.idTurno);
   }
 
-  async findAll(fechaDesde?: string, fechaHasta?: string): Promise<Turno[]> {
-    const where: any = {};
+  async findAll(fechaDesde?: string, fechaHasta?: string, page = 1, limit = 20): Promise<PaginatedResult<Turno>> {
+    const where: Prisma.TurnoWhereInput = {};
     if (fechaDesde || fechaHasta) {
       where.fechaHoraInicio = {};
       if (fechaDesde) where.fechaHoraInicio.gte = new Date(fechaDesde);
       if (fechaHasta) where.fechaHoraInicio.lte = new Date(fechaHasta);
     }
 
-    return this.prisma.turno.findMany({
-      where,
-      orderBy: { fechaHoraInicio: 'asc' },
-      include: {
-        persona: true,
-        detalles: {
-          include: {
-            servicio: true,
+    const [data, total] = await Promise.all([
+      this.prisma.turno.findMany({
+        where,
+        orderBy: { fechaHoraInicio: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          persona: true,
+          detalles: {
+            include: {
+              servicio: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.turno.count({ where }),
+    ]);
+    return paginar(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<Turno & { detalles: any[]; persona: any }> {

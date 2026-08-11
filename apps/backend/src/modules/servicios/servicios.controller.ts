@@ -8,18 +8,18 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
-  ParseBoolPipe,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ServiciosService } from './servicios.service';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
+import { FindServiciosQueryDto } from './dto/find-servicios-query.dto';
 import { Servicio } from '@prisma/client';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @ApiTags('Servicios')
 @Controller('servicios')
@@ -37,16 +37,10 @@ export class ServiciosController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los servicios' })
-  @ApiQuery({ name: 'vigente', required: false, type: Boolean, description: 'Filtrar por vigencia' })
-  @ApiQuery({ name: 'categoria', required: false, type: String, description: 'Filtrar por categoría' })
-  @ApiResponse({ status: 200, description: 'Lista de servicios' })
-  async findAll(
-    @Query('vigente', new DefaultValuePipe(undefined), new ParseBoolPipe({ optional: true }))
-    vigente?: boolean,
-    @Query('categoria') categoria?: string,
-  ): Promise<Servicio[]> {
-    return this.serviciosService.findAll(vigente, categoria);
+  @ApiOperation({ summary: 'Obtener todos los servicios (paginado)' })
+  @ApiResponse({ status: 200, description: 'Página de servicios' })
+  async findAll(@Query() { vigente, categoria, page, limit }: FindServiciosQueryDto): Promise<PaginatedResult<Servicio>> {
+    return this.serviciosService.findAll(vigente, categoria, page, limit);
   }
 
   @Get('categorias')

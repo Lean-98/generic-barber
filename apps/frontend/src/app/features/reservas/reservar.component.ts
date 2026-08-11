@@ -285,8 +285,8 @@ export class ReservarComponent implements OnInit {
   exito = signal(false);
 
   ngOnInit(): void {
-    this.serviciosService.findAll().subscribe((s) => {
-      this.servicios.set(s.filter((sv) => sv.vigente));
+    this.serviciosService.findAll(undefined, undefined, 1, 200).subscribe((res) => {
+      this.servicios.set(res.data.filter((sv) => sv.vigente));
     });
   }
 

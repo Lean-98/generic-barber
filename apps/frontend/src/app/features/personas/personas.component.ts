@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PersonasService } from '../../shared/services/personas.service';
 import { Persona, UpdatePersonaRequest } from '../../shared/models/persona.model';
@@ -6,11 +6,14 @@ import { Turno } from '../../shared/models/turno.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { PaginationComponent } from '../../shared/ui/pagination.component';
+
+const LIMITE_PAGINA = 20;
 
 @Component({
   selector: 'app-personas',
   standalone: true,
-  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe, PaginationComponent],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -34,7 +37,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                 <app-icon name="x" [size]="18" />
               </button>
             </div>
-            <span class="text-sm text-base-content/60">{{ personasFiltradas().length }} clientes</span>
+            <span class="text-sm text-base-content/60">{{ total() }} {{ total() === 1 ? 'cliente' : 'clientes' }}</span>
           </div>
         </div>
       </div>
@@ -53,7 +56,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                 </tr>
               </thead>
               <tbody>
-                @for (persona of personasFiltradas(); track persona.idPersona) {
+                @for (persona of personas(); track persona.idPersona) {
                   <tr class="hover:bg-base-200/50">
                     <td>
                       <div class="flex items-center gap-3">
@@ -113,6 +116,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
               </tbody>
             </table>
           </div>
+          <app-pagination [page]="pagina()" [totalPages]="totalPaginas()" [total]="total()" (pageChange)="irAPagina($event)" />
         </div>
       </div>
     </div>
@@ -192,7 +196,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
             </div>
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Fecha de nacimiento</span>
-              <span>{{ p.fechaNacimiento ? (p.fechaNacimiento | fechaAr:'media') : '—' }}</span>
+              <span>{{ p.fechaNacimiento ? (p.fechaNacimiento | fechaAr:'media':true) : '—' }}</span>
             </div>
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Total turnos</span>
@@ -338,8 +342,9 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
     </dialog>
   `,
 })
-export class PersonasComponent implements OnInit {
+export class PersonasComponent implements OnInit, OnDestroy {
   private readonly personasService = inject(PersonasService);
+  private filtroTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   @ViewChild('crearModal') crearModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('detalleModal') detalleModalRef!: ElementRef<HTMLDialogElement>;
@@ -349,18 +354,9 @@ export class PersonasComponent implements OnInit {
 
   personas = signal<Persona[]>([]);
   filtro = signal('');
-  personasFiltradas = computed(() => {
-    const f = this.filtro().toLowerCase().trim();
-    if (!f) return this.personas();
-    return this.personas().filter(
-      (p) =>
-        p.nombre.toLowerCase().includes(f) ||
-        p.apellido.toLowerCase().includes(f) ||
-        (p.telefono?.toLowerCase().includes(f) ?? false) ||
-        (p.mail?.toLowerCase().includes(f) ?? false) ||
-        (p.instagram?.toLowerCase().includes(f) ?? false)
-    );
-  });
+  pagina = signal(1);
+  totalPaginas = signal(1);
+  total = signal(0);
 
   personaSeleccionada = signal<Persona | null>(null);
   personaEditando = signal<Persona | null>(null);
@@ -380,16 +376,44 @@ export class PersonasComponent implements OnInit {
     this.loadPersonas();
   }
 
+  ngOnDestroy(): void {
+    if (this.filtroTimeoutId) {
+      clearTimeout(this.filtroTimeoutId);
+    }
+  }
+
   loadPersonas(): void {
-    this.personasService.findAll().subscribe((p) => this.personas.set(p));
+    const query = this.filtro().trim();
+    const request$ = query
+      ? this.personasService.search(query, this.pagina(), LIMITE_PAGINA)
+      : this.personasService.findAll(this.pagina(), LIMITE_PAGINA);
+
+    request$.subscribe((res) => {
+      this.personas.set(res.data);
+      this.total.set(res.total);
+      this.totalPaginas.set(res.totalPages);
+    });
+  }
+
+  irAPagina(pagina: number): void {
+    this.pagina.set(pagina);
+    this.loadPersonas();
   }
 
   aplicarFiltro(): void {
-    // el signal se actualiza solo por el binding
+    if (this.filtroTimeoutId) {
+      clearTimeout(this.filtroTimeoutId);
+    }
+    this.filtroTimeoutId = setTimeout(() => {
+      this.pagina.set(1);
+      this.loadPersonas();
+    }, 300);
   }
 
   limpiarFiltro(): void {
     this.filtro.set('');
+    this.pagina.set(1);
+    this.loadPersonas();
   }
 
   abrirCrear(): void {
