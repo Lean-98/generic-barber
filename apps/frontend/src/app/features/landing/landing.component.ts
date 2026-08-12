@@ -26,19 +26,23 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   template: `
     <div class="min-h-screen bg-base-100 text-base-content">
       <!-- Header -->
-      <header class="sticky top-0 z-40 border-b border-base-300 bg-base-100/90 backdrop-blur">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <app-brand-mark [hero]="true" barHeight="h-9" />
-          <nav class="hidden items-center gap-6 text-sm font-medium md:flex">
-            <a href="#servicios" class="hover:text-primary">Servicios</a>
-            <a href="#horarios" class="hover:text-primary">Horarios</a>
-            @if (galeriaItems().length > 0) {
-              <a href="#galeria" class="hover:text-primary">Galería</a>
-            }
-            @if (config().direccion) {
-              <a href="#ubicacion" class="hover:text-primary">Ubicación</a>
-            }
-          </nav>
+      <header class="navbar sticky top-0 z-40 bg-neutral px-4 text-neutral-content sm:px-6">
+        <div class="navbar-start gap-3">
+          <app-brand-mark [hero]="true" barHeight="h-8" />
+        </div>
+        <nav class="navbar-center hidden items-center gap-6 text-sm font-medium lg:flex">
+          @if (config().descripcion) {
+            <a href="#acerca-de" class="opacity-80 hover:opacity-100">Acerca de</a>
+          }
+          <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
+          @if (galeriaItems().length > 0) {
+            <a href="#galeria" class="opacity-80 hover:opacity-100">Galería</a>
+          }
+          @if (config().direccion) {
+            <a href="#ubicacion" class="opacity-80 hover:opacity-100">Ubicación</a>
+          }
+        </nav>
+        <div class="navbar-end gap-4">
           <a routerLink="/reservar" class="btn btn-primary btn-sm gap-2">
             <app-icon name="calendar" [size]="16" />
             Reservar
@@ -48,183 +52,220 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
       <!-- Hero -->
       <section
-        class="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-neutral text-neutral-content"
+        class="relative flex h-56 items-center justify-center overflow-hidden bg-neutral text-neutral-content sm:h-72 md:h-80"
         [style.background-image]="config().heroImageUrl ? 'url(' + config().heroImageUrl + ')' : null"
         style="background-size: cover; background-position: center;"
       >
-        <div class="absolute inset-0 bg-neutral/70"></div>
-        <div class="relative z-10 mx-auto max-w-2xl px-4 py-20 text-center">
-          <p class="text-sm font-medium uppercase tracking-[0.2em] text-primary">{{ config().nombre }}</p>
-          <h1 class="font-display mt-3 text-4xl font-medium leading-tight tracking-tight md:text-5xl">
-            {{ config().descripcion ? tituloCorto() : 'Reservá tu turno en minutos' }}
-          </h1>
-          @if (config().descripcion) {
-            <p class="mt-4 text-neutral-content/70">{{ config().descripcion }}</p>
-          }
-          <a routerLink="/reservar" class="btn btn-primary btn-lg mt-8 gap-2">
-            <app-icon name="calendar" [size]="20" />
-            Reservar turno
+        <div class="absolute inset-0 bg-gradient-to-t from-neutral via-neutral/40 to-neutral/10"></div>
+
+        @if (galeriaItems().length > 0) {
+          <a
+            href="#galeria"
+            class="btn btn-sm absolute right-4 top-4 gap-2 border-none bg-base-100/90 text-base-content hover:bg-base-100 sm:right-6 sm:top-6"
+          >
+            <app-icon name="image" [size]="16" />
+            Ver fotos
           </a>
-        </div>
-      </section>
-
-      <!-- Servicios -->
-      <section id="servicios" class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h2 class="font-display text-2xl font-medium tracking-tight md:text-3xl">Servicios</h2>
-        <p class="mt-2 text-base-content/60">Lo que ofrecemos en {{ config().nombre }}</p>
-
-        @if (servicios().length > 0) {
-          <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            @for (servicio of servicios(); track servicio.idServicio) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
-                <div class="card-body p-5">
-                  <p class="font-semibold">{{ servicio.nombre }}</p>
-                  <div class="mt-1 flex items-center justify-between">
-                    <span class="flex items-center gap-1 text-sm text-base-content/60">
-                      <app-icon name="clock" [size]="14" />
-                      {{ servicio.duracionMinutos }} min
-                    </span>
-                    <span class="tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</span>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        } @else {
-          <p class="mt-8 text-base-content/60">Todavía no hay servicios cargados.</p>
         }
       </section>
 
-      <!-- Horarios -->
-      <section id="horarios" class="bg-base-200">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <div class="grid gap-8 md:grid-cols-2">
-            <div>
-              <h2 class="font-display text-2xl font-medium tracking-tight md:text-3xl">Horarios</h2>
-              @if (estaAbierto(); as abierto) {
-                <span class="badge mt-3 gap-1" [class.badge-success]="abierto.abierto" [class.badge-ghost]="!abierto.abierto">
-                  {{ abierto.abierto ? 'Abierto ahora' : 'Cerrado ahora' }}
-                </span>
-              }
-              <div class="mt-6 divide-y divide-base-300 rounded-lg border border-base-300 bg-base-100">
-                @for (fila of filasHorario(); track fila.dia) {
-                  <div class="flex items-center justify-between px-4 py-2.5 text-sm">
-                    <span [class.font-semibold]="fila.esHoy">{{ fila.nombre }}</span>
-                    <span [class.font-semibold]="fila.esHoy" [class.text-base-content]="!fila.cerrado" [class.opacity-50]="fila.cerrado">
-                      {{ fila.cerrado ? 'Cerrado' : fila.abre + ' - ' + fila.cierra }}
-                    </span>
-                  </div>
+      <!-- Cuerpo: contenido + sidebar de reserva fija, estilo tarjetas superpuestas al hero -->
+      <div class="relative z-10 mx-auto -mt-10 max-w-6xl px-4 pb-16 sm:px-6 md:-mt-16">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+          <!-- Columna principal: todo el contenido scrolleable comparte contenedor con la sidebar,
+               así la sidebar tiene "espacio" para quedar fija durante todo el scroll de la página. -->
+          <div class="order-2 min-w-0 flex-1 space-y-6 lg:order-1">
+            @if (config().descripcion; as descripcion) {
+              <div id="acerca-de" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+                <div class="card-body">
+                  <h2 class="font-display text-lg font-semibold">Acerca de {{ config().nombre }}</h2>
+                  <p class="whitespace-pre-line text-base-content/70">{{ descripcion }}</p>
+                </div>
+              </div>
+            }
+
+            <div id="servicios" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+              <div class="card-body">
+                <h2 class="font-display text-lg font-semibold">Servicios</h2>
+                @if (servicios().length > 0) {
+                  <ul class="mt-2 divide-y divide-base-300">
+                    @for (servicio of servicios(); track servicio.idServicio) {
+                      <li class="-mx-2 flex items-center gap-4 rounded-lg px-2 py-3 transition-colors hover:bg-base-200">
+                        <div class="avatar placeholder shrink-0">
+                          <div class="w-11 rounded-full bg-primary text-primary-content">
+                            <app-icon name="scissors" [size]="18" />
+                          </div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <div class="truncate font-medium">{{ servicio.nombre }}</div>
+                          <div class="text-sm text-base-content/60">{{ servicio.duracionMinutos }} min</div>
+                        </div>
+                        <div class="shrink-0 tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="text-base-content/60">Todavía no hay servicios cargados.</p>
                 }
               </div>
             </div>
 
-            @if (config().telefono || config().email || config().whatsappUrl || config().instagramUrl || config().facebookUrl || config().googleReviewsUrl) {
-              <div>
-                <h2 class="font-display text-2xl font-medium tracking-tight md:text-3xl">Contacto</h2>
-                <div class="mt-6 space-y-3">
-                  @if (config().whatsappUrl; as url) {
-                    <a [href]="url" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 hover:border-primary">
-                      <app-icon name="whatsapp" [size]="18" className="text-primary" />
-                      <span>Escribinos por WhatsApp</span>
-                    </a>
-                  }
-                  @if (config().telefono; as telefono) {
-                    <a [href]="'tel:' + telefono" class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 hover:border-primary">
-                      <app-icon name="phone" [size]="18" className="text-primary" />
-                      <span>{{ telefono }}</span>
-                    </a>
-                  }
-                  @if (config().email; as email) {
-                    <a [href]="'mailto:' + email" class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 hover:border-primary">
-                      <app-icon name="mail" [size]="18" className="text-primary" />
-                      <span>{{ email }}</span>
-                    </a>
-                  }
-                  @if (config().googleReviewsUrl; as url) {
-                    <a [href]="url" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 hover:border-primary">
-                      <app-icon name="star" [size]="18" className="text-primary" />
-                      <span>Dejanos tu reseña en Google</span>
-                    </a>
-                  }
-                  @if (config().instagramUrl || config().facebookUrl) {
-                    <div class="flex items-center gap-3 pt-2">
-                      @if (config().instagramUrl; as url) {
-                        <a [href]="url" target="_blank" rel="noopener" class="btn btn-ghost btn-square" aria-label="Instagram">
-                          <app-icon name="instagram" [size]="20" />
-                        </a>
+            @if (galeriaItems().length > 0) {
+              <div id="galeria" class="card scroll-mt-24 overflow-hidden border border-base-300 bg-base-100 shadow-sm">
+                <div class="card-body pb-4">
+                  <h2 class="font-display text-lg font-semibold">Galería</h2>
+                </div>
+
+                <div
+                  class="carousel w-full"
+                  (mouseenter)="pausarAutoplayGaleria()"
+                  (mouseleave)="reanudarAutoplayGaleria($event)"
+                  (wheel)="onWheelGaleria($event)"
+                >
+                  @for (item of galeriaItems(); track item.id) {
+                    <div [id]="item.id" class="carousel-item relative w-full">
+                      <img [src]="item.url" alt="" class="aspect-video w-full object-cover" loading="lazy" />
+                      @if (galeriaItems().length > 1) {
+                        <div class="absolute left-2 right-2 top-1/2 flex -translate-y-1/2 justify-between">
+                          <a [href]="'#' + item.prevId" class="btn btn-circle btn-sm border-none bg-base-100/80">❮</a>
+                          <a [href]="'#' + item.nextId" class="btn btn-circle btn-sm border-none bg-base-100/80">❯</a>
+                        </div>
                       }
-                      @if (config().facebookUrl; as url) {
-                        <a [href]="url" target="_blank" rel="noopener" class="btn btn-ghost btn-square" aria-label="Facebook">
-                          <app-icon name="facebook" [size]="20" />
-                        </a>
-                      }
+                    </div>
+                  }
+                </div>
+
+                @if (galeriaItems().length > 1) {
+                  <div class="card-body flex-row justify-center gap-2 pt-4">
+                    @for (item of galeriaItems(); track item.id; let i = $index) {
+                      <a [href]="'#' + item.id" class="btn btn-circle btn-ghost btn-xs">{{ i + 1 }}</a>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (config().direccion) {
+              <div id="ubicacion" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+                <div class="card-body">
+                  <h2 class="font-display text-lg font-semibold">Ubicación</h2>
+                  <p class="mt-1 flex items-center gap-2 text-base-content/70">
+                    <app-icon name="map-pin" [size]="18" className="shrink-0" />
+                    {{ config().direccion }}
+                  </p>
+                  @if (mapaUrl(); as url) {
+                    <div class="mt-4 overflow-hidden rounded-lg border border-base-300">
+                      <iframe [src]="url" width="100%" height="320" style="border:0" loading="lazy" title="Ubicación"></iframe>
                     </div>
                   }
                 </div>
               </div>
             }
-          </div>
-        </div>
-      </section>
 
-      <!-- Galería -->
-      @if (galeriaItems().length > 0) {
-        <section id="galeria" class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <h2 class="font-display text-2xl font-medium tracking-tight md:text-3xl">Galería</h2>
-
-          <div
-            class="carousel mt-8 w-full rounded-lg"
-            (mouseenter)="pausarAutoplayGaleria()"
-            (mouseleave)="reanudarAutoplayGaleria($event)"
-          >
-            @for (item of galeriaItems(); track item.id) {
-              <div [id]="item.id" class="carousel-item relative w-full">
-                <img [src]="item.url" alt="" class="aspect-video w-full object-cover" loading="lazy" />
-                @if (galeriaItems().length > 1) {
-                  <div class="absolute left-2 right-2 top-1/2 flex -translate-y-1/2 justify-between">
-                    <a [href]="'#' + item.prevId" class="btn btn-circle btn-sm bg-base-100/80 border-none">❮</a>
-                    <a [href]="'#' + item.nextId" class="btn btn-circle btn-sm bg-base-100/80 border-none">❯</a>
-                  </div>
-                }
+            @if (config().politicaReservas; as politica) {
+              <div class="card border border-base-300 bg-base-100 shadow-sm">
+                <div class="card-body">
+                  <h2 class="font-display text-lg font-semibold">Política de reservas</h2>
+                  <p class="whitespace-pre-line text-base-content/70">{{ politica }}</p>
+                </div>
               </div>
             }
           </div>
 
-          @if (galeriaItems().length > 1) {
-            <div class="mt-3 flex justify-center gap-2">
-              @for (item of galeriaItems(); track item.id; let i = $index) {
-                <a [href]="'#' + item.id" class="btn btn-xs btn-circle btn-ghost">{{ i + 1 }}</a>
-              }
-            </div>
-          }
-        </section>
-      }
+          <!-- Sidebar de reserva: fija en pantalla mientras el resto del contenido scrollea. -->
+          <aside id="horarios" class="order-1 scroll-mt-24 sticky top-20 lg:order-2 lg:w-[360px] lg:shrink-0">
+            <div class="card border border-base-300 bg-base-100 shadow-sm">
+              <div class="card-body items-center p-7 text-center">
+                <div class="avatar placeholder">
+                  <div class="w-24 rounded-full bg-base-200 text-3xl">
+                    @if (logoParaAvatar(); as url) {
+                      <img [src]="url" [alt]="config().nombre" />
+                    } @else {
+                      <span class="font-display">{{ inicial() }}</span>
+                    }
+                  </div>
+                </div>
+                <h1 class="font-display mt-4 text-2xl font-semibold">{{ config().nombre }}</h1>
+                <a routerLink="/reservar" class="btn btn-primary btn-block mt-5 gap-2">
+                  <app-icon name="calendar" [size]="20" />
+                  Reservar
+                </a>
 
-      <!-- Ubicación -->
-      @if (config().direccion) {
-        <section id="ubicacion" class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <h2 class="font-display text-2xl font-medium tracking-tight md:text-3xl">Ubicación</h2>
-          <p class="mt-2 flex items-center gap-2 text-base-content/70">
-            <app-icon name="map-pin" [size]="18" />
-            {{ config().direccion }}
-          </p>
-          @if (mapaUrl(); as url) {
-            <div class="mt-6 overflow-hidden rounded-lg border border-base-300">
-              <iframe [src]="url" width="100%" height="360" style="border:0" loading="lazy" title="Ubicación"></iframe>
-            </div>
-          }
-        </section>
-      }
+                @if (proximaAperturaTexto(); as estado) {
+                  <div class="collapse-arrow collapse mt-5 w-full border border-base-300 text-left">
+                    <input type="checkbox" />
+                    <div class="collapse-title min-h-0 flex items-center gap-2 py-3 text-sm font-medium">
+                      <app-icon name="clock" [size]="16" className="shrink-0" />
+                      {{ estado }}
+                    </div>
+                    <div class="collapse-content">
+                      <div class="divide-y divide-base-300 text-sm">
+                        @for (fila of filasHorario(); track fila.dia) {
+                          <div class="flex items-center justify-between py-1.5">
+                            <span [class.font-semibold]="fila.esHoy">{{ fila.nombre }}</span>
+                            <span [class.font-semibold]="fila.esHoy" [class.opacity-50]="fila.cerrado">
+                              {{ fila.cerrado ? 'Cerrado' : fila.abre + ' - ' + fila.cierra }}
+                            </span>
+                          </div>
+                        }
+                      </div>
+                      <p class="mt-2 text-xs text-base-content/50">Zona horaria: Argentina (UTC-3)</p>
+                    </div>
+                  </div>
+                }
 
-      <!-- Política de reservas -->
-      @if (config().politicaReservas) {
-        <section class="bg-base-200">
-          <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-            <h2 class="font-display text-xl font-medium tracking-tight">Política de reservas</h2>
-            <p class="mt-3 whitespace-pre-line text-base-content/70">{{ config().politicaReservas }}</p>
-          </div>
-        </section>
-      }
+                @if (config().direccion; as direccion) {
+                  <a href="#ubicacion" class="mt-3 flex w-full items-start gap-2 text-left text-sm hover:text-primary">
+                    <app-icon name="map-pin" [size]="16" className="mt-0.5 shrink-0" />
+                    <span>{{ direccion }}</span>
+                  </a>
+                }
+
+                @if (tieneContacto()) {
+                  <div class="collapse-arrow collapse mt-3 w-full border border-base-300 text-left">
+                    <input type="checkbox" />
+                    <div class="collapse-title min-h-0 py-3 text-sm font-medium">Ponete en contacto</div>
+                    <div class="collapse-content space-y-2 text-sm">
+                      @if (config().whatsappUrl; as url) {
+                        <a [href]="url" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-primary">
+                          <app-icon name="whatsapp" [size]="16" />
+                          <span>WhatsApp</span>
+                        </a>
+                      }
+                      @if (config().email; as email) {
+                        <a [href]="'mailto:' + email" class="flex items-center gap-2 hover:text-primary">
+                          <app-icon name="mail" [size]="16" />
+                          <span>{{ email }}</span>
+                        </a>
+                      }
+                      @if (config().googleReviewsUrl; as url) {
+                        <a [href]="url" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-primary">
+                          <app-icon name="star" [size]="16" />
+                          <span>Dejanos tu reseña en Google</span>
+                        </a>
+                      }
+                      @if (config().instagramUrl || config().facebookUrl) {
+                        <div class="flex items-center gap-3 pt-1">
+                          @if (config().instagramUrl; as url) {
+                            <a [href]="url" target="_blank" rel="noopener" class="btn btn-ghost btn-square btn-sm" aria-label="Instagram">
+                              <app-icon name="instagram" [size]="18" />
+                            </a>
+                          }
+                          @if (config().facebookUrl; as url) {
+                            <a [href]="url" target="_blank" rel="noopener" class="btn btn-ghost btn-square btn-sm" aria-label="Facebook">
+                              <app-icon name="facebook" [size]="18" />
+                            </a>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
 
       <!-- Footer -->
       <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/50">
@@ -237,7 +278,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
           [href]="url"
           target="_blank"
           rel="noopener"
-          class="btn btn-circle btn-lg fixed bottom-6 right-6 z-40 bg-[#25D366] text-white shadow-lg hover:bg-[#1ebe5a] border-none"
+          class="btn btn-circle btn-lg fixed bottom-6 right-6 z-40 border-none bg-[#25D366] text-white shadow-lg hover:bg-[#1ebe5a]"
           aria-label="Escribinos por WhatsApp"
         >
           <app-icon name="whatsapp" [size]="26" />
@@ -288,6 +329,20 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   tituloCorto = computed(() => `Bienvenido a ${this.config().nombre}`);
 
+  logoParaAvatar = computed(() => this.config().iconoUrl || this.config().logoUrl);
+  inicial = computed(() => this.config().nombre.trim().charAt(0).toUpperCase() || 'P');
+
+  tieneContacto = computed(
+    () =>
+      !!(
+        this.config().whatsappUrl ||
+        this.config().email ||
+        this.config().googleReviewsUrl ||
+        this.config().instagramUrl ||
+        this.config().facebookUrl
+      ),
+  );
+
   filasHorario = computed(() => {
     const horarios = this.config().horarios;
     const hoy = new Date().getDay();
@@ -321,6 +376,34 @@ export class LandingComponent implements OnInit, OnDestroy {
     return {
       abierto: minutosAhora >= horaApertura * 60 + minutoApertura && minutosAhora < horaCierre * 60 + minutoCierre,
     };
+  });
+
+  /** Texto tipo "Abierto ahora" / "Cerrado · Abre martes a las 11:00" para el resumen de la sidebar. */
+  proximaAperturaTexto = computed<string | null>(() => {
+    const horarios = this.config().horarios;
+    if (!horarios || horarios.length === 0) return null;
+
+    if (this.estaAbierto()?.abierto) return 'Abierto ahora';
+
+    const ahora = new Date();
+    const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+
+    for (let i = 0; i < 7; i++) {
+      const dia = (ahora.getDay() + i) % 7;
+      const horario = horarios.find((h) => h.dia === dia);
+      if (!horario || horario.cerrado || !horario.abre) continue;
+
+      if (i === 0) {
+        const [hora, minuto] = horario.abre.split(':').map(Number);
+        if (minutosAhora >= hora * 60 + minuto) continue; // ya pasó el horario de apertura de hoy
+        return `Cerrado · Abre hoy a las ${horario.abre}`;
+      }
+
+      const nombreDia = DIAS_ORDEN.find((d) => d.dia === dia)?.nombre ?? '';
+      return `Cerrado · Abre ${nombreDia} a las ${horario.abre}`;
+    }
+
+    return 'Cerrado';
   });
 
   galeriaItems = computed(() => {
@@ -364,6 +447,19 @@ export class LandingComponent implements OnInit, OnDestroy {
     const ancho = carousel.clientWidth || 1;
     this.indiceGaleriaActual = Math.round(carousel.scrollLeft / ancho) % cantidad;
     this.iniciarAutoplayGaleria(cantidad);
+  }
+
+  /**
+   * Sin esto, algunos navegadores (ej. Firefox) redirigen la rueda del mouse hacia el scroll
+   * horizontal del carrusel cuando el cursor pasa por encima (no tiene overflow vertical propio),
+   * lo que hace que el scroll snap-mandatory "trabe" el scroll normal de la página. Si el gesto
+   * es mayormente vertical, lo dejamos pasar como scroll de página en vez de mover el carrusel.
+   */
+  onWheelGaleria(event: WheelEvent): void {
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      event.preventDefault();
+      window.scrollBy({ top: event.deltaY, left: 0 });
+    }
   }
 
   private iniciarAutoplayGaleria(cantidad: number): void {
