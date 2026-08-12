@@ -117,18 +117,31 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                 </div>
 
                 <div
+                  id="galeria-carousel"
                   class="carousel w-full"
                   (mouseenter)="pausarAutoplayGaleria()"
                   (mouseleave)="reanudarAutoplayGaleria($event)"
                   (wheel)="onWheelGaleria($event)"
                 >
-                  @for (item of galeriaItems(); track item.id) {
-                    <div [id]="item.id" class="carousel-item relative w-full">
+                  @for (item of galeriaItems(); track item.id; let i = $index) {
+                    <div class="carousel-item relative w-full">
                       <img [src]="item.url" alt="" class="aspect-video w-full object-cover" loading="lazy" />
                       @if (galeriaItems().length > 1) {
                         <div class="absolute left-2 right-2 top-1/2 flex -translate-y-1/2 justify-between">
-                          <a [href]="'#' + item.prevId" class="btn btn-circle btn-sm border-none bg-base-100/80">❮</a>
-                          <a [href]="'#' + item.nextId" class="btn btn-circle btn-sm border-none bg-base-100/80">❯</a>
+                          <button
+                            type="button"
+                            (click)="irAGaleria(i === 0 ? galeriaItems().length - 1 : i - 1)"
+                            class="btn btn-circle btn-sm border-none bg-base-100/80"
+                          >
+                            ❮
+                          </button>
+                          <button
+                            type="button"
+                            (click)="irAGaleria((i + 1) % galeriaItems().length)"
+                            class="btn btn-circle btn-sm border-none bg-base-100/80"
+                          >
+                            ❯
+                          </button>
                         </div>
                       }
                     </div>
@@ -138,7 +151,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                 @if (galeriaItems().length > 1) {
                   <div class="card-body flex-row justify-center gap-2 pt-4">
                     @for (item of galeriaItems(); track item.id; let i = $index) {
-                      <a [href]="'#' + item.id" class="btn btn-circle btn-ghost btn-xs">{{ i + 1 }}</a>
+                      <button type="button" (click)="irAGaleria(i)" class="btn btn-circle btn-ghost btn-xs">{{ i + 1 }}</button>
                     }
                   </div>
                 }
@@ -408,12 +421,7 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   galeriaItems = computed(() => {
     const fotos = this.config().galeriaUrls ?? [];
-    return fotos.map((url, i) => ({
-      url,
-      id: `galeria-${i}`,
-      prevId: `galeria-${(i - 1 + fotos.length) % fotos.length}`,
-      nextId: `galeria-${(i + 1) % fotos.length}`,
-    }));
+    return fotos.map((url, i) => ({ url, id: `galeria-${i}` }));
   });
 
   mapaUrl = computed<SafeResourceUrl | null>(() => {
@@ -449,6 +457,12 @@ export class LandingComponent implements OnInit, OnDestroy {
     this.iniciarAutoplayGaleria(cantidad);
   }
 
+  /** Navegación manual (flechas y puntos): mueve solo el scroll horizontal del carrusel. */
+  irAGaleria(index: number): void {
+    this.indiceGaleriaActual = index;
+    this.desplazarCarouselA(index);
+  }
+
   /**
    * Sin esto, algunos navegadores (ej. Firefox) redirigen la rueda del mouse hacia el scroll
    * horizontal del carrusel cuando el cursor pasa por encima (no tiene overflow vertical propio),
@@ -468,12 +482,20 @@ export class LandingComponent implements OnInit, OnDestroy {
     }
     this.autoplayIntervalId = setInterval(() => {
       this.indiceGaleriaActual = (this.indiceGaleriaActual + 1) % cantidad;
-      document.getElementById(`galeria-${this.indiceGaleriaActual}`)?.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'start',
-        block: 'nearest',
-      });
+      this.desplazarCarouselA(this.indiceGaleriaActual);
     }, 4000);
+  }
+
+  /**
+   * `scrollIntoView` mueve cualquier ancestro con overflow que haga falta para mostrar el
+   * elemento, incluida la página entera si el carrusel no está totalmente visible verticalmente
+   * — eso generaba saltos de scroll vertical no deseados cada vez que rotaba el autoplay.
+   * Mover el `scrollLeft` del carrusel directamente evita tocar el scroll de la página.
+   */
+  private desplazarCarouselA(index: number): void {
+    const carousel = document.getElementById('galeria-carousel');
+    if (!carousel) return;
+    carousel.scrollTo({ left: index * carousel.clientWidth, behavior: 'smooth' });
   }
 
   private detenerAutoplayGaleria(): void {
