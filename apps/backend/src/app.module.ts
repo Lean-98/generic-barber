@@ -24,6 +24,10 @@ import { ConfiguracionModule } from './modules/configuracion/configuracion.modul
         name: 'default',
         ttl: 60_000,
         limit: 120,
+        // Los tests e2e loguean un usuario nuevo por test y comparten la
+        // misma IP/proceso: sin esto, el límite de @Throttle en rutas como
+        // login se agota entre tests sin que eso sea lo que se está probando.
+        skipIf: () => process.env.NODE_ENV === 'test',
       },
     ]),
     PrismaModule,

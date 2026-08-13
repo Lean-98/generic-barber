@@ -68,8 +68,9 @@ describe('TurnosPublicosController (e2e)', () => {
       expect(response.body).toHaveProperty('duracionTotal');
       expect(response.body.duracionTotal).toBe(30);
       expect(response.body.slots.length).toBeGreaterThan(0);
-      // Slots deben ser desde las 9:00 hasta las 17:30 (30 min antes de 18:00)
-      expect(response.body.slots[0]).toContain('2026-06-15T09:00:00');
+      // Slots van de 9:00 a 17:30 hora Argentina (UTC-3): en UTC son
+      // 12:00 a 20:30, ya que las fechas se serializan siempre en UTC.
+      expect(response.body.slots[0]).toContain('2026-06-15T12:00:00');
     });
 
     it('should return empty slots when all day is occupied', async () => {
@@ -87,9 +88,10 @@ describe('TurnosPublicosController (e2e)', () => {
         data: { nombre: 'Juan', apellido: 'Pérez' },
       });
 
-      // Crear turnos desde 9:00 hasta 18:00 cada 30 min
+      // Crear turnos desde las 9:00 hasta las 18:00 hora Argentina (UTC-3),
+      // cada 30 min: en UTC es de 12:00 a 21:00.
       const fecha = '2026-06-15';
-      for (let hora = 9; hora < 18; hora++) {
+      for (let hora = 12; hora < 21; hora++) {
         for (let minuto = 0; minuto < 60; minuto += 30) {
           const inicio = new Date(`${fecha}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00Z`);
           const fin = new Date(inicio.getTime() + 30 * 60000);

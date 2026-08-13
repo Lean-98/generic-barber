@@ -107,7 +107,7 @@ describe('TurnosController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(1);
+      expect(response.body.data).toHaveLength(1);
     });
   });
 

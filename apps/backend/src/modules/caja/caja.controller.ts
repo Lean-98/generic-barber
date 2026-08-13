@@ -17,6 +17,7 @@ import { CajaService } from './caja.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
 import { ConfirmarCierreDto } from './dto/confirmar-cierre.dto';
+import { hoyAr } from '../../common/utils/fecha-ar.util';
 
 @ApiTags('Caja')
 @ApiBearerAuth()
@@ -67,14 +68,14 @@ export class CajaController {
   @Get('movimientos')
   @ApiOperation({ summary: 'Listar movimientos del día' })
   async findMovimientos(@Query('fecha') fecha?: string) {
-    const date = fecha ? new Date(fecha) : new Date();
+    const date = fecha ? new Date(fecha) : hoyAr();
     return this.cajaService.movimientos.findByFecha(date);
   }
 
   @Get('movimientos/totales')
   @ApiOperation({ summary: 'Totales de ingresos y egresos del día' })
   async getTotales(@Query('fecha') fecha?: string) {
-    const date = fecha ? new Date(fecha) : new Date();
+    const date = fecha ? new Date(fecha) : hoyAr();
     const [ingresos, egresos] = await Promise.all([
       this.cajaService.movimientos.calcularTotalIngresos(date),
       this.cajaService.movimientos.calcularTotalEgresos(date),

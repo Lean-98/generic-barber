@@ -72,7 +72,7 @@ describe('PersonasController (e2e)', () => {
 
       expect(response.status).toBe(200);
       // +1 porque getAuthToken crea una persona para el admin
-      expect(response.body.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -88,7 +88,7 @@ describe('PersonasController (e2e)', () => {
         .query({ q: 'Lopez' });
 
       expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(1);
+      expect(response.body.data).toHaveLength(1);
     });
   });
 
