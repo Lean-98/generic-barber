@@ -35,18 +35,20 @@ interface TurnoVisual {
           <p class="text-base-content/60 mt-1">Gestión de turnos y estados</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <div class="join">
-            <button class="btn join-item btn-sm" (click)="semanaAnterior()">
-              <app-icon name="arrow-left" [size]="16" />
-            </button>
-            <span class="join-item bg-base-200 px-3 py-2 text-sm font-medium flex items-center">
-              {{ fechaSemana() | fechaAr:'diaMes' }} - {{ finSemana() | fechaAr:'diaMesAnio' }}
-            </span>
-            <button class="btn join-item btn-sm" (click)="semanaSiguiente()">
-              <app-icon name="arrow-right" [size]="16" />
-            </button>
-          </div>
-          <button class="btn btn-sm btn-ghost" (click)="hoy()">Hoy</button>
+          @if (vista() === 'calendario') {
+            <div class="join">
+              <button class="btn join-item btn-sm" (click)="semanaAnterior()">
+                <app-icon name="arrow-left" [size]="16" />
+              </button>
+              <span class="join-item bg-base-200 px-3 py-2 text-sm font-medium flex items-center">
+                {{ fechaSemana() | fechaAr:'diaMes' }} - {{ finSemana() | fechaAr:'diaMesAnio' }}
+              </span>
+              <button class="btn join-item btn-sm" (click)="semanaSiguiente()">
+                <app-icon name="arrow-right" [size]="16" />
+              </button>
+            </div>
+            <button class="btn btn-sm btn-ghost" (click)="hoy()">Hoy</button>
+          }
 
           <div class="join">
             <button class="btn join-item btn-sm" [class.btn-active]="vista() === 'lista'" (click)="vista.set('lista')">
