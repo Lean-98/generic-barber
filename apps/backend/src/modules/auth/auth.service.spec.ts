@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { LoginDto } from './dto/login.dto';
@@ -22,6 +23,7 @@ describe('AuthService', () => {
   let prismaMock: PrismaServiceMock;
   let jwtService: JwtService;
   let configService: ConfigService;
+  let mailServiceMock: { sendPasswordResetEmail: jest.Mock };
 
   const mockUser = {
     usuario: 'admin',
@@ -39,6 +41,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
+    mailServiceMock = { sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,6 +61,10 @@ describe('AuthService', () => {
           useValue: {
             get: jest.fn().mockReturnValue('test-secret'),
           },
+        },
+        {
+          provide: MailService,
+          useValue: mailServiceMock,
         },
       ],
     }).compile();
@@ -186,6 +193,71 @@ describe('AuthService', () => {
       prismaMock.usuarioWeb.findUnique.mockResolvedValue(null);
 
       await expect(service.getProfile('admin')).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should generate a reset token and send email when the user exists', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(mockUser);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
+
+      const result = await service.forgotPassword({ email: mockUser.email });
+
+      expect(result.message).toContain('Si el email existe');
+      expect(prismaMock.usuarioWeb.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { usuario: mockUser.usuario },
+          data: expect.objectContaining({
+            resetTokenHash: expect.any(String),
+            resetTokenExpiresAt: expect.any(Date),
+          }),
+        }),
+      );
+      expect(mailServiceMock.sendPasswordResetEmail).toHaveBeenCalledWith(
+        mockUser.email,
+        expect.stringContaining('/reset-password?token='),
+      );
+    });
+
+    it('should return the same generic message and not send email when the user does not exist', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(null);
+
+      const result = await service.forgotPassword({ email: 'nadie@test.com' });
+
+      expect(result.message).toContain('Si el email existe');
+      expect(prismaMock.usuarioWeb.update).not.toHaveBeenCalled();
+      expect(mailServiceMock.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should update the password and clear the token when it is valid', async () => {
+      prismaMock.usuarioWeb.findFirst.mockResolvedValue(mockUser);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
+
+      const result = await service.resetPassword({
+        token: 'valid-raw-token',
+        password: 'nuevaPassword123',
+      });
+
+      expect(result.message).toBe('Contraseña actualizada correctamente');
+      expect(prismaMock.usuarioWeb.update).toHaveBeenCalledWith({
+        where: { usuario: mockUser.usuario },
+        data: {
+          hashPass: 'hashed',
+          resetTokenHash: null,
+          resetTokenExpiresAt: null,
+        },
+      });
+    });
+
+    it('should throw BadRequestException when the token is invalid or expired', async () => {
+      prismaMock.usuarioWeb.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resetPassword({ token: 'bad-token', password: 'nuevaPassword123' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.usuarioWeb.update).not.toHaveBeenCalled();
     });
   });
 });

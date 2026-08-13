@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/modules/prisma/prisma.service';
+import { MailService } from '../src/modules/mail/mail.service';
 import { cleanDatabase } from './setup-e2e';
 import * as bcrypt from 'bcrypt';
 
@@ -15,11 +16,17 @@ import * as bcrypt from 'bcrypt';
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let mailServiceMock: { sendPasswordResetEmail: jest.Mock };
 
   beforeAll(async () => {
+    mailServiceMock = { sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined) };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(MailService)
+      .useValue(mailServiceMock)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -37,6 +44,7 @@ describe('AuthController (e2e)', () => {
 
   beforeEach(async () => {
     await cleanDatabase(prisma);
+    mailServiceMock.sendPasswordResetEmail.mockClear();
   });
 
   afterAll(async () => {
@@ -264,6 +272,91 @@ describe('AuthController (e2e)', () => {
 
       // Assert
       expect(response.status).toBe(401);
+    });
+  });
+
+  describe('POST /api/auth/forgot-password', () => {
+    it('should return an identical generic response whether the email exists or not', async () => {
+      // Arrange
+      const persona = await prisma.persona.create({
+        data: { nombre: 'Admin', apellido: 'Test' },
+      });
+      const hashPass = await bcrypt.hash('admin123', 10);
+      await prisma.usuarioWeb.create({
+        data: {
+          usuario: 'admin',
+          email: 'admin@test.com',
+          hashPass,
+          rol: 'ADMIN',
+          idPersona: persona.idPersona,
+        },
+      });
+
+      // Act
+      const withExistingEmail = await request(app.getHttpServer())
+        .post('/api/auth/forgot-password')
+        .send({ email: 'admin@test.com' });
+      const withUnknownEmail = await request(app.getHttpServer())
+        .post('/api/auth/forgot-password')
+        .send({ email: 'nadie@test.com' });
+
+      // Assert: no debe filtrarse si el email existe o no
+      expect(withExistingEmail.status).toBe(200);
+      expect(withUnknownEmail.status).toBe(200);
+      expect(withExistingEmail.body).toEqual(withUnknownEmail.body);
+      expect(mailServiceMock.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('POST /api/auth/reset-password', () => {
+    it('should reset the password with a valid token and reject reuse of the same token', async () => {
+      // Arrange
+      const persona = await prisma.persona.create({
+        data: { nombre: 'Admin', apellido: 'Test' },
+      });
+      const hashPass = await bcrypt.hash('admin123', 10);
+      await prisma.usuarioWeb.create({
+        data: {
+          usuario: 'admin',
+          email: 'admin@test.com',
+          hashPass,
+          rol: 'ADMIN',
+          idPersona: persona.idPersona,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/auth/forgot-password')
+        .send({ email: 'admin@test.com' });
+
+      // Solo queda el hash en la DB: el token crudo se extrae del link
+      // que se le "envió" al mock del mail.
+      const [, resetUrl] = mailServiceMock.sendPasswordResetEmail.mock.calls[0];
+      const token = new URL(resetUrl).searchParams.get('token');
+      expect(token).toBeTruthy();
+
+      // Act: reset con el token válido
+      const resetResponse = await request(app.getHttpServer())
+        .post('/api/auth/reset-password')
+        .send({ token, password: 'nuevaPassword123' });
+
+      // Assert
+      expect(resetResponse.status).toBe(200);
+
+      // Se verifica el cambio directo contra la DB (en vez de otro POST a
+      // /auth/login) para no competir por el throttle de login (5/60s)
+      // compartido con el resto de los tests de este archivo.
+      const usuarioActualizado = await prisma.usuarioWeb.findUnique({ where: { usuario: 'admin' } });
+      expect(usuarioActualizado?.resetTokenHash).toBeNull();
+      expect(usuarioActualizado?.resetTokenExpiresAt).toBeNull();
+      expect(await bcrypt.compare('nuevaPassword123', usuarioActualizado!.hashPass)).toBe(true);
+      expect(await bcrypt.compare('admin123', usuarioActualizado!.hashPass)).toBe(false);
+
+      // Reusar el mismo token debe fallar: es de un solo uso
+      const reuseResponse = await request(app.getHttpServer())
+        .post('/api/auth/reset-password')
+        .send({ token, password: 'otraPassword123' });
+      expect(reuseResponse.status).toBe(400);
     });
   });
 

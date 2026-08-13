@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../shared/services/auth.service';
 import { IconComponent } from '../../shared/ui/icon.component';
@@ -9,7 +9,7 @@ import { BrandingService } from '../../core/services/branding.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IconComponent, BrandMarkComponent],
+  imports: [FormsModule, RouterLink, IconComponent, BrandMarkComponent],
   template: `
     <div class="grid min-h-screen lg:grid-cols-2">
       <!-- Editorial panel -->
@@ -89,6 +89,11 @@ import { BrandingService } from '../../core/services/branding.service';
                 placeholder="••••••••"
                 required
               />
+              <div class="mt-1.5 text-right">
+                <a routerLink="/forgot-password" class="text-sm text-base-content/60 hover:text-primary">
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
             </div>
 
             <button

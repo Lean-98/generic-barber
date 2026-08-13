@@ -95,6 +95,9 @@ model UsuarioWeb {
   idPersona Int   @unique @map("id_persona")
   rol      String  @default("PELUQUERO")
 
+  resetTokenHash      String?   @map("reset_token_hash")
+  resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
+
   persona      Persona        @relation(fields: [idPersona], references: [idPersona])
   movimientos  MovimientoCaja[]
   cierres      CierreCaja[]

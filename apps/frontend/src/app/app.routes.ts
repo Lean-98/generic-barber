@@ -14,6 +14,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'forgot-password',
+    canActivate: [publicGuard],
+    loadComponent: () => import('./features/auth/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+  },
+  {
+    path: 'reset-password',
+    canActivate: [publicGuard],
+    loadComponent: () => import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent),
+  },
+  {
     path: 'reservar',
     loadComponent: () => import('./features/reservas/reservar.component').then((m) => m.ReservarComponent),
   },

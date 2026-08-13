@@ -3,7 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginRequest, LoginResponse, RegisterRequest, UserProfile } from '../models/auth.model';
+import {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  UserProfile,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  MessageResponse,
+} from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root',
@@ -28,6 +36,14 @@ export class AuthService {
 
   register(data: RegisterRequest): Observable<UserProfile> {
     return this.http.post<UserProfile>(`${this.apiUrl}/auth/register`, data);
+  }
+
+  forgotPassword(data: ForgotPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/auth/forgot-password`, data);
+  }
+
+  resetPassword(data: ResetPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/auth/reset-password`, data);
   }
 
   getProfile(): Observable<UserProfile> {
