@@ -34,6 +34,7 @@ export class BrandingService {
   constructor() {
     this.refresh();
     effect(() => this.aplicarColores(this.branding()));
+    effect(() => this.aplicarFavicon(this.branding().iconoUrl));
   }
 
   refresh(): void {
@@ -61,6 +62,21 @@ export class BrandingService {
     } else {
       root.removeProperty(varColor);
       root.removeProperty(varContenido);
+    }
+  }
+
+  private aplicarFavicon(iconoUrl: string | null): void {
+    if (typeof document === 'undefined') return;
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) return;
+    if (iconoUrl) {
+      // Sacamos el `type` fijo del index.html (image/x-icon): el ícono subido puede
+      // ser PNG/JPG, y el navegador detecta el formato solo a partir del contenido.
+      link.removeAttribute('type');
+      link.href = iconoUrl;
+    } else {
+      link.setAttribute('type', 'image/x-icon');
+      link.href = 'favicon.ico';
     }
   }
 }
