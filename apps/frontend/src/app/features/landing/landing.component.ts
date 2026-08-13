@@ -185,8 +185,10 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
             }
           </div>
 
-          <!-- Sidebar de reserva: fija en pantalla mientras el resto del contenido scrollea. -->
-          <aside id="horarios" class="order-1 scroll-mt-24 sticky top-20 lg:order-2 lg:w-[360px] lg:shrink-0">
+          <!-- Sidebar de reserva: fija en pantalla mientras el resto del contenido scrollea.
+               Solo en desktop (lg): en mobile el card es alto y, si quedara sticky, tapa
+               casi toda la pantalla e impide ver el resto de las secciones al hacer scroll. -->
+          <aside id="horarios" class="order-1 scroll-mt-24 lg:sticky lg:top-20 lg:order-2 lg:w-[360px] lg:shrink-0">
             <div class="card border border-base-300 bg-base-100 shadow-sm">
               <div class="card-body items-center p-7 text-center">
                 <div class="avatar placeholder">
