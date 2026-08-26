@@ -23,6 +23,10 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   politicaReservas: null,
   horarios: null,
   galeriaUrls: null,
+  productosTitulo: null,
+  productosDescripcion: null,
+  cursosTitulo: null,
+  cursosDescripcion: null,
   updatedAt: new Date(0),
 };
 

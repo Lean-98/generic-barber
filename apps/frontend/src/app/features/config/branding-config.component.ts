@@ -226,6 +226,33 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Catálogo: Productos y Cursos</h2>
+              <p class="text-sm text-base-content/60">Título y bajada de las páginas públicas de <a routerLink="/tienda" target="_blank" class="link">Tienda</a> y <a routerLink="/cursos-info" target="_blank" class="link">Cursos</a>.</p>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Título de la sección de productos</span></label>
+                  <input type="text" class="input input-bordered w-full" [(ngModel)]="productosTitulo" name="productosTitulo" placeholder="Nuestros productos" maxlength="80" />
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Título de la sección de cursos</span></label>
+                  <input type="text" class="input input-bordered w-full" [(ngModel)]="cursosTitulo" name="cursosTitulo" placeholder="Nuestros cursos" maxlength="80" />
+                </div>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Descripción de la sección de productos</span></label>
+                  <textarea class="textarea textarea-bordered w-full" rows="3" [(ngModel)]="productosDescripcion" name="productosDescripcion" placeholder="Cera, pomadas, aceites para barba..." maxlength="2000"></textarea>
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Descripción de la sección de cursos</span></label>
+                  <textarea class="textarea textarea-bordered w-full" rows="3" [(ngModel)]="cursosDescripcion" name="cursosDescripcion" placeholder="Formación profesional en barbería..." maxlength="2000"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Horarios de atención</h2>
               <div class="space-y-2">
                 @for (fila of filas; track fila.dia) {
@@ -313,6 +340,10 @@ export class BrandingConfigComponent implements OnInit {
   politicaReservas = '';
   filas: FilaHorario[] = DIAS_ORDEN.map(({ dia, nombre }) => ({ dia, nombre, cerrado: true, abre: '09:00', cierra: '18:00' }));
   galeria: string[] = [];
+  productosTitulo = '';
+  productosDescripcion = '';
+  cursosTitulo = '';
+  cursosDescripcion = '';
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({
@@ -334,6 +365,10 @@ export class BrandingConfigComponent implements OnInit {
         this.politicaReservas = data.politicaReservas ?? '';
         this.filas = this.mapearHorarios(data.horarios);
         this.galeria = data.galeriaUrls ? [...data.galeriaUrls] : [];
+        this.productosTitulo = data.productosTitulo ?? '';
+        this.productosDescripcion = data.productosDescripcion ?? '';
+        this.cursosTitulo = data.cursosTitulo ?? '';
+        this.cursosDescripcion = data.cursosDescripcion ?? '';
         this.loading.set(false);
       },
       error: () => {
@@ -394,6 +429,10 @@ export class BrandingConfigComponent implements OnInit {
         politicaReservas: this.politicaReservas,
         horarios,
         galeriaUrls,
+        productosTitulo: this.productosTitulo,
+        productosDescripcion: this.productosDescripcion,
+        cursosTitulo: this.cursosTitulo,
+        cursosDescripcion: this.cursosDescripcion,
       })
       .subscribe({
         next: () => {

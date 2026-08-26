@@ -8,3 +8,6 @@ Thumbs.db
 # IDEs and editors
 .idea/
 *.sublime-workspace
+
+/.agents
+/.claude

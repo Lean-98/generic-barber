@@ -14,7 +14,7 @@ export class ServiciosService {
       data: {
         nombre: data.nombre,
         descripcion: data.descripcion,
-        categoria: data.categoria,
+        idCategoria: data.idCategoria,
         precio: data.precio,
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
@@ -34,14 +34,15 @@ export class ServiciosService {
     return servicio;
   }
 
-  async findAll(vigente?: boolean, categoria?: string, page = 1, limit = 20): Promise<PaginatedResult<Servicio>> {
+  async findAll(vigente?: boolean, idCategoria?: number, page = 1, limit = 20): Promise<PaginatedResult<Servicio>> {
     const where: Prisma.ServicioWhereInput = {};
     if (vigente !== undefined) where.vigente = vigente;
-    if (categoria) where.categoria = { equals: categoria, mode: 'insensitive' };
+    if (idCategoria !== undefined) where.idCategoria = idCategoria;
 
     const [data, total] = await Promise.all([
       this.prisma.servicio.findMany({
         where,
+        include: { categoria: true },
         orderBy: { nombre: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -55,6 +56,7 @@ export class ServiciosService {
     const servicio = await this.prisma.servicio.findUnique({
       where: { idServicio: id },
       include: {
+        categoria: true,
         historial: {
           orderBy: { fechaCambio: 'desc' },
         },
@@ -76,7 +78,7 @@ export class ServiciosService {
       data: {
         nombre: data.nombre,
         descripcion: data.descripcion,
-        categoria: data.categoria,
+        idCategoria: data.idCategoria,
         precio: data.precio,
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
@@ -122,14 +124,5 @@ export class ServiciosService {
     });
 
     return servicio;
-  }
-
-  async findCategorias(): Promise<string[]> {
-    const resultados = await this.prisma.servicio.findMany({
-      distinct: ['categoria'],
-      where: { categoria: { not: null } },
-      select: { categoria: true },
-    });
-    return resultados.map((s) => s.categoria).filter((c): c is string => c !== null);
   }
 }

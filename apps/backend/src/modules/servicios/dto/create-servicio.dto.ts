@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, Min, IsDecimal } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsInt, Min, IsDecimal } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateServicioDto {
@@ -12,10 +12,11 @@ export class CreateServicioDto {
   @IsOptional()
   descripcion?: string;
 
-  @ApiPropertyOptional({ description: 'Categoría del servicio', example: 'Cortes' })
-  @IsString()
+  @ApiPropertyOptional({ description: 'ID de la categoría del servicio', example: 1 })
+  @IsInt()
   @IsOptional()
-  categoria?: string;
+  @Type(() => Number)
+  idCategoria?: number;
 
   @ApiProperty({ description: 'Precio del servicio', example: 25.00 })
   @IsNumber({ maxDecimalPlaces: 2 })

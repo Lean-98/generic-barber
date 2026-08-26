@@ -5,6 +5,8 @@ import { ConfiguracionService } from '../../shared/services/configuracion.servic
 import { ConfiguracionNegocio } from '../../shared/models/configuracion.model';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio } from '../../shared/models/servicio.model';
+import { ProductosService } from '../../shared/services/productos.service';
+import { CursosService } from '../../shared/services/cursos.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
@@ -35,6 +37,12 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
             <a href="#acerca-de" class="opacity-80 hover:opacity-100">Acerca de</a>
           }
           <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
+          @if (hayProductos()) {
+            <a routerLink="/tienda" class="opacity-80 hover:opacity-100">Productos</a>
+          }
+          @if (hayCursos()) {
+            <a routerLink="/cursos-info" class="opacity-80 hover:opacity-100">Cursos</a>
+          }
           @if (galeriaItems().length > 0) {
             <a href="#galeria" class="opacity-80 hover:opacity-100">Galería</a>
           }
@@ -305,6 +313,8 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 export class LandingComponent implements OnInit, OnDestroy {
   private readonly configuracionService = inject(ConfiguracionService);
   private readonly serviciosService = inject(ServiciosService);
+  private readonly productosService = inject(ProductosService);
+  private readonly cursosService = inject(CursosService);
   private readonly sanitizer = inject(DomSanitizer);
   private autoplayIntervalId: ReturnType<typeof setInterval> | null = null;
   private indiceGaleriaActual = 0;
@@ -338,8 +348,14 @@ export class LandingComponent implements OnInit, OnDestroy {
     politicaReservas: null,
     horarios: null,
     galeriaUrls: null,
+    productosTitulo: null,
+    productosDescripcion: null,
+    cursosTitulo: null,
+    cursosDescripcion: null,
   });
   servicios = signal<Servicio[]>([]);
+  hayProductos = signal(false);
+  hayCursos = signal(false);
   currentYear = new Date().getFullYear();
 
   tituloCorto = computed(() => `Bienvenido a ${this.config().nombre}`);
@@ -439,6 +455,8 @@ export class LandingComponent implements OnInit, OnDestroy {
       error: () => {},
     });
     this.serviciosService.findAll(true, undefined, 1, 200).subscribe((res) => this.servicios.set(res.data));
+    this.productosService.findAll(true, undefined, 1, 1).subscribe((res) => this.hayProductos.set(res.total > 0));
+    this.cursosService.findAll(true, 1, 1).subscribe((res) => this.hayCursos.set(res.total > 0));
   }
 
   ngOnDestroy(): void {

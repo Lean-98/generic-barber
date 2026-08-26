@@ -89,6 +89,45 @@ export class PrismaServiceMock {
     deleteMany: jest.fn(),
   };
 
+  categoria = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  };
+
+  categoriaServicio = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  };
+
+  producto = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    count: jest.fn(),
+  };
+
+  curso = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    count: jest.fn(),
+  };
+
+  configuracionNegocio = {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+  };
+
   // Simula la conexión/desconexión sin hacer nada
   async $connect() {}
   async $disconnect() {}

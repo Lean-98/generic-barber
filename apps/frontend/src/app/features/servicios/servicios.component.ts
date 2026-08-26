@@ -1,7 +1,9 @@
 import { Component, inject, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ServiciosService } from '../../shared/services/servicios.service';
+import { CategoriasServiciosService } from '../../shared/services/categorias-servicios.service';
 import { Servicio, ServicioHistorial, CreateServicioRequest, UpdateServicioRequest } from '../../shared/models/servicio.model';
+import { Categoria } from '../../shared/models/categoria.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
@@ -25,6 +27,10 @@ const LIMITE_PAGINA = 20;
             <span class="label-text text-sm">Mostrar no vigentes</span>
             <input type="checkbox" class="toggle toggle-sm toggle-primary" [(ngModel)]="mostrarNoVigentes" (change)="toggleVigentes()" />
           </label>
+          <button class="btn btn-ghost gap-2" (click)="abrirCategorias()">
+            <app-icon name="tag" [size]="18" />
+            Categorías
+          </button>
           <button class="btn btn-primary gap-2" (click)="abrirCrear()">
             <app-icon name="plus" [size]="18" />
             Agregar
@@ -35,12 +41,12 @@ const LIMITE_PAGINA = 20;
       <!-- Categorías -->
       @if (categorias().length > 0) {
         <div class="flex flex-wrap gap-2">
-          <button class="btn btn-sm" [class.btn-primary]="categoriaFiltro() === ''" [class.btn-ghost]="categoriaFiltro() !== ''" (click)="filtrarCategoria('')">
+          <button class="btn btn-sm" [class.btn-primary]="categoriaFiltro() === undefined" [class.btn-ghost]="categoriaFiltro() !== undefined" (click)="filtrarCategoria(undefined)">
             Todas
           </button>
-          @for (cat of categorias(); track cat) {
-            <button class="btn btn-sm" [class.btn-primary]="categoriaFiltro() === cat" [class.btn-ghost]="categoriaFiltro() !== cat" (click)="filtrarCategoria(cat)">
-              {{ cat }}
+          @for (cat of categorias(); track cat.idCategoria) {
+            <button class="btn btn-sm" [class.btn-primary]="categoriaFiltro() === cat.idCategoria" [class.btn-ghost]="categoriaFiltro() !== cat.idCategoria" (click)="filtrarCategoria(cat.idCategoria)">
+              {{ cat.nombre }}
             </button>
           }
         </div>
@@ -79,7 +85,7 @@ const LIMITE_PAGINA = 20;
                     </td>
                     <td>
                       @if (servicio.categoria) {
-                        <span class="badge badge-ghost badge-sm">{{ servicio.categoria }}</span>
+                        <span class="badge badge-ghost badge-sm">{{ servicio.categoria.nombre }}</span>
                       } @else {
                         <span class="text-sm text-base-content/50">—</span>
                       }
@@ -151,7 +157,12 @@ const LIMITE_PAGINA = 20;
           <div class="grid gap-4 md:grid-cols-2">
             <div class="form-control">
               <label class="label"><span class="label-text">Categoría</span></label>
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaCategoria" name="categoria" placeholder="Categoría" />
+              <select class="select select-bordered w-full" [(ngModel)]="nuevaCategoria" name="categoria">
+                <option [ngValue]="undefined">Sin categoría</option>
+                @for (cat of categorias(); track cat.idCategoria) {
+                  <option [ngValue]="cat.idCategoria">{{ cat.nombre }}</option>
+                }
+              </select>
             </div>
             <div class="form-control">
               <label class="label"><span class="label-text">URL Imagen</span></label>
@@ -199,7 +210,12 @@ const LIMITE_PAGINA = 20;
             <div class="grid gap-4 md:grid-cols-2">
               <div class="form-control">
                 <label class="label"><span class="label-text">Categoría</span></label>
-                <input type="text" class="input input-bordered w-full" [(ngModel)]="s.categoria" name="editCategoria" />
+                <select class="select select-bordered w-full" [(ngModel)]="s.idCategoria" name="editCategoria">
+                  <option [ngValue]="undefined">Sin categoría</option>
+                  @for (cat of categorias(); track cat.idCategoria) {
+                    <option [ngValue]="cat.idCategoria">{{ cat.nombre }}</option>
+                  }
+                </select>
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">URL Imagen</span></label>
@@ -315,19 +331,55 @@ const LIMITE_PAGINA = 20;
         <button (click)="cerrarEliminar()">close</button>
       </form>
     </dialog>
+
+    <!-- Modal categorías -->
+    <dialog #categoriasModal class="modal">
+      <div class="modal-box max-w-md">
+        <h3 class="text-lg font-bold mb-4">Gestionar categorías</h3>
+        <form (ngSubmit)="crearCategoria()" class="flex gap-2 mb-4">
+          <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaCategoriaNombre" name="nuevaCategoriaNombre" placeholder="Nueva categoría" />
+          <button type="submit" class="btn btn-primary" [disabled]="!nuevaCategoriaNombre">
+            <app-icon name="plus" [size]="18" />
+          </button>
+        </form>
+        <ul class="divide-y divide-base-200">
+          @for (cat of todasCategorias(); track cat.idCategoria) {
+            <li class="flex items-center justify-between py-2">
+              <span [class.opacity-50]="!cat.vigente">{{ cat.nombre }}</span>
+              @if (cat.vigente) {
+                <button class="btn btn-ghost btn-xs text-error" (click)="desactivarCategoria(cat)">Desactivar</button>
+              } @else {
+                <button class="btn btn-ghost btn-xs text-success" (click)="reactivarCategoria(cat)">Reactivar</button>
+              }
+            </li>
+          } @empty {
+            <li class="py-4 text-center text-sm text-base-content/60">No hay categorías todavía</li>
+          }
+        </ul>
+        <div class="modal-action">
+          <button class="btn btn-primary" (click)="cerrarCategorias()">Cerrar</button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button (click)="cerrarCategorias()">close</button>
+      </form>
+    </dialog>
   `,
 })
 export class ServiciosComponent implements OnInit {
   private readonly serviciosService = inject(ServiciosService);
+  private readonly categoriasService = inject(CategoriasServiciosService);
 
   @ViewChild('crearModal') crearModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('editarModal') editarModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('historialModal') historialModalRef!: ElementRef<HTMLDialogElement>;
   @ViewChild('eliminarModal') eliminarModalRef!: ElementRef<HTMLDialogElement>;
+  @ViewChild('categoriasModal') categoriasModalRef!: ElementRef<HTMLDialogElement>;
 
   servicios = signal<Servicio[]>([]);
-  categorias = signal<string[]>([]);
-  categoriaFiltro = signal('');
+  categorias = signal<Categoria[]>([]);
+  todasCategorias = signal<Categoria[]>([]);
+  categoriaFiltro = signal<number | undefined>(undefined);
   mostrarNoVigentes = true;
   pagina = signal(1);
   totalPaginas = signal(1);
@@ -341,11 +393,12 @@ export class ServiciosComponent implements OnInit {
   creando = signal(false);
 
   nuevoNombre = '';
-  nuevaCategoria = '';
+  nuevaCategoria: number | undefined = undefined;
   nuevoPrecio = '';
   nuevaDuracion = '';
   nuevaDescripcion = '';
   nuevaUrlImagen = '';
+  nuevaCategoriaNombre = '';
 
   ngOnInit(): void {
     this.loadServicios();
@@ -354,8 +407,7 @@ export class ServiciosComponent implements OnInit {
 
   loadServicios(): void {
     const vigente = this.mostrarNoVigentes ? undefined : true;
-    const categoria = this.categoriaFiltro() || undefined;
-    this.serviciosService.findAll(vigente, categoria, this.pagina(), LIMITE_PAGINA).subscribe((res) => {
+    this.serviciosService.findAll(vigente, this.categoriaFiltro(), this.pagina(), LIMITE_PAGINA).subscribe((res) => {
       this.servicios.set(res.data);
       this.total.set(res.total);
       this.totalPaginas.set(res.totalPages);
@@ -363,7 +415,8 @@ export class ServiciosComponent implements OnInit {
   }
 
   loadCategorias(): void {
-    this.serviciosService.findCategorias().subscribe((c) => this.categorias.set(c));
+    this.categoriasService.findAll(true).subscribe((c) => this.categorias.set(c));
+    this.categoriasService.findAll().subscribe((c) => this.todasCategorias.set(c));
   }
 
   irAPagina(pagina: number): void {
@@ -376,15 +429,15 @@ export class ServiciosComponent implements OnInit {
     this.loadServicios();
   }
 
-  filtrarCategoria(cat: string): void {
-    this.categoriaFiltro.set(cat);
+  filtrarCategoria(idCategoria: number | undefined): void {
+    this.categoriaFiltro.set(idCategoria);
     this.pagina.set(1);
     this.loadServicios();
   }
 
   abrirCrear(): void {
     this.nuevoNombre = '';
-    this.nuevaCategoria = '';
+    this.nuevaCategoria = undefined;
     this.nuevoPrecio = '';
     this.nuevaDuracion = '';
     this.nuevaDescripcion = '';
@@ -401,7 +454,7 @@ export class ServiciosComponent implements OnInit {
 
     const data: CreateServicioRequest = {
       nombre: this.nuevoNombre,
-      categoria: this.nuevaCategoria || undefined,
+      idCategoria: this.nuevaCategoria,
       precio: Number(this.nuevoPrecio),
       duracionMinutos: Number(this.nuevaDuracion),
       descripcion: this.nuevaDescripcion || undefined,
@@ -440,7 +493,7 @@ export class ServiciosComponent implements OnInit {
     const data: UpdateServicioRequest = {
       nombre: s.nombre,
       descripcion: s.descripcion || undefined,
-      categoria: s.categoria || undefined,
+      idCategoria: s.idCategoria,
       precio: Number(s.precio),
       duracionMinutos: Number(s.duracionMinutos),
       urlImagen: s.urlImagen || undefined,
@@ -509,5 +562,30 @@ export class ServiciosComponent implements OnInit {
     this.serviciosService.update(servicio.idServicio, { vigente: true }).subscribe(() => {
       this.loadServicios();
     });
+  }
+
+  abrirCategorias(): void {
+    this.loadCategorias();
+    this.categoriasModalRef.nativeElement.showModal();
+  }
+
+  cerrarCategorias(): void {
+    this.categoriasModalRef.nativeElement.close();
+  }
+
+  crearCategoria(): void {
+    if (!this.nuevaCategoriaNombre) return;
+    this.categoriasService.create({ nombre: this.nuevaCategoriaNombre }).subscribe(() => {
+      this.nuevaCategoriaNombre = '';
+      this.loadCategorias();
+    });
+  }
+
+  desactivarCategoria(categoria: Categoria): void {
+    this.categoriasService.remove(categoria.idCategoria).subscribe(() => this.loadCategorias());
+  }
+
+  reactivarCategoria(categoria: Categoria): void {
+    this.categoriasService.update(categoria.idCategoria, { vigente: true }).subscribe(() => this.loadCategorias());
   }
 }

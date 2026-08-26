@@ -28,6 +28,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reservas/reservar.component').then((m) => m.ReservarComponent),
   },
   {
+    path: 'tienda',
+    loadComponent: () => import('./features/landing/tienda.component').then((m) => m.TiendaComponent),
+  },
+  {
+    path: 'cursos-info',
+    loadComponent: () => import('./features/landing/cursos-info.component').then((m) => m.CursosInfoComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     component: LayoutComponent,
@@ -59,6 +67,14 @@ export const routes: Routes = [
       {
         path: 'reportes',
         loadComponent: () => import('./features/reportes/reportes.component').then((m) => m.ReportesComponent),
+      },
+      {
+        path: 'productos',
+        loadComponent: () => import('./features/productos/productos.component').then((m) => m.ProductosComponent),
+      },
+      {
+        path: 'cursos',
+        loadComponent: () => import('./features/cursos/cursos.component').then((m) => m.CursosComponent),
       },
       {
         path: 'configuracion/google-calendar',

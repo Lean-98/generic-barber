@@ -140,18 +140,40 @@ async function main() {
   }
   console.log('✅ Clientes de demo creados');
 
-  // 4. Servicios de demo
+  // 4. Categorías de servicios y de productos (entidades independientes)
+  const categoriasServicioData = ['Corte', 'Color', 'Tratamiento', 'Peinado'];
+  const categoriasServicio: { idCategoria: number; nombre: string }[] = [];
+  for (const nombre of categoriasServicioData) {
+    let categoria = await prisma.categoriaServicio.findFirst({ where: { nombre } });
+    if (!categoria) {
+      categoria = await prisma.categoriaServicio.create({ data: { nombre } });
+    }
+    categoriasServicio.push({ idCategoria: categoria.idCategoria, nombre: categoria.nombre });
+  }
+
+  const categoriasProductoData = ['Cuidado de barba', 'Cuidado capilar', 'Styling'];
+  const categoriasProducto: { idCategoria: number; nombre: string }[] = [];
+  for (const nombre of categoriasProductoData) {
+    let categoria = await prisma.categoria.findFirst({ where: { nombre } });
+    if (!categoria) {
+      categoria = await prisma.categoria.create({ data: { nombre } });
+    }
+    categoriasProducto.push({ idCategoria: categoria.idCategoria, nombre: categoria.nombre });
+  }
+  console.log('✅ Categorías de demo creadas');
+
+  // 5. Servicios de demo
   const serviciosData = [
-    { nombre: 'Corte de pelo', precio: 25.0, duracionMinutos: 30, categoria: 'Corte' },
-    { nombre: 'Corte + barba', precio: 35.0, duracionMinutos: 45, categoria: 'Corte' },
-    { nombre: 'Coloración completa', precio: 80.0, duracionMinutos: 120, categoria: 'Color' },
-    { nombre: 'Mechas', precio: 120.0, duracionMinutos: 150, categoria: 'Color' },
-    { nombre: 'Retoque de raíces', precio: 60.0, duracionMinutos: 90, categoria: 'Color' },
-    { nombre: 'Tratamiento hidratante', precio: 50.0, duracionMinutos: 60, categoria: 'Tratamiento' },
-    { nombre: 'Alisado', precio: 150.0, duracionMinutos: 180, categoria: 'Tratamiento' },
-    { nombre: 'Peinado', precio: 40.0, duracionMinutos: 45, categoria: 'Peinado' },
-    { nombre: 'Baño de crema', precio: 45.0, duracionMinutos: 45, categoria: 'Tratamiento' },
-    { nombre: 'Corte infantil', precio: 20.0, duracionMinutos: 30, categoria: 'Corte' },
+    { nombre: 'Corte de pelo', precio: 25.0, duracionMinutos: 30, categoriaNombre: 'Corte' },
+    { nombre: 'Corte + barba', precio: 35.0, duracionMinutos: 45, categoriaNombre: 'Corte' },
+    { nombre: 'Coloración completa', precio: 80.0, duracionMinutos: 120, categoriaNombre: 'Color' },
+    { nombre: 'Mechas', precio: 120.0, duracionMinutos: 150, categoriaNombre: 'Color' },
+    { nombre: 'Retoque de raíces', precio: 60.0, duracionMinutos: 90, categoriaNombre: 'Color' },
+    { nombre: 'Tratamiento hidratante', precio: 50.0, duracionMinutos: 60, categoriaNombre: 'Tratamiento' },
+    { nombre: 'Alisado', precio: 150.0, duracionMinutos: 180, categoriaNombre: 'Tratamiento' },
+    { nombre: 'Peinado', precio: 40.0, duracionMinutos: 45, categoriaNombre: 'Peinado' },
+    { nombre: 'Baño de crema', precio: 45.0, duracionMinutos: 45, categoriaNombre: 'Tratamiento' },
+    { nombre: 'Corte infantil', precio: 20.0, duracionMinutos: 30, categoriaNombre: 'Corte' },
   ];
 
   const servicios: { idServicio: number; precio: number; duracionMinutos: number; nombre: string }[] = [];
@@ -160,7 +182,10 @@ async function main() {
       where: { nombre: s.nombre },
     });
     if (!servicio) {
-      servicio = await prisma.servicio.create({ data: s });
+      const idCategoria = categoriasServicio.find((c) => c.nombre === s.categoriaNombre)!.idCategoria;
+      servicio = await prisma.servicio.create({
+        data: { nombre: s.nombre, precio: s.precio, duracionMinutos: s.duracionMinutos, idCategoria },
+      });
     }
     servicios.push({
       idServicio: servicio.idServicio,
@@ -171,14 +196,51 @@ async function main() {
   }
   console.log('✅ Servicios de demo creados');
 
-  // 5. Limpiar datos previos de demo
+  // 6. Productos y cursos
+  const productosData = [
+    { nombre: 'Cera moldeadora', descripcion: 'Fijación fuerte, terminación mate', precio: 4500.0, categoria: 'Styling' },
+    { nombre: 'Pomada clásica', descripcion: 'Brillo intenso, fijación media', precio: 4200.0, categoria: 'Styling' },
+    { nombre: 'Aceite para barba', descripcion: 'Hidrata y suaviza, aroma amaderado', precio: 3800.0, categoria: 'Cuidado de barba' },
+    { nombre: 'Bálsamo para barba', descripcion: 'Modela y nutre la barba', precio: 4000.0, categoria: 'Cuidado de barba' },
+    { nombre: 'Shampoo anticaída', descripcion: 'Fortalece raíz y cuero cabelludo', precio: 5200.0, categoria: 'Cuidado capilar' },
+    { nombre: 'Kit de afeitado clásico', descripcion: 'Navaja, brocha y jabón de afeitar', precio: 9500.0, categoria: 'Cuidado de barba' },
+  ];
+  for (const p of productosData) {
+    const existe = await prisma.producto.findFirst({ where: { nombre: p.nombre } });
+    if (!existe) {
+      const idCategoria = categoriasProducto.find((c) => c.nombre === p.categoria)!.idCategoria;
+      await prisma.producto.create({
+        data: {
+          nombre: p.nombre,
+          descripcion: p.descripcion,
+          precio: p.precio,
+          idCategoria,
+        },
+      });
+    }
+  }
+
+  const cursosData = [
+    { nombre: 'Barbería profesional', descripcion: 'Formación integral en técnicas de corte y afeitado', precio: 60000.0, duracion: '8 semanas' },
+    { nombre: 'Diseño de barba', descripcion: 'Técnicas de perfilado y diseño con navaja', precio: 35000.0, duracion: '4 semanas' },
+    { nombre: 'Coloración masculina', descripcion: 'Coloración y mechas para cabello corto', precio: 45000.0, duracion: '6 semanas' },
+  ];
+  for (const c of cursosData) {
+    const existe = await prisma.curso.findFirst({ where: { nombre: c.nombre } });
+    if (!existe) {
+      await prisma.curso.create({ data: c });
+    }
+  }
+  console.log('✅ Productos y cursos de demo creados');
+
+  // 7. Limpiar datos previos de demo
   await prisma.pago.deleteMany({ where: { turno: { idPersona: { in: clientes.map((c) => c.idPersona) } } } });
   await prisma.movimientoCaja.deleteMany({ where: { idUsuario: 'admin' } });
   await prisma.turnoDetalle.deleteMany({ where: { turno: { idPersona: { in: clientes.map((c) => c.idPersona) } } } });
   await prisma.turno.deleteMany({ where: { idPersona: { in: clientes.map((c) => c.idPersona) } } });
   await prisma.cierreCaja.deleteMany({ where: { idUsuarioCierra: 'admin' } });
 
-  // 6. Generar turnos realistas de los últimos 30 días + hoy + próximos días
+  // 8. Generar turnos realistas de los últimos 30 días + hoy + próximos días
   const hoy = new Date();
   const slots: string[] = [];
   for (let h = 9; h < 18; h += 0.5) {
@@ -255,7 +317,7 @@ async function main() {
     }
   }
 
-  // 7. Crear turnos, detalles, pagos y movimientos
+  // 9. Crear turnos, detalles, pagos y movimientos
   const createdTurnos: Array<{ idTurno: number; fecha: Date; total: number; estado: string; formaPagoId?: number }> = [];
 
   for (let idx = 0; idx < turnosFuturos.length; idx++) {
@@ -322,7 +384,7 @@ async function main() {
   }
   console.log(`✅ ${totalTurnos} turnos de demo creados`);
 
-  // 8. Egresos realistas (días que tuvieron turnos)
+  // 10. Egresos realistas (días que tuvieron turnos)
   const conceptosEgresos = [
     { concepto: 'Café y desayuno', min: 8, max: 25 },
     { concepto: 'Productos de limpieza', min: 15, max: 40 },
@@ -358,7 +420,7 @@ async function main() {
   }
   console.log('✅ Egresos de demo creados');
 
-  // 9. Cierres de caja para los últimos 7 días con movimientos
+  // 11. Cierres de caja para los últimos 7 días con movimientos
   const diasCierre = [-7, -6, -5, -4, -3, -2, -1, 0];
   for (const dias of diasCierre) {
     const fechaCierre = startOfDay(addDays(hoy, dias));

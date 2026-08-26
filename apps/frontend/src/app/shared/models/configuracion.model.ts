@@ -24,6 +24,10 @@ export interface ConfiguracionNegocio {
   politicaReservas: string | null;
   horarios: HorarioDia[] | null;
   galeriaUrls: string[] | null;
+  productosTitulo: string | null;
+  productosDescripcion: string | null;
+  cursosTitulo: string | null;
+  cursosDescripcion: string | null;
   updatedAt?: string;
 }
 
@@ -45,4 +49,8 @@ export interface UpdateConfiguracionRequest {
   politicaReservas?: string;
   horarios?: HorarioDia[];
   galeriaUrls?: string[];
+  productosTitulo?: string;
+  productosDescripcion?: string;
+  cursosTitulo?: string;
+  cursosDescripcion?: string;
 }

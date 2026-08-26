@@ -13,15 +13,11 @@ export class ServiciosService {
 
   constructor(private readonly http: HttpClient) {}
 
-  findAll(vigente?: boolean, categoria?: string, page = 1, limit = 20): Observable<PaginatedResult<Servicio>> {
+  findAll(vigente?: boolean, idCategoria?: number, page = 1, limit = 20): Observable<PaginatedResult<Servicio>> {
     const params: Record<string, string> = { page: String(page), limit: String(limit) };
     if (vigente !== undefined) params['vigente'] = String(vigente);
-    if (categoria) params['categoria'] = categoria;
+    if (idCategoria !== undefined) params['idCategoria'] = String(idCategoria);
     return this.http.get<PaginatedResult<Servicio>>(`${this.apiUrl}/servicios`, { params });
-  }
-
-  findCategorias(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/servicios/categorias`);
   }
 
   findOne(id: number): Observable<Servicio> {

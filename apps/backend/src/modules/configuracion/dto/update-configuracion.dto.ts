@@ -160,4 +160,28 @@ export class UpdateConfiguracionDto {
   @ArrayMaxSize(12)
   @IsUrl({ protocols: ['https'], require_protocol: true }, { each: true, message: 'cada foto de la galería debe ser una URL https válida' })
   galeriaUrls?: string[];
+
+  @ApiPropertyOptional({ description: 'Título de la sección/página pública de productos (string vacío para quitarlo)', example: 'Nuestros productos' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  productosTitulo?: string;
+
+  @ApiPropertyOptional({ description: 'Descripción de la sección/página pública de productos (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  productosDescripcion?: string;
+
+  @ApiPropertyOptional({ description: 'Título de la sección/página pública de cursos (string vacío para quitarlo)', example: 'Nuestros cursos' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  cursosTitulo?: string;
+
+  @ApiPropertyOptional({ description: 'Descripción de la sección/página pública de cursos (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  cursosDescripcion?: string;
 }

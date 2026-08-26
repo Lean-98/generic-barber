@@ -11,6 +11,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { ConfiguracionModule } from './modules/configuracion/configuracion.module';
+import { CategoriasModule } from './modules/categorias/categorias.module';
+import { CategoriasServiciosModule } from './modules/categorias-servicios/categorias-servicios.module';
+import { ProductosModule } from './modules/productos/productos.module';
+import { CursosModule } from './modules/cursos/cursos.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -39,6 +44,11 @@ import { ConfiguracionModule } from './modules/configuracion/configuracion.modul
     GoogleCalendarModule,
     ReportesModule,
     ConfiguracionModule,
+    CategoriasModule,
+    CategoriasServiciosModule,
+    ProductosModule,
+    CursosModule,
+    CloudinaryModule,
   ],
   providers: [
     {

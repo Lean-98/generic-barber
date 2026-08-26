@@ -1,8 +1,11 @@
+import { Categoria } from './categoria.model';
+
 export interface Servicio {
   idServicio: number;
   nombre: string;
   descripcion?: string;
-  categoria?: string;
+  idCategoria?: number;
+  categoria?: Categoria;
   precio: number;
   duracionMinutos: number;
   urlImagen?: string;
@@ -24,7 +27,7 @@ export interface ServicioHistorial {
 export interface CreateServicioRequest {
   nombre: string;
   descripcion?: string;
-  categoria?: string;
+  idCategoria?: number;
   precio: number;
   duracionMinutos: number;
   urlImagen?: string;
@@ -34,7 +37,7 @@ export interface CreateServicioRequest {
 export interface UpdateServicioRequest {
   nombre?: string;
   descripcion?: string;
-  categoria?: string;
+  idCategoria?: number;
   precio?: number;
   duracionMinutos?: number;
   urlImagen?: string;

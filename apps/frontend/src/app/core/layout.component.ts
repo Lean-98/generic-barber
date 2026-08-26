@@ -12,6 +12,11 @@ interface NavItem {
   exact?: boolean;
 }
 
+interface NavGroup {
+  label: string | null;
+  items: NavItem[];
+}
+
 @Component({
   selector: 'app-layout',
   standalone: true,
@@ -52,19 +57,26 @@ interface NavItem {
               <app-brand-mark barHeight="h-6" />
             </div>
             <ul class="flex flex-col gap-1 p-3">
-              @for (item of navItems; track item.route) {
-                <li>
-                  <a
-                    [routerLink]="item.route"
-                    class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
-                    routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
-                    [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                    (click)="menuOpen.set(false)"
-                  >
-                    <app-icon [name]="item.icon" [size]="18" />
-                    {{ item.label }}
-                  </a>
-                </li>
+              @for (group of navGroups; track $index) {
+                @if (group.label) {
+                  <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/40 first:mt-0">
+                    {{ group.label }}
+                  </li>
+                }
+                @for (item of group.items; track item.route) {
+                  <li>
+                    <a
+                      [routerLink]="item.route"
+                      class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                      routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
+                      [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                      (click)="menuOpen.set(false)"
+                    >
+                      <app-icon [name]="item.icon" [size]="18" />
+                      {{ item.label }}
+                    </a>
+                  </li>
+                }
               }
               <li class="mt-3 border-t border-white/10 pt-3">
                 <a class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:bg-white/5 hover:text-neutral-content" (click)="logout()">
@@ -85,18 +97,25 @@ interface NavItem {
 
         <nav class="flex-1 overflow-y-auto p-3">
           <ul class="flex flex-col gap-1">
-            @for (item of navItems; track item.route) {
-              <li>
-                <a
-                  [routerLink]="item.route"
-                  class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
-                  routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
-                  [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                >
-                  <app-icon [name]="item.icon" [size]="18" />
-                  {{ item.label }}
-                </a>
-              </li>
+            @for (group of navGroups; track $index) {
+              @if (group.label) {
+                <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/40 first:mt-0">
+                  {{ group.label }}
+                </li>
+              }
+              @for (item of group.items; track item.route) {
+                <li>
+                  <a
+                    [routerLink]="item.route"
+                    class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                    routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
+                    [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                  >
+                    <app-icon [name]="item.icon" [size]="18" />
+                    {{ item.label }}
+                  </a>
+                </li>
+              }
             }
           </ul>
         </nav>
@@ -143,15 +162,38 @@ export class LayoutComponent {
   router = inject(Router);
   menuOpen = signal(false);
 
-  navItems: NavItem[] = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'layout-grid', exact: true },
-    { label: 'Turnos', route: '/turnos', icon: 'calendar' },
-    { label: 'Servicios', route: '/servicios', icon: 'scissors' },
-    { label: 'Clientes', route: '/personas', icon: 'users' },
-    { label: 'Caja', route: '/caja', icon: 'wallet' },
-    { label: 'Reportes', route: '/reportes', icon: 'bar-chart' },
-    { label: 'Marca', route: '/configuracion/marca', icon: 'image' },
-    { label: 'Google Calendar', route: '/configuracion/google-calendar', icon: 'settings' },
+  navGroups: NavGroup[] = [
+    {
+      label: null,
+      items: [{ label: 'Dashboard', route: '/dashboard', icon: 'layout-grid', exact: true }],
+    },
+    {
+      label: 'Operación',
+      items: [
+        { label: 'Turnos', route: '/turnos', icon: 'calendar' },
+        { label: 'Clientes', route: '/personas', icon: 'users' },
+        { label: 'Caja', route: '/caja', icon: 'wallet' },
+      ],
+    },
+    {
+      label: 'Catálogo',
+      items: [
+        { label: 'Servicios', route: '/servicios', icon: 'scissors' },
+        { label: 'Productos', route: '/productos', icon: 'shopping-bag' },
+        { label: 'Cursos', route: '/cursos', icon: 'book-open' },
+      ],
+    },
+    {
+      label: 'Análisis',
+      items: [{ label: 'Reportes', route: '/reportes', icon: 'bar-chart' }],
+    },
+    {
+      label: 'Configuración',
+      items: [
+        { label: 'Marca', route: '/configuracion/marca', icon: 'image' },
+        { label: 'Google Calendar', route: '/configuracion/google-calendar', icon: 'settings' },
+      ],
+    },
   ];
 
   logout(): void {

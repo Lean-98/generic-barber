@@ -25,7 +25,7 @@ describe('ServiciosService', () => {
     idServicio: 1,
     nombre: 'Corte de cabello',
     descripcion: 'Corte clásico para caballero',
-    categoria: 'Cortes',
+    idCategoria: null,
     precio: 25.00 as any, // Prisma Decimal
     duracionMinutos: 30,
     urlImagen: 'https://example.com/corte.jpg',
@@ -81,7 +81,7 @@ describe('ServiciosService', () => {
         data: {
           nombre: dto.nombre,
           descripcion: dto.descripcion,
-          categoria: dto.categoria,
+          idCategoria: dto.idCategoria,
           precio: dto.precio,
           duracionMinutos: dto.duracionMinutos,
           urlImagen: dto.urlImagen,
@@ -106,6 +106,7 @@ describe('ServiciosService', () => {
       // Assert
       expect(prismaMock.servicio.findMany).toHaveBeenCalledWith({
         where: {},
+        include: { categoria: true },
         orderBy: { nombre: 'asc' },
         skip: 0,
         take: 20,
@@ -126,6 +127,7 @@ describe('ServiciosService', () => {
       // Assert
       expect(prismaMock.servicio.findMany).toHaveBeenCalledWith({
         where: { vigente: true },
+        include: { categoria: true },
         orderBy: { nombre: 'asc' },
         skip: 0,
         take: 20,
@@ -149,6 +151,7 @@ describe('ServiciosService', () => {
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 1 },
         include: {
+          categoria: true,
           historial: {
             orderBy: { fechaCambio: 'desc' },
           },
@@ -166,6 +169,7 @@ describe('ServiciosService', () => {
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 999 },
         include: {
+          categoria: true,
           historial: {
             orderBy: { fechaCambio: 'desc' },
           },
@@ -190,6 +194,7 @@ describe('ServiciosService', () => {
       expect(prismaMock.servicio.findUnique).toHaveBeenCalledWith({
         where: { idServicio: 1 },
         include: {
+          categoria: true,
           historial: {
             orderBy: { fechaCambio: 'desc' },
           },

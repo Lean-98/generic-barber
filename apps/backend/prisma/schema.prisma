@@ -11,7 +11,7 @@ model Servicio {
   idServicio     Int      @id @default(autoincrement())
   nombre         String
   descripcion    String?
-  categoria      String?
+  idCategoria    Int?     @map("id_categoria")
   precio         Decimal  @db.Decimal(10, 2)
   duracionMinutos Int
   urlImagen      String?
@@ -19,6 +19,7 @@ model Servicio {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  categoria CategoriaServicio? @relation(fields: [idCategoria], references: [idCategoria], onDelete: SetNull)
   detalles  TurnoDetalle[]
   historial ServicioHistorial[]
 
@@ -197,7 +198,63 @@ model ConfiguracionNegocio {
   politicaReservas String?  @map("politica_reservas")
   horarios         Json?
   galeriaUrls      Json?    @map("galeria_urls")
+  productosTitulo      String?  @map("productos_titulo")
+  productosDescripcion String?  @map("productos_descripcion")
+  cursosTitulo         String?  @map("cursos_titulo")
+  cursosDescripcion    String?  @map("cursos_descripcion")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")
+}
+
+model Categoria {
+  idCategoria Int      @id @default(autoincrement())
+  nombre      String
+  vigente     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model CategoriaServicio {
+  idCategoria Int      @id @default(autoincrement())
+  nombre      String
+  vigente     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  servicios Servicio[]
+
+  @@map("categorias_servicios")
+}
+
+model Producto {
+  idProducto  Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Decimal  @db.Decimal(10, 2)
+  urlImagen   String?
+  idCategoria Int?     @map("id_categoria")
+  vigente     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  categoria Categoria? @relation(fields: [idCategoria], references: [idCategoria], onDelete: SetNull)
+
+  @@map("productos")
+}
+
+model Curso {
+  idCurso     Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Decimal  @db.Decimal(10, 2)
+  duracion    String?
+  urlImagen   String?
+  vigente     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("cursos")
 }

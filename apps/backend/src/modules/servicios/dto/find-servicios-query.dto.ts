@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsBoolean, IsInt, IsOptional } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 
 export class FindServiciosQueryDto extends PaginationQueryDto {
@@ -10,8 +10,9 @@ export class FindServiciosQueryDto extends PaginationQueryDto {
   @IsBoolean()
   vigente?: boolean;
 
-  @ApiPropertyOptional({ description: 'Filtrar por categoría', example: 'Corte' })
+  @ApiPropertyOptional({ description: 'Filtrar por ID de categoría', example: 1 })
   @IsOptional()
-  @IsString()
-  categoria?: string;
+  @Type(() => Number)
+  @IsInt()
+  idCategoria?: number;
 }

@@ -39,15 +39,8 @@ export class ServiciosController {
   @Get()
   @ApiOperation({ summary: 'Obtener todos los servicios (paginado)' })
   @ApiResponse({ status: 200, description: 'Página de servicios' })
-  async findAll(@Query() { vigente, categoria, page, limit }: FindServiciosQueryDto): Promise<PaginatedResult<Servicio>> {
-    return this.serviciosService.findAll(vigente, categoria, page, limit);
-  }
-
-  @Get('categorias')
-  @ApiOperation({ summary: 'Obtener todas las categorías de servicios' })
-  @ApiResponse({ status: 200, description: 'Lista de categorías' })
-  async findCategorias(): Promise<string[]> {
-    return this.serviciosService.findCategorias();
+  async findAll(@Query() { vigente, idCategoria, page, limit }: FindServiciosQueryDto): Promise<PaginatedResult<Servicio>> {
+    return this.serviciosService.findAll(vigente, idCategoria, page, limit);
   }
 
   @Get(':id')
