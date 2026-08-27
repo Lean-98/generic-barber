@@ -7,6 +7,7 @@ import { Producto } from '../../shared/models/producto.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
 
 @Component({
   selector: 'app-tienda',
@@ -71,7 +72,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                   <div class="card-actions mt-2 items-center justify-between">
                     <span class="text-lg font-semibold text-primary">{{ producto.precio | pesos }}</span>
                     @if (config().whatsappUrl; as url) {
-                      <a [href]="url" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
+                      <a [href]="whatsappHref(url, producto)" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
                         <app-icon name="whatsapp" [size]="16" />
                         Consultar
                       </a>
@@ -133,5 +134,10 @@ export class TiendaComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  whatsappHref(baseUrl: string, producto: Producto): string {
+    const mensaje = `Hola! Quiero consultar por el producto "${producto.nombre}"`;
+    return whatsappLinkConMensaje(baseUrl, mensaje);
   }
 }

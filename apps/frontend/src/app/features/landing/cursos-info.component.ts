@@ -8,6 +8,7 @@ import { Curso } from '../../shared/models/curso.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
 
 @Component({
   selector: 'app-cursos-info',
@@ -141,7 +142,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                   <div class="card-actions mt-2 items-center justify-between">
                     <span class="text-lg font-semibold text-primary">{{ curso.precio | pesos }}</span>
                     @if (config().whatsappUrl; as url) {
-                      <a [href]="url" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
+                      <a [href]="whatsappHref(url, curso)" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
                         <app-icon name="whatsapp" [size]="16" />
                         Consultar
                       </a>
@@ -203,5 +204,10 @@ export class CursosInfoComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  whatsappHref(baseUrl: string, curso: Curso): string {
+    const mensaje = `Hola! Quiero consultar por el curso "${curso.nombre}"`;
+    return whatsappLinkConMensaje(baseUrl, mensaje);
   }
 }
