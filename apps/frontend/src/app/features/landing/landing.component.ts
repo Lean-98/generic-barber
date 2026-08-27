@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
-import { ConfiguracionNegocio } from '../../shared/models/configuracion.model';
+import { ConfiguracionNegocio, HorarioDia } from '../../shared/models/configuracion.model';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio } from '../../shared/models/servicio.model';
 import { ProductosService } from '../../shared/services/productos.service';
@@ -21,6 +21,20 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   { dia: 0, nombre: 'Domingo' },
 ];
 
+/** Minutos desde medianoche de un "HH:mm". */
+function minutosDe(horaHHmm: string): number {
+  const [hora, minuto] = horaHHmm.split(':').map(Number);
+  return hora * 60 + minuto;
+}
+
+/** Turnos del día (uno o dos, para horario partido), ordenados por hora de apertura. */
+function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
+  const rangos: { abre: string; cierra: string }[] = [];
+  if (horario.abre && horario.cierra) rangos.push({ abre: horario.abre, cierra: horario.cierra });
+  if (horario.abre2 && horario.cierra2) rangos.push({ abre: horario.abre2, cierra: horario.cierra2 });
+  return rangos.sort((a, b) => minutosDe(a.abre) - minutosDe(b.abre));
+}
+
 @Component({
   selector: 'app-landing',
   standalone: true,
@@ -36,9 +50,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
           <app-brand-mark [hero]="true" barHeight="h-8" />
         </div>
         <nav class="navbar-center hidden items-center gap-6 text-sm font-medium lg:flex">
-          @if (config().descripcion) {
-            <a href="#acerca-de" class="opacity-80 hover:opacity-100">Acerca de</a>
-          }
+          <a routerLink="/nosotros" class="opacity-80 hover:opacity-100">Nosotros</a>
           <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
           @if (hayProductos()) {
             <a routerLink="/tienda" class="opacity-80 hover:opacity-100">Productos</a>
@@ -66,9 +78,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
         <div class="fixed inset-0 z-30 lg:hidden" (click)="menuAbierto.set(false)">
           <div class="absolute inset-0 bg-black/50"></div>
           <nav class="relative flex flex-col gap-1 bg-neutral px-4 py-3 text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
-            @if (config().descripcion) {
-              <a href="#acerca-de" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Acerca de</a>
-            }
+            <a routerLink="/nosotros" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Nosotros</a>
             <a href="#servicios" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Servicios</a>
             @if (hayProductos()) {
               <a routerLink="/tienda" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Productos</a>
@@ -134,6 +144,9 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                         </div>
                         <div class="min-w-0 flex-1">
                           <div class="truncate font-medium">{{ servicio.nombre }}</div>
+                          @if (servicio.descripcion) {
+                            <div class="truncate text-sm text-base-content/60">{{ servicio.descripcion }}</div>
+                          }
                           <div class="text-sm text-base-content/60">{{ servicio.duracionMinutos }} min</div>
                         </div>
                         <div class="shrink-0 tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</div>
@@ -255,7 +268,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                           <div class="flex items-center justify-between py-1.5">
                             <span [class.font-semibold]="fila.esHoy">{{ fila.nombre }}</span>
                             <span [class.font-semibold]="fila.esHoy" [class.opacity-50]="fila.cerrado">
-                              {{ fila.cerrado ? 'Cerrado' : fila.abre + ' - ' + fila.cierra }}
+                              {{ fila.cerrado ? 'Cerrado' : fila.horarioTexto }}
                             </span>
                           </div>
                         }
@@ -380,6 +393,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     productosDescripcion: null,
     cursosTitulo: null,
     cursosDescripcion: null,
+    sobreNosotros: null,
   });
   servicios = signal<Servicio[]>([]);
   hayProductos = signal(false);
@@ -408,12 +422,12 @@ export class LandingComponent implements OnInit, OnDestroy {
     const hoy = new Date().getDay();
     return DIAS_ORDEN.map(({ dia, nombre }) => {
       const existente = horarios?.find((h) => h.dia === dia);
+      const rangos = existente ? rangosDe(existente) : [];
       return {
         dia,
         nombre,
         cerrado: existente?.cerrado ?? true,
-        abre: existente?.abre ?? '',
-        cierra: existente?.cierra ?? '',
+        horarioTexto: rangos.map((r) => `${r.abre} - ${r.cierra}`).join(' y '),
         esHoy: dia === hoy,
       };
     });
@@ -425,17 +439,12 @@ export class LandingComponent implements OnInit, OnDestroy {
 
     const ahora = new Date();
     const horaHoy = horarios.find((h) => h.dia === ahora.getDay());
-    if (!horaHoy || horaHoy.cerrado || !horaHoy.abre || !horaHoy.cierra) {
-      return { abierto: false };
-    }
+    if (!horaHoy || horaHoy.cerrado) return { abierto: false };
 
-    const [horaApertura, minutoApertura] = horaHoy.abre.split(':').map(Number);
-    const [horaCierre, minutoCierre] = horaHoy.cierra.split(':').map(Number);
     const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+    const abierto = rangosDe(horaHoy).some((r) => minutosAhora >= minutosDe(r.abre) && minutosAhora < minutosDe(r.cierra));
 
-    return {
-      abierto: minutosAhora >= horaApertura * 60 + minutoApertura && minutosAhora < horaCierre * 60 + minutoCierre,
-    };
+    return { abierto };
   });
 
   /** Texto tipo "Abierto ahora" / "Cerrado · Abre martes a las 11:00" para el resumen de la sidebar. */
@@ -451,16 +460,19 @@ export class LandingComponent implements OnInit, OnDestroy {
     for (let i = 0; i < 7; i++) {
       const dia = (ahora.getDay() + i) % 7;
       const horario = horarios.find((h) => h.dia === dia);
-      if (!horario || horario.cerrado || !horario.abre) continue;
+      if (!horario || horario.cerrado) continue;
+
+      const rangos = rangosDe(horario);
+      if (rangos.length === 0) continue;
 
       if (i === 0) {
-        const [hora, minuto] = horario.abre.split(':').map(Number);
-        if (minutosAhora >= hora * 60 + minuto) continue; // ya pasó el horario de apertura de hoy
-        return `Cerrado · Abre hoy a las ${horario.abre}`;
+        const siguiente = rangos.find((r) => minutosDe(r.abre) > minutosAhora);
+        if (!siguiente) continue; // ya pasaron todos los turnos de hoy
+        return `Cerrado · Abre hoy a las ${siguiente.abre}`;
       }
 
       const nombreDia = DIAS_ORDEN.find((d) => d.dia === dia)?.nombre ?? '';
-      return `Cerrado · Abre ${nombreDia} a las ${horario.abre}`;
+      return `Cerrado · Abre ${nombreDia} a las ${rangos[0].abre}`;
     }
 
     return 'Cerrado';

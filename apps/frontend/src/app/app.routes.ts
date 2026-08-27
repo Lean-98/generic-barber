@@ -36,6 +36,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/landing/cursos-info.component').then((m) => m.CursosInfoComponent),
   },
   {
+    path: 'nosotros',
+    loadComponent: () => import('./features/landing/nosotros.component').then((m) => m.NosotrosComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     component: LayoutComponent,

@@ -25,6 +25,7 @@ const DEFAULT_BRANDING: ConfiguracionNegocio = {
   productosDescripcion: null,
   cursosTitulo: null,
   cursosDescripcion: null,
+  sobreNosotros: null,
 };
 
 @Injectable({

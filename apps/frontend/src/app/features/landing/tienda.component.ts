@@ -117,6 +117,7 @@ export class TiendaComponent implements OnInit {
     productosDescripcion: null,
     cursosTitulo: null,
     cursosDescripcion: null,
+    sobreNosotros: null,
   });
   productos = signal<Producto[]>([]);
   cargando = signal(true);

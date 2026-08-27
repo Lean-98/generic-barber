@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
 import { BrandingService } from '../../core/services/branding.service';
-import { HorarioDia } from '../../shared/models/configuracion.model';
+import { BloqueSobreNosotros, ClaveBloqueSobreNosotros, HorarioDia } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
@@ -16,7 +16,23 @@ interface FilaHorario {
   cerrado: boolean;
   abre: string;
   cierra: string;
+  tieneSegundoTurno: boolean;
+  abre2: string;
+  cierra2: string;
 }
+
+interface FilaSobreNosotros {
+  clave: ClaveBloqueSobreNosotros;
+  titulo: string;
+  descripcion: string;
+}
+
+const BLOQUES_SOBRE_NOSOTROS_DEFECTO: { clave: ClaveBloqueSobreNosotros; titulo: string }[] = [
+  { clave: 'quienesSomos', titulo: 'Quiénes somos' },
+  { clave: 'nuestraHistoria', titulo: 'Nuestra historia' },
+  { clave: 'mision', titulo: 'Misión' },
+  { clave: 'valores', titulo: 'Valores' },
+];
 
 const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   { dia: 1, nombre: 'Lunes' },
@@ -253,6 +269,34 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Sobre nosotros</h2>
+              <p class="text-sm text-base-content/60">Sección aparte en la landing con estos 4 bloques. Dejá la descripción vacía para ocultar un bloque.</p>
+              <div class="grid gap-4 md:grid-cols-2">
+                @for (bloque of bloquesSobreNosotros; track bloque.clave) {
+                  <div class="form-control gap-2 rounded-lg border border-base-300 p-3">
+                    <input
+                      type="text"
+                      class="input input-bordered input-sm w-full font-medium"
+                      [(ngModel)]="bloque.titulo"
+                      [name]="'sobreNosotrosTitulo' + bloque.clave"
+                      maxlength="80"
+                    />
+                    <textarea
+                      class="textarea textarea-bordered w-full"
+                      rows="3"
+                      [(ngModel)]="bloque.descripcion"
+                      [name]="'sobreNosotrosDescripcion' + bloque.clave"
+                      placeholder="Descripción breve..."
+                      maxlength="1000"
+                    ></textarea>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Horarios de atención</h2>
               <div class="space-y-2">
                 @for (fila of filas; track fila.dia) {
@@ -263,10 +307,25 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                       <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="fila.cerrado" [name]="'cerrado' + fila.dia" />
                     </label>
                     @if (!fila.cerrado) {
-                      <div class="flex items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
                         <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.abre" [name]="'abre' + fila.dia" />
                         <span class="text-base-content/50">a</span>
                         <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.cierra" [name]="'cierra' + fila.dia" />
+
+                        @if (fila.tieneSegundoTurno) {
+                          <span class="text-base-content/50">y</span>
+                          <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.abre2" [name]="'abre2' + fila.dia" />
+                          <span class="text-base-content/50">a</span>
+                          <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.cierra2" [name]="'cierra2' + fila.dia" />
+                          <button type="button" class="btn btn-ghost btn-square btn-xs" (click)="quitarSegundoTurno(fila)" aria-label="Quitar segundo horario">
+                            <app-icon name="x" [size]="14" />
+                          </button>
+                        } @else {
+                          <button type="button" class="btn btn-ghost btn-xs gap-1" (click)="agregarSegundoTurno(fila)">
+                            <app-icon name="plus" [size]="14" />
+                            Horario partido
+                          </button>
+                        }
                       </div>
                     }
                   </div>
@@ -338,12 +397,22 @@ export class BrandingConfigComponent implements OnInit {
   googleReviewsUrl = '';
   whatsappUrl = '';
   politicaReservas = '';
-  filas: FilaHorario[] = DIAS_ORDEN.map(({ dia, nombre }) => ({ dia, nombre, cerrado: true, abre: '09:00', cierra: '18:00' }));
+  filas: FilaHorario[] = DIAS_ORDEN.map(({ dia, nombre }) => ({
+    dia,
+    nombre,
+    cerrado: true,
+    abre: '09:00',
+    cierra: '18:00',
+    tieneSegundoTurno: false,
+    abre2: '16:30',
+    cierra2: '20:00',
+  }));
   galeria: string[] = [];
   productosTitulo = '';
   productosDescripcion = '';
   cursosTitulo = '';
   cursosDescripcion = '';
+  bloquesSobreNosotros: FilaSobreNosotros[] = BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({
@@ -369,6 +438,7 @@ export class BrandingConfigComponent implements OnInit {
         this.productosDescripcion = data.productosDescripcion ?? '';
         this.cursosTitulo = data.cursosTitulo ?? '';
         this.cursosDescripcion = data.cursosDescripcion ?? '';
+        this.bloquesSobreNosotros = this.mapearSobreNosotros(data.sobreNosotros);
         this.loading.set(false);
       },
       error: () => {
@@ -386,8 +456,30 @@ export class BrandingConfigComponent implements OnInit {
         cerrado: existente?.cerrado ?? true,
         abre: existente?.abre ?? '09:00',
         cierra: existente?.cierra ?? '18:00',
+        tieneSegundoTurno: !!(existente?.abre2 && existente?.cierra2),
+        abre2: existente?.abre2 ?? '16:30',
+        cierra2: existente?.cierra2 ?? '20:00',
       };
     });
+  }
+
+  private mapearSobreNosotros(bloques: BloqueSobreNosotros[] | null): FilaSobreNosotros[] {
+    return BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => {
+      const existente = bloques?.find((b) => b.clave === clave);
+      return {
+        clave,
+        titulo: existente?.titulo || titulo,
+        descripcion: existente?.descripcion ?? '',
+      };
+    });
+  }
+
+  agregarSegundoTurno(fila: FilaHorario): void {
+    fila.tieneSegundoTurno = true;
+  }
+
+  quitarSegundoTurno(fila: FilaHorario): void {
+    fila.tieneSegundoTurno = false;
   }
 
   agregarFoto(): void {
@@ -407,8 +499,15 @@ export class BrandingConfigComponent implements OnInit {
       cerrado: f.cerrado,
       abre: f.cerrado ? undefined : f.abre,
       cierra: f.cerrado ? undefined : f.cierra,
+      abre2: f.cerrado || !f.tieneSegundoTurno ? undefined : f.abre2,
+      cierra2: f.cerrado || !f.tieneSegundoTurno ? undefined : f.cierra2,
     }));
     const galeriaUrls = this.galeria.map((url) => url.trim()).filter((url) => url.length > 0);
+    const sobreNosotros: BloqueSobreNosotros[] = this.bloquesSobreNosotros.map((b) => ({
+      clave: b.clave,
+      titulo: b.titulo.trim() || BLOQUES_SOBRE_NOSOTROS_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
+      descripcion: b.descripcion,
+    }));
 
     this.configuracionService
       .updateBranding({
@@ -433,6 +532,7 @@ export class BrandingConfigComponent implements OnInit {
         productosDescripcion: this.productosDescripcion,
         cursosTitulo: this.cursosTitulo,
         cursosDescripcion: this.cursosDescripcion,
+        sobreNosotros,
       })
       .subscribe({
         next: () => {

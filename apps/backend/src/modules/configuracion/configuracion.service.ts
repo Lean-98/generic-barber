@@ -27,6 +27,7 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   productosDescripcion: null,
   cursosTitulo: null,
   cursosDescripcion: null,
+  sobreNosotros: null,
   updatedAt: new Date(0),
 };
 

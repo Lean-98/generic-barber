@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -42,6 +43,37 @@ export class HorarioDiaDto {
   @IsString()
   @Matches(HORA_REGEX, { message: 'cierra debe tener formato HH:mm' })
   cierra?: string;
+
+  @ApiPropertyOptional({ description: 'Hora de apertura del segundo turno, para horario partido (HH:mm)', example: '16:30' })
+  @IsOptional()
+  @IsString()
+  @Matches(HORA_REGEX, { message: 'abre2 debe tener formato HH:mm' })
+  abre2?: string;
+
+  @ApiPropertyOptional({ description: 'Hora de cierre del segundo turno, para horario partido (HH:mm)', example: '20:00' })
+  @IsOptional()
+  @IsString()
+  @Matches(HORA_REGEX, { message: 'cierra2 debe tener formato HH:mm' })
+  cierra2?: string;
+}
+
+const CLAVES_BLOQUE_SOBRE_NOSOTROS = ['quienesSomos', 'nuestraHistoria', 'mision', 'valores'] as const;
+
+export class BloqueSobreNosotrosDto {
+  @ApiPropertyOptional({ description: 'Identificador del bloque', enum: CLAVES_BLOQUE_SOBRE_NOSOTROS })
+  @IsIn(CLAVES_BLOQUE_SOBRE_NOSOTROS)
+  clave: (typeof CLAVES_BLOQUE_SOBRE_NOSOTROS)[number];
+
+  @ApiPropertyOptional({ description: 'Título del bloque', example: 'Quiénes somos' })
+  @IsString()
+  @MaxLength(80)
+  titulo: string;
+
+  @ApiPropertyOptional({ description: 'Descripción breve del bloque' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  descripcion?: string;
 }
 
 export class UpdateConfiguracionDto {
@@ -184,4 +216,15 @@ export class UpdateConfiguracionDto {
   @IsString()
   @MaxLength(2000)
   cursosDescripcion?: string;
+
+  @ApiPropertyOptional({
+    description: 'Bloques de la pestaña "Sobre nosotros" (Quiénes somos, Nuestra historia, Misión, Valores)',
+    type: [BloqueSobreNosotrosDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(4)
+  @ValidateNested({ each: true })
+  @Type(() => BloqueSobreNosotrosDto)
+  sobreNosotros?: BloqueSobreNosotrosDto[];
 }

@@ -202,6 +202,7 @@ model ConfiguracionNegocio {
   productosDescripcion String?  @map("productos_descripcion")
   cursosTitulo         String?  @map("cursos_titulo")
   cursosDescripcion    String?  @map("cursos_descripcion")
+  sobreNosotros    Json?    @map("sobre_nosotros")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")

@@ -3,6 +3,16 @@ export interface HorarioDia {
   cerrado: boolean;
   abre?: string; // "HH:mm"
   cierra?: string; // "HH:mm"
+  abre2?: string; // "HH:mm" — apertura del segundo turno (horario partido)
+  cierra2?: string; // "HH:mm" — cierre del segundo turno (horario partido)
+}
+
+export type ClaveBloqueSobreNosotros = 'quienesSomos' | 'nuestraHistoria' | 'mision' | 'valores';
+
+export interface BloqueSobreNosotros {
+  clave: ClaveBloqueSobreNosotros;
+  titulo: string;
+  descripcion?: string;
 }
 
 export interface ConfiguracionNegocio {
@@ -28,6 +38,7 @@ export interface ConfiguracionNegocio {
   productosDescripcion: string | null;
   cursosTitulo: string | null;
   cursosDescripcion: string | null;
+  sobreNosotros: BloqueSobreNosotros[] | null;
   updatedAt?: string;
 }
 
@@ -53,4 +64,5 @@ export interface UpdateConfiguracionRequest {
   productosDescripcion?: string;
   cursosTitulo?: string;
   cursosDescripcion?: string;
+  sobreNosotros?: BloqueSobreNosotros[];
 }

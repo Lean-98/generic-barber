@@ -187,6 +187,7 @@ export class CursosInfoComponent implements OnInit {
     productosDescripcion: null,
     cursosTitulo: null,
     cursosDescripcion: null,
+    sobreNosotros: null,
   });
   cursos = signal<Curso[]>([]);
   cargando = signal(true);
