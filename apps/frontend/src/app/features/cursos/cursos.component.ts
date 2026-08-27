@@ -124,10 +124,53 @@ const LIMITE_PAGINA = 20;
             <label class="label"><span class="label-text">Nombre</span></label>
             <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoNombre" name="nombre" placeholder="Nombre del curso" required />
           </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Subtítulo</span></label>
+            <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoSubtitulo" name="subtitulo" placeholder="Ej: Aprendé barbería desde cero" />
+          </div>
           <div class="grid gap-4 md:grid-cols-2">
             <div class="form-control">
               <label class="label"><span class="label-text">Duración</span></label>
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Ej: 8 semanas" />
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Ej: 3 meses" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Cupos</span></label>
+              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevosCupos" name="cupos" placeholder="Ej: 10" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Fecha de inicio</span></label>
+              <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaFechaInicio" name="fechaInicio" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Fecha de fin</span></label>
+              <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaFechaFin" name="fechaFin" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Horario</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoHorario" name="horario" placeholder="A confirmar" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Lugar</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoLugar" name="lugar" placeholder="Dirección" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Inscripción desde</span></label>
+              <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaInscripcionInicio" name="inscripcionInicio" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Inscripción hasta</span></label>
+              <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaInscripcionHasta" name="inscripcionHasta" />
+            </div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Días de cursada</span></label>
+            <div class="flex flex-wrap gap-2">
+              @for (dia of diasSemana; track dia) {
+                <label class="label cursor-pointer gap-2 rounded-lg border px-3 py-1.5">
+                  <input type="checkbox" class="checkbox checkbox-sm" [checked]="nuevoDiaCursada.includes(dia)" (change)="toggleDiaNuevo(dia)" />
+                  <span class="label-text text-sm">{{ dia }}</span>
+                </label>
+              }
             </div>
           </div>
           <div class="form-control">
@@ -141,6 +184,14 @@ const LIMITE_PAGINA = 20;
           <div class="form-control">
             <label class="label"><span class="label-text">Descripción</span></label>
             <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevaDescripcion" name="descripcion"></textarea>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Temario (un ítem por línea)</span></label>
+            <textarea class="textarea textarea-bordered w-full" rows="5" [(ngModel)]="nuevoTemario" name="temario" placeholder="Manejo de máquinas y herramientas&#10;Técnicas de corte y degradados"></textarea>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Aviso destacado</span></label>
+            <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevoRequisito" name="requisito" placeholder="Ej: Contar con modelo a partir de la 2da clase"></textarea>
           </div>
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
@@ -166,10 +217,53 @@ const LIMITE_PAGINA = 20;
               <label class="label"><span class="label-text">Nombre</span></label>
               <input type="text" class="input input-bordered w-full" [(ngModel)]="c.nombre" name="editNombre" required />
             </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Subtítulo</span></label>
+              <input type="text" class="input input-bordered w-full" [(ngModel)]="c.subtitulo" name="editSubtitulo" />
+            </div>
             <div class="grid gap-4 md:grid-cols-2">
               <div class="form-control">
                 <label class="label"><span class="label-text">Duración</span></label>
                 <input type="text" class="input input-bordered w-full" [(ngModel)]="c.duracion" name="editDuracion" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Cupos</span></label>
+                <input type="number" class="input input-bordered w-full" [(ngModel)]="c.cupos" name="editCupos" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Fecha de inicio</span></label>
+                <input type="date" class="input input-bordered w-full" [(ngModel)]="fechaInicioEditando" name="editFechaInicio" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Fecha de fin</span></label>
+                <input type="date" class="input input-bordered w-full" [(ngModel)]="fechaFinEditando" name="editFechaFin" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Horario</span></label>
+                <input type="text" class="input input-bordered w-full" [(ngModel)]="c.horario" name="editHorario" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Lugar</span></label>
+                <input type="text" class="input input-bordered w-full" [(ngModel)]="c.lugar" name="editLugar" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Inscripción desde</span></label>
+                <input type="date" class="input input-bordered w-full" [(ngModel)]="inscripcionInicioEditando" name="editInscripcionInicio" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Inscripción hasta</span></label>
+                <input type="date" class="input input-bordered w-full" [(ngModel)]="inscripcionHastaEditando" name="editInscripcionHasta" />
+              </div>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Días de cursada</span></label>
+              <div class="flex flex-wrap gap-2">
+                @for (dia of diasSemana; track dia) {
+                  <label class="label cursor-pointer gap-2 rounded-lg border px-3 py-1.5">
+                    <input type="checkbox" class="checkbox checkbox-sm" [checked]="diaCursadaEditando.includes(dia)" (change)="toggleDiaEditando(dia)" />
+                    <span class="label-text text-sm">{{ dia }}</span>
+                  </label>
+                }
               </div>
             </div>
             <div class="form-control">
@@ -183,6 +277,14 @@ const LIMITE_PAGINA = 20;
             <div class="form-control">
               <label class="label"><span class="label-text">Descripción</span></label>
               <textarea class="textarea textarea-bordered w-full" [(ngModel)]="c.descripcion" name="editDescripcion"></textarea>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Temario (un ítem por línea)</span></label>
+              <textarea class="textarea textarea-bordered w-full" rows="5" [(ngModel)]="temarioEditando" name="editTemario"></textarea>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Aviso destacado</span></label>
+              <textarea class="textarea textarea-bordered w-full" [(ngModel)]="c.requisitoImportante" name="editRequisito"></textarea>
             </div>
             <div class="form-control">
               <label class="label cursor-pointer gap-3">
@@ -241,11 +343,31 @@ export class CursosComponent implements OnInit {
   eliminando = signal(false);
   creando = signal(false);
 
+  readonly diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
   nuevoNombre = '';
+  nuevoSubtitulo = '';
   nuevoPrecio = '';
   nuevaDuracion = '';
   nuevaDescripcion = '';
   nuevaUrlImagen = '';
+  nuevoTemario = '';
+  nuevaFechaInicio = '';
+  nuevaFechaFin = '';
+  nuevoDiaCursada: string[] = [];
+  nuevoHorario = '';
+  nuevoLugar = '';
+  nuevosCupos = '';
+  nuevaInscripcionInicio = '';
+  nuevaInscripcionHasta = '';
+  nuevoRequisito = '';
+
+  temarioEditando = '';
+  diaCursadaEditando: string[] = [];
+  fechaInicioEditando = '';
+  fechaFinEditando = '';
+  inscripcionInicioEditando = '';
+  inscripcionHastaEditando = '';
 
   ngOnInit(): void {
     this.loadCursos();
@@ -272,10 +394,21 @@ export class CursosComponent implements OnInit {
 
   abrirCrear(): void {
     this.nuevoNombre = '';
+    this.nuevoSubtitulo = '';
     this.nuevoPrecio = '';
     this.nuevaDuracion = '';
     this.nuevaDescripcion = '';
     this.nuevaUrlImagen = '';
+    this.nuevoTemario = '';
+    this.nuevaFechaInicio = '';
+    this.nuevaFechaFin = '';
+    this.nuevoDiaCursada = [];
+    this.nuevoHorario = '';
+    this.nuevoLugar = '';
+    this.nuevosCupos = '';
+    this.nuevaInscripcionInicio = '';
+    this.nuevaInscripcionHasta = '';
+    this.nuevoRequisito = '';
     this.crearModalRef.nativeElement.showModal();
   }
 
@@ -283,15 +416,38 @@ export class CursosComponent implements OnInit {
     this.crearModalRef.nativeElement.close();
   }
 
+  toggleDiaNuevo(dia: string): void {
+    const i = this.nuevoDiaCursada.indexOf(dia);
+    if (i >= 0) this.nuevoDiaCursada.splice(i, 1);
+    else this.nuevoDiaCursada.push(dia);
+  }
+
+  toggleDiaEditando(dia: string): void {
+    const i = this.diaCursadaEditando.indexOf(dia);
+    if (i >= 0) this.diaCursadaEditando.splice(i, 1);
+    else this.diaCursadaEditando.push(dia);
+  }
+
   crear(): void {
     if (!this.nuevoNombre || !this.nuevoPrecio) return;
 
     const data: CreateCursoRequest = {
       nombre: this.nuevoNombre,
+      subtitulo: this.nuevoSubtitulo || undefined,
       duracion: this.nuevaDuracion || undefined,
       precio: Number(this.nuevoPrecio),
       descripcion: this.nuevaDescripcion || undefined,
       urlImagen: this.nuevaUrlImagen || undefined,
+      temario: this.parseTemario(this.nuevoTemario),
+      fechaInicio: this.nuevaFechaInicio || undefined,
+      fechaFin: this.nuevaFechaFin || undefined,
+      diaCursada: this.nuevoDiaCursada,
+      horario: this.nuevoHorario || undefined,
+      lugar: this.nuevoLugar || undefined,
+      cupos: this.nuevosCupos ? Number(this.nuevosCupos) : undefined,
+      inscripcionInicio: this.nuevaInscripcionInicio || undefined,
+      inscripcionHasta: this.nuevaInscripcionHasta || undefined,
+      requisitoImportante: this.nuevoRequisito || undefined,
     };
 
     this.creando.set(true);
@@ -309,6 +465,12 @@ export class CursosComponent implements OnInit {
 
   editar(curso: Curso): void {
     this.cursoEditando.set({ ...curso });
+    this.temarioEditando = (curso.temario ?? []).join('\n');
+    this.diaCursadaEditando = [...(curso.diaCursada ?? [])];
+    this.fechaInicioEditando = this.toDateInputValue(curso.fechaInicio);
+    this.fechaFinEditando = this.toDateInputValue(curso.fechaFin);
+    this.inscripcionInicioEditando = this.toDateInputValue(curso.inscripcionInicio);
+    this.inscripcionHastaEditando = this.toDateInputValue(curso.inscripcionHasta);
     this.editarModalRef.nativeElement.showModal();
   }
 
@@ -324,10 +486,21 @@ export class CursosComponent implements OnInit {
     this.guardando.set(true);
     const data: UpdateCursoRequest = {
       nombre: c.nombre,
+      subtitulo: c.subtitulo || undefined,
       descripcion: c.descripcion || undefined,
       duracion: c.duracion || undefined,
       precio: Number(c.precio),
       urlImagen: c.urlImagen || undefined,
+      temario: this.parseTemario(this.temarioEditando),
+      fechaInicio: this.fechaInicioEditando || undefined,
+      fechaFin: this.fechaFinEditando || undefined,
+      diaCursada: this.diaCursadaEditando,
+      horario: c.horario || undefined,
+      lugar: c.lugar || undefined,
+      cupos: c.cupos !== undefined && c.cupos !== null ? Number(c.cupos) : undefined,
+      inscripcionInicio: this.inscripcionInicioEditando || undefined,
+      inscripcionHasta: this.inscripcionHastaEditando || undefined,
+      requisitoImportante: c.requisitoImportante || undefined,
       vigente: c.vigente,
     };
 
@@ -374,5 +547,16 @@ export class CursosComponent implements OnInit {
     this.cursosService.update(curso.idCurso, { vigente: true }).subscribe(() => {
       this.loadCursos();
     });
+  }
+
+  private parseTemario(texto: string): string[] {
+    return texto
+      .split('\n')
+      .map((linea) => linea.trim())
+      .filter((linea) => linea.length > 0);
+  }
+
+  private toDateInputValue(iso?: string): string {
+    return iso ? iso.slice(0, 10) : '';
   }
 }

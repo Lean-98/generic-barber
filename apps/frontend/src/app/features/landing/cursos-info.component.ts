@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
 import { ConfiguracionNegocio } from '../../shared/models/configuracion.model';
 import { CursosService } from '../../shared/services/cursos.service';
@@ -11,7 +12,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 @Component({
   selector: 'app-cursos-info',
   standalone: true,
-  imports: [RouterLink, IconComponent, BrandMarkComponent, PesosPipe],
+  imports: [RouterLink, IconComponent, BrandMarkComponent, PesosPipe, DatePipe],
   template: `
     <div class="min-h-screen bg-base-100 text-base-content">
       <header class="navbar sticky top-0 z-40 bg-neutral px-4 text-neutral-content sm:px-6">
@@ -62,15 +63,81 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
                 }
                 <div class="card-body">
                   <h2 class="card-title text-base">{{ curso.nombre }}</h2>
-                  @if (curso.duracion) {
-                    <span class="flex items-center gap-1.5 text-sm text-base-content/60">
-                      <app-icon name="clock" [size]="14" />
-                      {{ curso.duracion }}
-                    </span>
+                  @if (curso.subtitulo) {
+                    <p class="-mt-1 text-sm font-medium text-primary">{{ curso.subtitulo }}</p>
                   }
                   @if (curso.descripcion) {
                     <p class="line-clamp-3 text-sm text-base-content/60">{{ curso.descripcion }}</p>
                   }
+
+                  @if (curso.temario?.length) {
+                    <ul class="mt-1 space-y-1 text-sm text-base-content/70">
+                      @for (item of curso.temario!.slice(0, 5); track item) {
+                        <li class="flex items-start gap-1.5">
+                          <app-icon name="check-circle" [size]="14" className="mt-0.5 shrink-0 text-primary" />
+                          <span>{{ item }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (curso.requisitoImportante) {
+                    <div class="mt-2 flex items-start gap-2 rounded-lg bg-warning/10 p-2.5 text-xs text-warning-content">
+                      <app-icon name="alert-circle" [size]="14" className="mt-0.5 shrink-0 text-warning" />
+                      <span>{{ curso.requisitoImportante }}</span>
+                    </div>
+                  }
+
+                  <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-base-content/60">
+                    @if (curso.fechaInicio && curso.fechaFin) {
+                      <span class="col-span-2 flex items-center gap-1.5">
+                        <app-icon name="calendar" [size]="13" />
+                        {{ curso.fechaInicio | date: 'd MMM' }} al {{ curso.fechaFin | date: 'd MMM' }}
+                      </span>
+                    } @else if (curso.fechaInicio) {
+                      <span class="flex items-center gap-1.5">
+                        <app-icon name="calendar" [size]="13" />
+                        Inicio: {{ curso.fechaInicio | date: 'd MMM' }}
+                      </span>
+                    } @else if (curso.fechaFin) {
+                      <span class="flex items-center gap-1.5">
+                        <app-icon name="calendar" [size]="13" />
+                        Hasta: {{ curso.fechaFin | date: 'd MMM' }}
+                      </span>
+                    }
+                    @if (curso.duracion) {
+                      <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.duracion }}</span>
+                    }
+                    @if (curso.diaCursada?.length) {
+                      <span class="flex items-center gap-1.5"><app-icon name="calendar" [size]="13" />{{ curso.diaCursada!.join(', ') }}</span>
+                    }
+                    @if (curso.horario) {
+                      <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.horario }}</span>
+                    }
+                    @if (curso.lugar) {
+                      <span class="col-span-2 flex items-center gap-1.5"><app-icon name="map-pin" [size]="13" />{{ curso.lugar }}</span>
+                    }
+                    @if (curso.cupos) {
+                      <span class="col-span-2 flex items-center gap-1.5"><app-icon name="users" [size]="13" />Cupos limitados: {{ curso.cupos }}</span>
+                    }
+                    @if (curso.inscripcionInicio && curso.inscripcionHasta) {
+                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                        <app-icon name="alert-circle" [size]="13" />
+                        Inscripción del {{ curso.inscripcionInicio | date: 'd MMM' }} al {{ curso.inscripcionHasta | date: 'd MMM' }}
+                      </span>
+                    } @else if (curso.inscripcionHasta) {
+                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                        <app-icon name="alert-circle" [size]="13" />
+                        Inscribite antes del {{ curso.inscripcionHasta | date: 'd MMM' }}
+                      </span>
+                    } @else if (curso.inscripcionInicio) {
+                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                        <app-icon name="alert-circle" [size]="13" />
+                        Inscripción abierta desde el {{ curso.inscripcionInicio | date: 'd MMM' }}
+                      </span>
+                    }
+                  </div>
+
                   <div class="card-actions mt-2 items-center justify-between">
                     <span class="text-lg font-semibold text-primary">{{ curso.precio | pesos }}</span>
                     @if (config().whatsappUrl; as url) {

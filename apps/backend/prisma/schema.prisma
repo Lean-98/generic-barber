@@ -246,15 +246,26 @@ model Producto {
 }
 
 model Curso {
-  idCurso     Int      @id @default(autoincrement())
-  nombre      String
-  descripcion String?
-  precio      Decimal  @db.Decimal(10, 2)
-  duracion    String?
-  urlImagen   String?
-  vigente     Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  idCurso              Int      @id @default(autoincrement())
+  nombre               String
+  subtitulo            String?
+  descripcion          String?
+  precio               Decimal  @db.Decimal(10, 2)
+  duracion             String?
+  temario              String[] @default([])
+  fechaInicio          DateTime? @map("fecha_inicio")
+  fechaFin             DateTime? @map("fecha_fin")
+  diaCursada           String[] @default([]) @map("dia_cursada")
+  horario              String?
+  lugar                String?
+  cupos                Int?
+  inscripcionInicio    DateTime? @map("inscripcion_inicio")
+  inscripcionHasta     DateTime? @map("inscripcion_hasta")
+  requisitoImportante  String?  @map("requisito_importante")
+  urlImagen            String?
+  vigente              Boolean  @default(true)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("cursos")
 }
