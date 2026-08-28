@@ -3,9 +3,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
 import { BrandingService } from '../../core/services/branding.service';
-import { BloqueSobreNosotros, ClaveBloqueSobreNosotros, HorarioDia } from '../../shared/models/configuracion.model';
+import { BloqueAuthenticClub, BloqueSobreNosotros, ClaveBloqueAuthenticClub, ClaveBloqueSobreNosotros, HorarioDia } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
+import { ImageUploadComponent } from '../../shared/ui/image-upload.component';
 
 const COLOR_PRIMARIO_DEFECTO = '#A9762F';
 const COLOR_SECUNDARIO_DEFECTO = '#7A2E2E';
@@ -34,6 +35,19 @@ const BLOQUES_SOBRE_NOSOTROS_DEFECTO: { clave: ClaveBloqueSobreNosotros; titulo:
   { clave: 'valores', titulo: 'Valores' },
 ];
 
+interface FilaAuthenticClub {
+  clave: ClaveBloqueAuthenticClub;
+  titulo: string;
+  descripcion: string;
+}
+
+const BLOQUES_AUTHENTIC_CLUB_DEFECTO: { clave: ClaveBloqueAuthenticClub; titulo: string }[] = [
+  { clave: 'presentarTarjeta', titulo: 'Beneficio por presentar la tarjeta' },
+  { clave: 'empresa', titulo: 'Beneficio para la empresa' },
+  { clave: 'cumpleanos', titulo: 'Beneficio de cumpleaños' },
+  { clave: 'recomendar', titulo: 'Beneficio por recomendar a alguien' },
+];
+
 const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   { dia: 1, nombre: 'Lunes' },
   { dia: 2, nombre: 'Martes' },
@@ -47,7 +61,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 @Component({
   selector: 'app-branding-config',
   standalone: true,
-  imports: [FormsModule, RouterLink, IconComponent, BrandMarkComponent],
+  imports: [FormsModule, RouterLink, IconComponent, BrandMarkComponent, ImageUploadComponent],
   template: `
     <div class="space-y-6 text-base-content">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -297,6 +311,40 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Authentic Club</h2>
+              <p class="text-sm text-base-content/60">
+                Página aparte de la landing con la tarjeta de beneficios. Dejá la descripción vacía para ocultar un beneficio.
+              </p>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Imagen de la tarjeta</span></label>
+                <app-image-upload [folder]="'authentic-club'" [(url)]="authenticClubImagenUrl" />
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                @for (beneficio of bloquesAuthenticClub; track beneficio.clave) {
+                  <div class="form-control gap-2 rounded-lg border border-base-300 p-3">
+                    <input
+                      type="text"
+                      class="input input-bordered input-sm w-full font-medium"
+                      [(ngModel)]="beneficio.titulo"
+                      [name]="'authenticClubTitulo' + beneficio.clave"
+                      maxlength="80"
+                    />
+                    <textarea
+                      class="textarea textarea-bordered w-full"
+                      rows="3"
+                      [(ngModel)]="beneficio.descripcion"
+                      [name]="'authenticClubDescripcion' + beneficio.clave"
+                      placeholder="Descripción breve..."
+                      maxlength="1000"
+                    ></textarea>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Horarios de atención</h2>
               <div class="space-y-2">
                 @for (fila of filas; track fila.dia) {
@@ -413,6 +461,8 @@ export class BrandingConfigComponent implements OnInit {
   cursosTitulo = '';
   cursosDescripcion = '';
   bloquesSobreNosotros: FilaSobreNosotros[] = BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
+  authenticClubImagenUrl = '';
+  bloquesAuthenticClub: FilaAuthenticClub[] = BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({
@@ -439,6 +489,8 @@ export class BrandingConfigComponent implements OnInit {
         this.cursosTitulo = data.cursosTitulo ?? '';
         this.cursosDescripcion = data.cursosDescripcion ?? '';
         this.bloquesSobreNosotros = this.mapearSobreNosotros(data.sobreNosotros);
+        this.authenticClubImagenUrl = data.authenticClubImagenUrl ?? '';
+        this.bloquesAuthenticClub = this.mapearAuthenticClub(data.authenticClubBeneficios);
         this.loading.set(false);
       },
       error: () => {
@@ -466,6 +518,17 @@ export class BrandingConfigComponent implements OnInit {
   private mapearSobreNosotros(bloques: BloqueSobreNosotros[] | null): FilaSobreNosotros[] {
     return BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => {
       const existente = bloques?.find((b) => b.clave === clave);
+      return {
+        clave,
+        titulo: existente?.titulo || titulo,
+        descripcion: existente?.descripcion ?? '',
+      };
+    });
+  }
+
+  private mapearAuthenticClub(beneficios: BloqueAuthenticClub[] | null): FilaAuthenticClub[] {
+    return BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => {
+      const existente = beneficios?.find((b) => b.clave === clave);
       return {
         clave,
         titulo: existente?.titulo || titulo,
@@ -508,6 +571,11 @@ export class BrandingConfigComponent implements OnInit {
       titulo: b.titulo.trim() || BLOQUES_SOBRE_NOSOTROS_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
       descripcion: b.descripcion,
     }));
+    const authenticClubBeneficios: BloqueAuthenticClub[] = this.bloquesAuthenticClub.map((b) => ({
+      clave: b.clave,
+      titulo: b.titulo.trim() || BLOQUES_AUTHENTIC_CLUB_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
+      descripcion: b.descripcion,
+    }));
 
     this.configuracionService
       .updateBranding({
@@ -533,6 +601,8 @@ export class BrandingConfigComponent implements OnInit {
         cursosTitulo: this.cursosTitulo,
         cursosDescripcion: this.cursosDescripcion,
         sobreNosotros,
+        authenticClubImagenUrl: this.authenticClubImagenUrl,
+        authenticClubBeneficios,
       })
       .subscribe({
         next: () => {

@@ -40,6 +40,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/landing/nosotros.component').then((m) => m.NosotrosComponent),
   },
   {
+    path: 'authentic-club',
+    loadComponent: () => import('./features/landing/authentic-club.component').then((m) => m.AuthenticClubComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     component: LayoutComponent,

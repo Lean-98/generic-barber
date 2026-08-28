@@ -28,6 +28,8 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   cursosTitulo: null,
   cursosDescripcion: null,
   sobreNosotros: null,
+  authenticClubImagenUrl: null,
+  authenticClubBeneficios: null,
   updatedAt: new Date(0),
 };
 

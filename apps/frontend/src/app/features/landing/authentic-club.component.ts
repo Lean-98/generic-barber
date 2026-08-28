@@ -1,12 +1,19 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
-import { ConfiguracionNegocio } from '../../shared/models/configuracion.model';
+import { ClaveBloqueAuthenticClub, ConfiguracionNegocio } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
+const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
+  presentarTarjeta: 'credit-card',
+  empresa: 'bar-chart',
+  cumpleanos: 'star',
+  recomendar: 'users',
+};
+
 @Component({
-  selector: 'app-nosotros',
+  selector: 'app-authentic-club',
   standalone: true,
   imports: [RouterLink, IconComponent, BrandMarkComponent],
   template: `
@@ -31,7 +38,8 @@ import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
       <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div class="mb-8 text-center">
-          <h1 class="font-display text-3xl font-semibold">Nosotros</h1>
+          <h1 class="font-display text-3xl font-semibold">Authentic Club</h1>
+          <p class="mt-2 text-base-content/70">Más cortes. Más beneficios. Más Authentic.</p>
         </div>
 
         @if (cargando()) {
@@ -39,19 +47,40 @@ import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
             <app-icon name="loader" [size]="20" className="animate-spin" />
             <span class="text-base-content/70">Cargando...</span>
           </div>
-        } @else if (bloques().length === 0) {
-          <p class="py-16 text-center text-base-content/60">Todavía no hay contenido cargado.</p>
         } @else {
-          <div class="grid gap-6 sm:grid-cols-2">
-            @for (bloque of bloques(); track bloque.clave) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
-                <div class="card-body">
-                  <h2 class="card-title text-base">{{ bloque.titulo }}</h2>
-                  <p class="whitespace-pre-line text-sm text-base-content/70">{{ bloque.descripcion }}</p>
+          @if (config().authenticClubImagenUrl) {
+            <div class="mb-10 flex justify-center">
+              <img
+                [src]="config().authenticClubImagenUrl"
+                alt="Tarjeta Authentic Club"
+                class="w-full max-w-md rounded-2xl shadow-lg"
+              />
+            </div>
+          }
+
+          @if (beneficios().length === 0) {
+            <p class="py-16 text-center text-base-content/60">Todavía no hay beneficios cargados.</p>
+          } @else {
+            <div class="grid gap-6 sm:grid-cols-2">
+              @for (beneficio of beneficios(); track beneficio.clave) {
+                <div class="card border border-base-300 bg-base-100 shadow-sm">
+                  <div class="card-body">
+                    <div class="mb-2 flex items-center gap-3">
+                      <div class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/40 text-primary">
+                        <app-icon [name]="beneficio.icono" [size]="18" />
+                      </div>
+                      <h2 class="card-title text-base">{{ beneficio.titulo }}</h2>
+                    </div>
+                    <p class="text-sm text-base-content/70">{{ beneficio.descripcion }}</p>
+                  </div>
                 </div>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          }
+
+          <p class="mt-10 text-center text-sm text-base-content/60">
+            Pedí tu tarjeta Authentic Club en el local. Es gratuita y con cada corte sumás un sello.
+          </p>
         }
       </div>
 
@@ -61,7 +90,7 @@ import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
     </div>
   `,
 })
-export class NosotrosComponent implements OnInit {
+export class AuthenticClubComponent implements OnInit {
   private readonly configuracionService = inject(ConfiguracionService);
 
   config = signal<ConfiguracionNegocio>({
@@ -93,7 +122,11 @@ export class NosotrosComponent implements OnInit {
   cargando = signal(true);
   currentYear = new Date().getFullYear();
 
-  bloques = computed(() => (this.config().sobreNosotros ?? []).filter((b) => !!b.descripcion?.trim()));
+  beneficios = computed(() =>
+    (this.config().authenticClubBeneficios ?? [])
+      .filter((b) => !!b.descripcion?.trim())
+      .map((b) => ({ ...b, icono: ICONO_POR_CLAVE[b.clave] })),
+  );
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({

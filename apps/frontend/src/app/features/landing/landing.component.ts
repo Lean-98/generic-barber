@@ -64,6 +64,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
           @if (config().direccion) {
             <a href="#ubicacion" class="opacity-80 hover:opacity-100">Ubicación</a>
           }
+          <a routerLink="/authentic-club" class="opacity-80 hover:opacity-100">Authentic Club</a>
         </nav>
         <div class="navbar-end gap-4">
           <a routerLink="/reservar" class="btn btn-primary btn-sm gap-2">
@@ -92,6 +93,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
             @if (config().direccion) {
               <a href="#ubicacion" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Ubicación</a>
             }
+            <a routerLink="/authentic-club" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Authentic Club</a>
           </nav>
         </div>
       }
@@ -394,6 +396,8 @@ export class LandingComponent implements OnInit, OnDestroy {
     cursosTitulo: null,
     cursosDescripcion: null,
     sobreNosotros: null,
+    authenticClubImagenUrl: null,
+    authenticClubBeneficios: null,
   });
   servicios = signal<Servicio[]>([]);
   hayProductos = signal(false);

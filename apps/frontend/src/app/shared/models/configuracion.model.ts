@@ -15,6 +15,14 @@ export interface BloqueSobreNosotros {
   descripcion?: string;
 }
 
+export type ClaveBloqueAuthenticClub = 'presentarTarjeta' | 'empresa' | 'cumpleanos' | 'recomendar';
+
+export interface BloqueAuthenticClub {
+  clave: ClaveBloqueAuthenticClub;
+  titulo: string;
+  descripcion?: string;
+}
+
 export interface ConfiguracionNegocio {
   id?: number;
   nombre: string;
@@ -39,6 +47,8 @@ export interface ConfiguracionNegocio {
   cursosTitulo: string | null;
   cursosDescripcion: string | null;
   sobreNosotros: BloqueSobreNosotros[] | null;
+  authenticClubImagenUrl: string | null;
+  authenticClubBeneficios: BloqueAuthenticClub[] | null;
   updatedAt?: string;
 }
 
@@ -65,4 +75,6 @@ export interface UpdateConfiguracionRequest {
   cursosTitulo?: string;
   cursosDescripcion?: string;
   sobreNosotros?: BloqueSobreNosotros[];
+  authenticClubImagenUrl?: string;
+  authenticClubBeneficios?: BloqueAuthenticClub[];
 }

@@ -203,6 +203,8 @@ model ConfiguracionNegocio {
   cursosTitulo         String?  @map("cursos_titulo")
   cursosDescripcion    String?  @map("cursos_descripcion")
   sobreNosotros    Json?    @map("sobre_nosotros")
+  authenticClubImagenUrl String? @map("authentic_club_imagen_url")
+  authenticClubBeneficios Json? @map("authentic_club_beneficios")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")
