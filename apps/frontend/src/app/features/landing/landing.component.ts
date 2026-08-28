@@ -50,7 +50,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
           <app-brand-mark [hero]="true" barHeight="h-8" />
         </div>
         <nav class="navbar-center hidden items-center gap-6 text-sm font-medium lg:flex">
-          <a routerLink="/nosotros" class="opacity-80 hover:opacity-100">Nosotros</a>
+          <a routerLink="/nosotros" class="opacity-80 hover:opacity-100">Sobre nosotros</a>
           <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
           @if (hayProductos()) {
             <a routerLink="/tienda" class="opacity-80 hover:opacity-100">Productos</a>
@@ -78,7 +78,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
         <div class="fixed inset-0 z-30 lg:hidden" (click)="menuAbierto.set(false)">
           <div class="absolute inset-0 bg-black/50"></div>
           <nav class="relative flex flex-col gap-1 bg-neutral px-4 py-3 text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
-            <a routerLink="/nosotros" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Nosotros</a>
+            <a routerLink="/nosotros" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Sobre nosotros</a>
             <a href="#servicios" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Servicios</a>
             @if (hayProductos()) {
               <a routerLink="/tienda" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Productos</a>
