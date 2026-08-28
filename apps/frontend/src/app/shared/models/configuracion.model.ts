@@ -47,8 +47,19 @@ export interface ConfiguracionNegocio {
   cursosTitulo: string | null;
   cursosDescripcion: string | null;
   sobreNosotros: BloqueSobreNosotros[] | null;
+  sobreNosotrosBajada: string | null;
+  authenticClubNombre: string | null;
+  authenticClubBajada: string | null;
   authenticClubImagenUrl: string | null;
   authenticClubBeneficios: BloqueAuthenticClub[] | null;
+  authenticClubNota: string | null;
+  mostrarNosotros: boolean;
+  mostrarAuthenticClub: boolean;
+  mostrarTienda: boolean;
+  mostrarCursos: boolean;
+  mostrarServicios: boolean;
+  mostrarGaleria: boolean;
+  mostrarUbicacion: boolean;
   updatedAt?: string;
 }
 
@@ -75,6 +86,17 @@ export interface UpdateConfiguracionRequest {
   cursosTitulo?: string;
   cursosDescripcion?: string;
   sobreNosotros?: BloqueSobreNosotros[];
+  sobreNosotrosBajada?: string;
+  authenticClubNombre?: string;
+  authenticClubBajada?: string;
   authenticClubImagenUrl?: string;
   authenticClubBeneficios?: BloqueAuthenticClub[];
+  authenticClubNota?: string;
+  mostrarNosotros?: boolean;
+  mostrarAuthenticClub?: boolean;
+  mostrarTienda?: boolean;
+  mostrarCursos?: boolean;
+  mostrarServicios?: boolean;
+  mostrarGaleria?: boolean;
+  mostrarUbicacion?: boolean;
 }

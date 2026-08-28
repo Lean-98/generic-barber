@@ -50,21 +50,27 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
           <app-brand-mark [hero]="true" barHeight="h-8" />
         </div>
         <nav class="navbar-center hidden items-center gap-6 text-sm font-medium lg:flex">
-          <a routerLink="/nosotros" class="opacity-80 hover:opacity-100">Sobre nosotros</a>
-          <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
-          @if (hayProductos()) {
+          @if (config().mostrarNosotros) {
+            <a routerLink="/nosotros" class="opacity-80 hover:opacity-100">Sobre nosotros</a>
+          }
+          @if (config().mostrarServicios) {
+            <a href="#servicios" class="opacity-80 hover:opacity-100">Servicios</a>
+          }
+          @if (config().mostrarTienda && hayProductos()) {
             <a routerLink="/tienda" class="opacity-80 hover:opacity-100">Productos</a>
           }
-          @if (hayCursos()) {
+          @if (config().mostrarCursos && hayCursos()) {
             <a routerLink="/cursos-info" class="opacity-80 hover:opacity-100">Cursos</a>
           }
-          @if (galeriaItems().length > 0) {
+          @if (config().mostrarGaleria && galeriaItems().length > 0) {
             <a href="#galeria" class="opacity-80 hover:opacity-100">Galería</a>
           }
-          @if (config().direccion) {
+          @if (config().mostrarUbicacion && config().direccion) {
             <a href="#ubicacion" class="opacity-80 hover:opacity-100">Ubicación</a>
           }
-          <a routerLink="/authentic-club" class="opacity-80 hover:opacity-100">Authentic Club</a>
+          @if (config().mostrarAuthenticClub) {
+            <a routerLink="/club" class="opacity-80 hover:opacity-100">Authentic Club</a>
+          }
         </nav>
         <div class="navbar-end gap-4">
           <a routerLink="/reservar" class="btn btn-primary btn-sm gap-2">
@@ -79,21 +85,27 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
         <div class="fixed inset-0 z-30 lg:hidden" (click)="menuAbierto.set(false)">
           <div class="absolute inset-0 bg-black/50"></div>
           <nav class="relative flex flex-col gap-1 bg-neutral px-4 py-3 text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
-            <a routerLink="/nosotros" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Sobre nosotros</a>
-            <a href="#servicios" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Servicios</a>
-            @if (hayProductos()) {
+            @if (config().mostrarNosotros) {
+              <a routerLink="/nosotros" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Sobre nosotros</a>
+            }
+            @if (config().mostrarServicios) {
+              <a href="#servicios" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Servicios</a>
+            }
+            @if (config().mostrarTienda && hayProductos()) {
               <a routerLink="/tienda" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Productos</a>
             }
-            @if (hayCursos()) {
+            @if (config().mostrarCursos && hayCursos()) {
               <a routerLink="/cursos-info" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Cursos</a>
             }
-            @if (galeriaItems().length > 0) {
+            @if (config().mostrarGaleria && galeriaItems().length > 0) {
               <a href="#galeria" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Galería</a>
             }
-            @if (config().direccion) {
+            @if (config().mostrarUbicacion && config().direccion) {
               <a href="#ubicacion" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Ubicación</a>
             }
-            <a routerLink="/authentic-club" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Authentic Club</a>
+            @if (config().mostrarAuthenticClub) {
+              <a routerLink="/club" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Authentic Club</a>
+            }
           </nav>
         </div>
       }
@@ -106,7 +118,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
       >
         <div class="absolute inset-0 bg-gradient-to-t from-neutral via-neutral/40 to-neutral/10"></div>
 
-        @if (galeriaItems().length > 0) {
+        @if (config().mostrarGaleria && galeriaItems().length > 0) {
           <a
             href="#galeria"
             class="btn btn-sm absolute right-4 top-4 gap-2 border-none bg-base-100/90 text-base-content hover:bg-base-100 sm:right-6 sm:top-6"
@@ -161,7 +173,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
               </div>
             </div>
 
-            @if (galeriaItems().length > 0) {
+            @if (config().mostrarGaleria && galeriaItems().length > 0) {
               <div id="galeria" class="card scroll-mt-24 overflow-hidden border border-base-300 bg-base-100 shadow-sm">
                 <div class="card-body pb-4">
                   <h2 class="font-display text-lg font-semibold">Galería</h2>
@@ -396,8 +408,19 @@ export class LandingComponent implements OnInit, OnDestroy {
     cursosTitulo: null,
     cursosDescripcion: null,
     sobreNosotros: null,
+    sobreNosotrosBajada: null,
+    authenticClubNombre: null,
+    authenticClubBajada: null,
     authenticClubImagenUrl: null,
     authenticClubBeneficios: null,
+    authenticClubNota: null,
+    mostrarNosotros: true,
+    mostrarAuthenticClub: true,
+    mostrarTienda: true,
+    mostrarCursos: true,
+    mostrarServicios: true,
+    mostrarGaleria: true,
+    mostrarUbicacion: true,
   });
   servicios = signal<Servicio[]>([]);
   hayProductos = signal(false);

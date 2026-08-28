@@ -36,41 +36,48 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
         </div>
       </header>
 
-      <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <div class="mb-8 text-center">
-          <h1 class="font-display text-3xl font-semibold">Authentic Club</h1>
-          <p class="mt-2 text-base-content/70">Más cortes. Más beneficios. Más Authentic.</p>
-        </div>
+      <section class="relative overflow-hidden bg-neutral py-16 text-neutral-content sm:py-20">
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"></div>
+        <div class="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h1 class="font-display text-4xl font-semibold sm:text-5xl">
+            {{ config().authenticClubNombre }} <span class="text-primary">Club</span>
+          </h1>
+          @if (config().authenticClubBajada; as bajada) {
+            <p class="mx-auto mt-3 max-w-xl text-neutral-content/70">{{ bajada }}</p>
+          }
 
+          @if (!cargando() && config().authenticClubImagenUrl) {
+            <div class="mt-8 flex justify-center">
+              <img
+                [src]="config().authenticClubImagenUrl"
+                [alt]="'Tarjeta ' + nombreClub()"
+                class="w-full max-w-md rounded-2xl border border-primary/30 shadow-xl transition-all duration-300 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:scale-[1.02] motion-safe:hover:border-primary/60 motion-safe:hover:shadow-2xl"
+              />
+            </div>
+          }
+        </div>
+      </section>
+
+      <div class="relative z-10 mx-auto -mt-10 max-w-4xl px-4 pb-16 sm:px-6">
         @if (cargando()) {
           <div class="flex items-center justify-center gap-2 py-16">
             <app-icon name="loader" [size]="20" className="animate-spin" />
             <span class="text-base-content/70">Cargando...</span>
           </div>
         } @else {
-          @if (config().authenticClubImagenUrl) {
-            <div class="mb-10 flex justify-center">
-              <img
-                [src]="config().authenticClubImagenUrl"
-                alt="Tarjeta Authentic Club"
-                class="w-full max-w-md rounded-2xl shadow-lg"
-              />
-            </div>
-          }
-
           @if (beneficios().length === 0) {
-            <p class="py-16 text-center text-base-content/60">Todavía no hay beneficios cargados.</p>
+            <p class="rounded-xl border border-base-300 bg-base-100 py-16 text-center text-base-content/60 shadow-sm">
+              Todavía no hay beneficios cargados.
+            </p>
           } @else {
             <div class="grid gap-6 sm:grid-cols-2">
               @for (beneficio of beneficios(); track beneficio.clave) {
-                <div class="card border border-base-300 bg-base-100 shadow-sm">
+                <div class="card border border-base-300 bg-base-100 shadow-sm transition-shadow hover:shadow-md">
                   <div class="card-body">
-                    <div class="mb-2 flex items-center gap-3">
-                      <div class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/40 text-primary">
-                        <app-icon [name]="beneficio.icono" [size]="18" />
-                      </div>
-                      <h2 class="card-title text-base">{{ beneficio.titulo }}</h2>
+                    <div class="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-content">
+                      <app-icon [name]="beneficio.icono" [size]="20" />
                     </div>
+                    <h2 class="font-display card-title text-lg">{{ beneficio.titulo }}</h2>
                     <p class="text-sm text-base-content/70">{{ beneficio.descripcion }}</p>
                   </div>
                 </div>
@@ -78,9 +85,12 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
             </div>
           }
 
-          <p class="mt-10 text-center text-sm text-base-content/60">
-            Pedí tu tarjeta Authentic Club en el local. Es gratuita y con cada corte sumás un sello.
-          </p>
+          @if (config().authenticClubNota; as nota) {
+            <div class="mt-10 flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/60 p-4 text-sm text-base-content/70">
+              <app-icon name="scissors" [size]="18" className="shrink-0 text-primary" />
+              {{ nota }}
+            </div>
+          }
         }
       </div>
 
@@ -116,11 +126,27 @@ export class AuthenticClubComponent implements OnInit {
     cursosTitulo: null,
     cursosDescripcion: null,
     sobreNosotros: null,
+    sobreNosotrosBajada: null,
+    authenticClubNombre: null,
+    authenticClubBajada: null,
     authenticClubImagenUrl: null,
     authenticClubBeneficios: null,
+    authenticClubNota: null,
+    mostrarNosotros: true,
+    mostrarAuthenticClub: true,
+    mostrarTienda: true,
+    mostrarCursos: true,
+    mostrarServicios: true,
+    mostrarGaleria: true,
+    mostrarUbicacion: true,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();
+
+  nombreClub = computed(() => {
+    const nombre = this.config().authenticClubNombre?.trim();
+    return nombre ? `${nombre} Club` : 'Club';
+  });
 
   beneficios = computed(() =>
     (this.config().authenticClubBeneficios ?? [])

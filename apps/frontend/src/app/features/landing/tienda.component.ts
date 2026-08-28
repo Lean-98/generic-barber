@@ -118,8 +118,19 @@ export class TiendaComponent implements OnInit {
     cursosTitulo: null,
     cursosDescripcion: null,
     sobreNosotros: null,
+    sobreNosotrosBajada: null,
+    authenticClubNombre: null,
+    authenticClubBajada: null,
     authenticClubImagenUrl: null,
     authenticClubBeneficios: null,
+    authenticClubNota: null,
+    mostrarNosotros: true,
+    mostrarAuthenticClub: true,
+    mostrarTienda: true,
+    mostrarCursos: true,
+    mostrarServicios: true,
+    mostrarGaleria: true,
+    mostrarUbicacion: true,
   });
   productos = signal<Producto[]>([]);
   cargando = signal(true);

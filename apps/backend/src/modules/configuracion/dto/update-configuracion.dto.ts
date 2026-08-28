@@ -247,6 +247,24 @@ export class UpdateConfiguracionDto {
   @Type(() => BloqueSobreNosotrosDto)
   sobreNosotros?: BloqueSobreNosotrosDto[];
 
+  @ApiPropertyOptional({ description: 'Bajada/subtítulo de la página "Sobre nosotros" (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  sobreNosotrosBajada?: string;
+
+  @ApiPropertyOptional({ description: 'Primera palabra del nombre del club, ej. "Authentic" en "Authentic Club" (string vacío para restablecer)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  authenticClubNombre?: string;
+
+  @ApiPropertyOptional({ description: 'Bajada/subtítulo de la página del club (string vacío para restablecer)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  authenticClubBajada?: string;
+
   @ApiPropertyOptional({ description: 'URL de la imagen de la tarjeta Authentic Club (string vacío para quitarla)' })
   @IsOptional()
   @ValidateIf((_, value) => value !== '')
@@ -263,4 +281,45 @@ export class UpdateConfiguracionDto {
   @ValidateNested({ each: true })
   @Type(() => BloqueAuthenticClubDto)
   authenticClubBeneficios?: BloqueAuthenticClubDto[];
+
+  @ApiPropertyOptional({ description: 'Nota al pie de la página del club, ej. cómo pedir la tarjeta (string vacío para quitarla)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  authenticClubNota?: string;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a "Sobre nosotros" en el navbar' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarNosotros?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a "Authentic Club" en el navbar' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarAuthenticClub?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a la tienda en el navbar (además de requerir productos cargados)' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarTienda?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a cursos en el navbar (además de requerir cursos cargados)' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarCursos?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a servicios en el navbar' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarServicios?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a la galería en el navbar (además de requerir fotos cargadas)' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarGaleria?: boolean;
+
+  @ApiPropertyOptional({ description: 'Mostrar el link a ubicación en el navbar (además de requerir una dirección cargada)' })
+  @IsOptional()
+  @IsBoolean()
+  mostrarUbicacion?: boolean;
 }

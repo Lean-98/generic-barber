@@ -285,6 +285,17 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
             <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Sobre nosotros</h2>
               <p class="text-sm text-base-content/60">Sección aparte en la landing con estos 4 bloques. Dejá la descripción vacía para ocultar un bloque.</p>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Bajada / subtítulo</span></label>
+                <input
+                  type="text"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="sobreNosotrosBajada"
+                  name="sobreNosotrosBajada"
+                  placeholder="Conocé la historia, la misión y los valores detrás de cada corte."
+                  maxlength="200"
+                />
+              </div>
               <div class="grid gap-4 md:grid-cols-2">
                 @for (bloque of bloquesSobreNosotros; track bloque.clave) {
                   <div class="form-control gap-2 rounded-lg border border-base-300 p-3">
@@ -316,6 +327,32 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                 Página aparte de la landing con la tarjeta de beneficios. Dejá la descripción vacía para ocultar un beneficio.
               </p>
               <div class="form-control">
+                <label class="label"><span class="label-text">Nombre del club</span></label>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    class="input input-bordered w-full"
+                    [(ngModel)]="authenticClubNombre"
+                    name="authenticClubNombre"
+                    placeholder="Ej: Premium (vacío = solo &quot;Club&quot;)"
+                    maxlength="40"
+                  />
+                  <span class="text-base-content/60">Club</span>
+                </div>
+                <label class="label"><span class="label-text-alt text-base-content/50">"Club" es fijo, esto va antes (vacío = solo "Club").</span></label>
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Bajada / subtítulo</span></label>
+                <input
+                  type="text"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="authenticClubBajada"
+                  name="authenticClubBajada"
+                  placeholder="Más cortes, más beneficios cada vez que nos visitás."
+                  maxlength="200"
+                />
+              </div>
+              <div class="form-control">
                 <label class="label"><span class="label-text">Imagen de la tarjeta</span></label>
                 <app-image-upload [folder]="'authentic-club'" [(url)]="authenticClubImagenUrl" />
               </div>
@@ -339,6 +376,17 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                     ></textarea>
                   </div>
                 }
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Nota al pie</span></label>
+                <input
+                  type="text"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="authenticClubNota"
+                  name="authenticClubNota"
+                  placeholder="Ej: Pedí tu tarjeta en el local. Es gratuita y con cada corte sumás un sello."
+                  maxlength="300"
+                />
               </div>
             </div>
           </div>
@@ -388,6 +436,46 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
               <div class="form-control">
                 <textarea class="textarea textarea-bordered w-full" rows="4" [(ngModel)]="politicaReservas" name="politicaReservas" placeholder="Ej: pedimos avisar con al menos 4 horas de anticipación ante una cancelación..." maxlength="2000"></textarea>
               </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Navegación</h2>
+              <p class="text-sm text-base-content/60">Elegí qué páginas mostrar en el menú de la landing.</p>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarServicios" name="mostrarServicios" />
+                  <span class="label-text">Servicios</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarNosotros" name="mostrarNosotros" />
+                  <span class="label-text">Sobre nosotros</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarAuthenticClub" name="mostrarAuthenticClub" />
+                  <span class="label-text">Authentic Club</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarTienda" name="mostrarTienda" />
+                  <span class="label-text">Tienda / Productos</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarCursos" name="mostrarCursos" />
+                  <span class="label-text">Cursos</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarGaleria" name="mostrarGaleria" />
+                  <span class="label-text">Galería</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarUbicacion" name="mostrarUbicacion" />
+                  <span class="label-text">Ubicación</span>
+                </label>
+              </div>
+              <p class="text-xs text-base-content/50">
+                Tienda, Cursos, Galería y Ubicación igual se ocultan solos si no hay contenido cargado, aunque estén activados acá.
+              </p>
             </div>
           </div>
 
@@ -461,6 +549,17 @@ export class BrandingConfigComponent implements OnInit {
   cursosTitulo = '';
   cursosDescripcion = '';
   bloquesSobreNosotros: FilaSobreNosotros[] = BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
+  sobreNosotrosBajada = '';
+  authenticClubNombre = '';
+  authenticClubBajada = '';
+  authenticClubNota = '';
+  mostrarNosotros = true;
+  mostrarAuthenticClub = true;
+  mostrarTienda = true;
+  mostrarCursos = true;
+  mostrarServicios = true;
+  mostrarGaleria = true;
+  mostrarUbicacion = true;
   authenticClubImagenUrl = '';
   bloquesAuthenticClub: FilaAuthenticClub[] = BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
@@ -489,6 +588,17 @@ export class BrandingConfigComponent implements OnInit {
         this.cursosTitulo = data.cursosTitulo ?? '';
         this.cursosDescripcion = data.cursosDescripcion ?? '';
         this.bloquesSobreNosotros = this.mapearSobreNosotros(data.sobreNosotros);
+        this.sobreNosotrosBajada = data.sobreNosotrosBajada ?? '';
+        this.authenticClubNombre = data.authenticClubNombre ?? '';
+        this.authenticClubBajada = data.authenticClubBajada ?? '';
+        this.authenticClubNota = data.authenticClubNota ?? '';
+        this.mostrarNosotros = data.mostrarNosotros;
+        this.mostrarAuthenticClub = data.mostrarAuthenticClub;
+        this.mostrarTienda = data.mostrarTienda;
+        this.mostrarCursos = data.mostrarCursos;
+        this.mostrarServicios = data.mostrarServicios;
+        this.mostrarGaleria = data.mostrarGaleria;
+        this.mostrarUbicacion = data.mostrarUbicacion;
         this.authenticClubImagenUrl = data.authenticClubImagenUrl ?? '';
         this.bloquesAuthenticClub = this.mapearAuthenticClub(data.authenticClubBeneficios);
         this.loading.set(false);
@@ -601,8 +711,19 @@ export class BrandingConfigComponent implements OnInit {
         cursosTitulo: this.cursosTitulo,
         cursosDescripcion: this.cursosDescripcion,
         sobreNosotros,
+        sobreNosotrosBajada: this.sobreNosotrosBajada,
+        authenticClubNombre: this.authenticClubNombre,
+        authenticClubBajada: this.authenticClubBajada,
         authenticClubImagenUrl: this.authenticClubImagenUrl,
         authenticClubBeneficios,
+        authenticClubNota: this.authenticClubNota,
+        mostrarNosotros: this.mostrarNosotros,
+        mostrarAuthenticClub: this.mostrarAuthenticClub,
+        mostrarTienda: this.mostrarTienda,
+        mostrarCursos: this.mostrarCursos,
+        mostrarServicios: this.mostrarServicios,
+        mostrarGaleria: this.mostrarGaleria,
+        mostrarUbicacion: this.mostrarUbicacion,
       })
       .subscribe({
         next: () => {
