@@ -15,7 +15,7 @@ import { BrandingService } from '../../core/services/branding.service';
       <span class="stripe-accent w-1.5 shrink-0 rounded-sm" [class]="barHeight"></span>
     }
     @if (showName) {
-      <span class="font-display truncate font-semibold" [class]="textSize">{{ nombre() }}</span>
+      <span class="font-display font-semibold" [class]="nameClass + ' ' + textSize">{{ nombre() }}</span>
     }
   `,
   // El host es un custom element (display: inline por defecto) y el reset de
@@ -30,6 +30,7 @@ export class BrandMarkComponent {
 
   @Input() barHeight = 'h-7';
   @Input() textSize = 'text-lg';
+  @Input() nameClass = 'truncate';
   @Input() showName = true;
   /** Marca "hero": muestra el logo completo, en su proporción real, sin recortarlo a un cuadrado. */
   @Input() hero = false;

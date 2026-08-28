@@ -47,7 +47,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
           <button class="btn btn-ghost btn-square lg:hidden" (click)="menuAbierto.set(!menuAbierto())" aria-label="Menú">
             <app-icon [name]="menuAbierto() ? 'x' : 'menu'" [size]="20" />
           </button>
-          <app-brand-mark [hero]="true" barHeight="h-8" />
+          <app-brand-mark [hero]="true" barHeight="h-8" nameClass="hidden truncate sm:inline" />
         </div>
         <nav class="navbar-center hidden items-center gap-6 text-sm font-medium lg:flex">
           @if (config().mostrarNosotros) {

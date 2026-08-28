@@ -19,15 +19,15 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueSobreNosotros, string> = {
   template: `
     <div class="min-h-screen bg-base-100 text-base-content">
       <header class="navbar sticky top-0 z-40 bg-neutral px-4 text-neutral-content sm:px-6">
-        <div class="navbar-start gap-3">
-          <a routerLink="/" class="flex items-center gap-3">
-            <app-brand-mark [hero]="true" barHeight="h-8" />
+        <div class="navbar-start min-w-0 gap-3">
+          <a routerLink="/" class="flex min-w-0 items-center gap-3">
+            <app-brand-mark [hero]="true" barHeight="h-8" nameClass="hidden truncate sm:inline" />
           </a>
         </div>
-        <div class="navbar-end gap-4">
+        <div class="navbar-end shrink-0 gap-2 sm:gap-4">
           <a routerLink="/" class="btn btn-ghost btn-sm gap-2">
             <app-icon name="arrow-left" [size]="16" />
-            Volver
+            <span class="hidden sm:inline">Volver</span>
           </a>
           <a routerLink="/reservar" class="btn btn-primary btn-sm gap-2">
             <app-icon name="calendar" [size]="16" />
