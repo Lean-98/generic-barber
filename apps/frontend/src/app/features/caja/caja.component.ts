@@ -126,6 +126,25 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 }
               </div>
 
+              @if (turnoSeleccionado(); as turno) {
+                <div class="rounded-box border border-base-300 divide-y">
+                  @for (detalle of turno.detalles; track detalle.idTurnoDetalle) {
+                    <div class="flex items-center justify-between gap-3 p-3 text-sm">
+                      <div class="min-w-0">
+                        <p class="truncate font-medium">{{ detalle.servicio?.nombre }}</p>
+                        @if (detalle.descuentoPorcentaje > 0) {
+                          <p class="text-xs text-base-content/60">
+                            Precio de lista: {{ detalle.precioReal * detalle.cantidad | pesos }} ·
+                            {{ motivoDescuento(detalle.descuentoMotivo) }} -{{ detalle.descuentoPorcentaje }}%
+                          </p>
+                        }
+                      </div>
+                      <span class="shrink-0 tabular-nums font-semibold">{{ montoFinalDetalle(detalle) | pesos }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
               <div class="grid gap-4 md:grid-cols-2">
                 <div class="form-control">
                   <label class="label"><span class="label-text">Forma de pago</span></label>
@@ -374,6 +393,10 @@ export class CajaComponent implements OnInit, OnDestroy {
     this.turnos().filter((t) => t.estado === 'COMPLETADO')
   );
 
+  turnoSeleccionado = computed(() =>
+    this.turnos().find((t) => t.idTurno === this.pagoTurnoId()) ?? null
+  );
+
   formaPagoSeleccionada = computed(() =>
     this.formasPago().find((fp) => fp.idFormaPago === this.pagoFormaPagoId())
   );
@@ -418,7 +441,25 @@ export class CajaComponent implements OnInit, OnDestroy {
   }
 
   totalTurno(turno: Turno): number {
-    return (turno.detalles || []).reduce((total, d) => total + Number(d.precioReal) * d.cantidad, 0);
+    return (turno.detalles || []).reduce((total, d) => {
+      const descuento = Number(d.descuentoPorcentaje ?? 0);
+      return total + Number(d.precioReal) * d.cantidad * (1 - descuento / 100);
+    }, 0);
+  }
+
+  montoFinalDetalle(detalle: { precioReal: number; cantidad: number; descuentoPorcentaje: number }): number {
+    return Number(detalle.precioReal) * detalle.cantidad * (1 - Number(detalle.descuentoPorcentaje ?? 0) / 100);
+  }
+
+  motivoDescuento(motivo?: string | null): string {
+    switch (motivo) {
+      case 'FIDELIZACION':
+        return 'Programa de fidelización';
+      case 'EMPLEADO':
+        return 'Descuento de personal';
+      default:
+        return '';
+    }
   }
 
   actualizarTotalTurno(): void {

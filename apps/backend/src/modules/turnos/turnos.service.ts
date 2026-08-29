@@ -5,8 +5,21 @@ import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
-import { horaArAUtc } from '../../common/utils/fecha-ar.util';
+import { horaArAUtc, inicioDiaAr, finDiaAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
+
+interface HorarioDiaConfig {
+  dia: number;
+  cerrado: boolean;
+  abre?: string;
+  cierra?: string;
+  abre2?: string;
+  cierra2?: string;
+}
+
+const CONFIG_ID = 1;
+const DESCUENTO_MOTIVO_FIDELIZACION = 'FIDELIZACION';
+const DESCUENTO_MOTIVO_EMPLEADO = 'EMPLEADO';
 
 @Injectable()
 export class TurnosService {
@@ -31,6 +44,20 @@ export class TurnosService {
     });
     if (servicios.length !== serviciosIds.length) {
       throw new BadRequestException('Uno o más servicios no existen o no están vigentes');
+    }
+
+    // 2.b. Descuento de personal: opcional, solo si el cliente está marcado
+    // como empleado y el descuento está activo en la configuración.
+    let descuentoEmpleadoPorcentaje = 0;
+    if (data.aplicarDescuentoEmpleado) {
+      if (!persona.aplicaDescuentoPersonal) {
+        throw new BadRequestException('El descuento de personal solo puede aplicarse a una persona marcada como empleado');
+      }
+      const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+      if (!config?.descuentoEmpleadoActivo || config.descuentoEmpleadoPorcentaje == null) {
+        throw new BadRequestException('El descuento de personal no está activo');
+      }
+      descuentoEmpleadoPorcentaje = Number(config.descuentoEmpleadoPorcentaje);
     }
 
     // 3. Calcular duración total
@@ -80,6 +107,8 @@ export class TurnosService {
                 idServicio: servicioDto.idServicio,
                 precioReal: servicio.precio,
                 cantidad: servicioDto.cantidad || 1,
+                descuentoPorcentaje: descuentoEmpleadoPorcentaje,
+                descuentoMotivo: descuentoEmpleadoPorcentaje > 0 ? DESCUENTO_MOTIVO_EMPLEADO : null,
               };
             }),
           });
@@ -257,6 +286,10 @@ export class TurnosService {
     const estado = getTurnoState(turno.estado);
     validacion(estado);
 
+    if (nuevoEstado === 'COMPLETADO') {
+      await this.aplicarDescuentoFidelizacion(turno);
+    }
+
     return this.prisma.turno.update({
       where: { idTurno: id },
       data: { estado: nuevoEstado },
@@ -306,9 +339,56 @@ export class TurnosService {
 
   async calcularTotal(id: number): Promise<number> {
     const turno = await this.findOne(id);
-    return turno.detalles.reduce((total, detalle) => {
-      return total + Number(detalle.precioReal) * detalle.cantidad;
+    return turno.detalles.reduce((total, detalle: any) => {
+      const descuento = Number(detalle.descuentoPorcentaje ?? 0);
+      return total + Number(detalle.precioReal) * detalle.cantidad * (1 - descuento / 100);
     }, 0);
+  }
+
+  /**
+   * Programa de fidelización: cada N visitas completadas de un servicio marcado
+   * como "cuenta para fidelización", la visita número N (2N, 3N, ...) se descuenta
+   * automáticamente. Genérico: N, el % y si está activo son configurables, y no
+   * cuenta a personas marcadas como empleado (esas usan el descuento de personal).
+   * Se corre al entrar a COMPLETADO; el filtro por descuentoPorcentaje === 0 lo
+   * hace idempotente ante llamados repetidos (ej. varios pagos parciales).
+   */
+  private async aplicarDescuentoFidelizacion(turno: Turno & { idPersona: number; persona: { aplicaDescuentoPersonal: boolean }; detalles: any[] }): Promise<void> {
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    if (!config?.fidelizacionActiva || !config.fidelizacionVisitasRequeridas || config.fidelizacionDescuentoPorcentaje == null) {
+      return;
+    }
+
+    if (turno.persona.aplicaDescuentoPersonal) return;
+
+    const detallesQueCuentan = turno.detalles
+      .filter((d: any) => d.servicio?.cuentaParaFidelizacion && Number(d.descuentoPorcentaje) === 0)
+      .sort((a: any, b: any) => a.idTurnoDetalle - b.idTurnoDetalle);
+    if (detallesQueCuentan.length === 0) return;
+
+    const visitasPrevias = await this.prisma.turnoDetalle.count({
+      where: {
+        servicio: { cuentaParaFidelizacion: true },
+        turno: {
+          idPersona: turno.idPersona,
+          estado: 'COMPLETADO',
+          ...(config.fidelizacionFechaInicio ? { fechaHoraInicio: { gte: config.fidelizacionFechaInicio } } : {}),
+        },
+      },
+    });
+
+    const visitasRequeridas = config.fidelizacionVisitasRequeridas;
+    const descuentoPorcentaje = Number(config.fidelizacionDescuentoPorcentaje);
+
+    for (let i = 0; i < detallesQueCuentan.length; i++) {
+      const numeroVisita = visitasPrevias + i + 1;
+      if (numeroVisita % visitasRequeridas === 0) {
+        await this.prisma.turnoDetalle.update({
+          where: { idTurnoDetalle: detallesQueCuentan[i].idTurnoDetalle },
+          data: { descuentoPorcentaje, descuentoMotivo: DESCUENTO_MOTIVO_FIDELIZACION },
+        });
+      }
+    }
   }
 
   // ─── Public API: availability and client booking ───
@@ -324,51 +404,85 @@ export class TurnosService {
     const duracionTotal = servicios.reduce((total, s) => total + s.duracionMinutos, 0);
 
     const fecha = new Date(fechaStr);
-    const inicioJornada = horaArAUtc(fecha, 9);
-    const finJornada = horaArAUtc(fecha, 18);
 
-    // Obtener turnos ocupados del día
+    // El día de la semana y los horarios de atención salen de la configuración
+    // real del negocio (incluye horario partido: dos franjas por día), no de
+    // un bloque fijo — un día "cerrado" o con horario distinto debe respetarse.
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    const horarios = (config?.horarios as unknown as HorarioDiaConfig[] | null) ?? [];
+    const diaSemana = fecha.getUTCDay();
+    const horarioDia = horarios.find((h) => h.dia === diaSemana);
+
+    if (!horarioDia || horarioDia.cerrado) {
+      return { slots: [], duracionTotal };
+    }
+
+    const franjas: { abre: string; cierra: string }[] = [];
+    if (horarioDia.abre && horarioDia.cierra) franjas.push({ abre: horarioDia.abre, cierra: horarioDia.cierra });
+    if (horarioDia.abre2 && horarioDia.cierra2) franjas.push({ abre: horarioDia.abre2, cierra: horarioDia.cierra2 });
+    if (franjas.length === 0) {
+      return { slots: [], duracionTotal };
+    }
+
+    // Obtener turnos ocupados de todo el día (cubre ambas franjas del horario partido)
     const turnosOcupados = await this.prisma.turno.findMany({
       where: {
-        fechaHoraInicio: { gte: inicioJornada, lt: finJornada },
+        fechaHoraInicio: { gte: inicioDiaAr(fecha), lt: finDiaAr(fecha) },
         estado: { notIn: ['CANCELADO', 'NO_SHOW'] },
       },
     });
 
     const slots: string[] = [];
     const intervalo = 30; // minutos
-    for (let minutos = 0; minutos < 540; minutos += intervalo) {
-      const slotInicio = new Date(inicioJornada.getTime() + minutos * 60000);
-      const slotFin = new Date(slotInicio.getTime() + duracionTotal * 60000);
+    for (const franja of franjas) {
+      const [horaAbre, minAbre] = franja.abre.split(':').map(Number);
+      const [horaCierra, minCierra] = franja.cierra.split(':').map(Number);
+      const inicioFranja = horaArAUtc(fecha, horaAbre, minAbre);
+      const finFranja = horaArAUtc(fecha, horaCierra, minCierra);
 
-      if (slotFin > finJornada) break;
+      for (let t = inicioFranja.getTime(); ; t += intervalo * 60000) {
+        const slotInicio = new Date(t);
+        const slotFin = new Date(slotInicio.getTime() + duracionTotal * 60000);
 
-      // Verificar si el slot está libre
-      const ocupado = turnosOcupados.some((t) => {
-        const tInicio = new Date(t.fechaHoraInicio);
-        const tFin = new Date(t.fechaHoraFin);
-        return (
-          (slotInicio >= tInicio && slotInicio < tFin) ||
-          (slotFin > tInicio && slotFin <= tFin) ||
-          (slotInicio <= tInicio && slotFin >= tFin)
-        );
-      });
+        if (slotFin > finFranja) break;
 
-      if (!ocupado) {
-        slots.push(slotInicio.toISOString());
+        const ocupado = turnosOcupados.some((turno) => {
+          const tInicio = new Date(turno.fechaHoraInicio);
+          const tFin = new Date(turno.fechaHoraFin);
+          return (
+            (slotInicio >= tInicio && slotInicio < tFin) ||
+            (slotFin > tInicio && slotFin <= tFin) ||
+            (slotInicio <= tInicio && slotFin >= tFin)
+          );
+        });
+
+        if (!ocupado) {
+          slots.push(slotInicio.toISOString());
+        }
       }
     }
 
     return { slots, duracionTotal };
   }
 
-  async reservarPublica(data: { nombre: string; apellido: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[] }): Promise<Turno> {
+  /** Para el paso "Tus datos" del turnero público: si el email ya es de un cliente, el frontend se salta el formulario de nombre/apellido/teléfono. */
+  async buscarClientePorEmail(email: string): Promise<{ existe: boolean; nombre?: string }> {
+    const persona = await this.prisma.persona.findUnique({ where: { mail: email }, select: { nombre: true } });
+    return persona ? { existe: true, nombre: persona.nombre } : { existe: false };
+  }
+
+  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[] }): Promise<Turno> {
     // 1. Buscar o crear persona por email
     let persona = await this.prisma.persona.findUnique({
       where: { mail: data.email },
     });
 
     if (!persona) {
+      // Cliente nuevo: acá sí hacen falta nombre y apellido (el frontend solo
+      // los pide cuando buscarClientePorEmail no encontró a nadie con ese mail).
+      if (!data.nombre || !data.apellido) {
+        throw new BadRequestException('nombre y apellido son requeridos para un cliente nuevo');
+      }
       persona = await this.prisma.persona.create({
         data: {
           nombre: data.nombre,
@@ -379,12 +493,24 @@ export class TurnosService {
       });
     }
 
-    // 2. Crear turno usando el método existente
+    // 2. Descuento de personal: acá no hay checkbox que tildar (es autogestionado
+    // y público), así que si la persona ya está marcada para el descuento y el
+    // descuento está activo, se aplica solo. Verificamos el estado del
+    // descuento nosotros mismos antes de pedirlo, para que reservar nunca
+    // falle por esto — si no está activo, simplemente no se aplica.
+    let aplicarDescuentoEmpleado = false;
+    if (persona.aplicaDescuentoPersonal) {
+      const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+      aplicarDescuentoEmpleado = !!config?.descuentoEmpleadoActivo && config.descuentoEmpleadoPorcentaje != null;
+    }
+
+    // 3. Crear turno usando el método existente
     const createDto = {
       idPersona: persona.idPersona,
       fechaHoraInicio: data.fechaHoraInicio,
       observacion: data.observacion,
       servicios: data.servicios,
+      aplicarDescuentoEmpleado,
     };
 
     return this.create(createDto);

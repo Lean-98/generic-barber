@@ -30,6 +30,7 @@ describe('ServiciosService', () => {
     duracionMinutos: 30,
     urlImagen: 'https://example.com/corte.jpg',
     vigente: true,
+    cuentaParaFidelizacion: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -86,6 +87,7 @@ describe('ServiciosService', () => {
           duracionMinutos: dto.duracionMinutos,
           urlImagen: dto.urlImagen,
           vigente: true,
+          cuentaParaFidelizacion: false,
         },
       });
       expect(result).toBeDefined();

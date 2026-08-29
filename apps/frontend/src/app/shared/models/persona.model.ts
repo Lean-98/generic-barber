@@ -7,6 +7,8 @@ export interface Persona {
   fechaNacimiento?: string;
   instagram?: string;
   ultimoCorte?: string;
+  /** Habilita el descuento de personal al reservarle un turno. */
+  aplicaDescuentoPersonal: boolean;
 }
 
 export interface CreatePersonaRequest {
@@ -16,6 +18,7 @@ export interface CreatePersonaRequest {
   telefono?: string;
   fechaNacimiento?: string;
   instagram?: string;
+  aplicaDescuentoPersonal?: boolean;
 }
 
 export interface UpdatePersonaRequest {
@@ -25,4 +28,5 @@ export interface UpdatePersonaRequest {
   telefono?: string;
   fechaNacimiento?: string;
   instagram?: string;
+  aplicaDescuentoPersonal?: boolean;
 }

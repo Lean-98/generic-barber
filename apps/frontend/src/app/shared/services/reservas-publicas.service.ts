@@ -9,13 +9,18 @@ export interface DisponibilidadResponse {
 }
 
 export interface ReservaRequest {
-  nombre: string;
-  apellido: string;
+  nombre?: string;
+  apellido?: string;
   email: string;
   telefono?: string;
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];
+}
+
+export interface ClienteExistenteResponse {
+  existe: boolean;
+  nombre?: string;
 }
 
 @Injectable({
@@ -35,5 +40,9 @@ export class ReservasPublicasService {
 
   reservar(data: ReservaRequest): Observable<any> {
     return this.http.post(`${this.apiUrl}/turnos-publicos/reservar`, data);
+  }
+
+  buscarClientePorEmail(email: string): Observable<ClienteExistenteResponse> {
+    return this.http.get<ClienteExistenteResponse>(`${this.apiUrl}/turnos-publicos/cliente`, { params: { email } });
   }
 }

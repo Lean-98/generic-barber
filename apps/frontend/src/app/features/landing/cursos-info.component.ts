@@ -201,6 +201,12 @@ export class CursosInfoComponent implements OnInit {
     mostrarServicios: true,
     mostrarGaleria: true,
     mostrarUbicacion: true,
+    fidelizacionActiva: false,
+    fidelizacionVisitasRequeridas: null,
+    fidelizacionDescuentoPorcentaje: null,
+    fidelizacionFechaInicio: null,
+    descuentoEmpleadoActivo: false,
+    descuentoEmpleadoPorcentaje: null,
   });
   cursos = signal<Curso[]>([]);
   cargando = signal(true);

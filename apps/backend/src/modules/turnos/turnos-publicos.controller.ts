@@ -24,6 +24,17 @@ export class TurnosPublicosController {
     return this.turnosService.getDisponibilidad(fecha, servicios);
   }
 
+  @Get('cliente')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Verificar si un email ya pertenece a un cliente registrado, para saltear el formulario de datos' })
+  @ApiResponse({ status: 200, description: '{ existe: boolean, nombre?: string }' })
+  async buscarCliente(@Query('email') email: string) {
+    if (!email) {
+      throw new BadRequestException('email es requerido');
+    }
+    return this.turnosService.buscarClientePorEmail(email);
+  }
+
   @Post('reservar')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Reservar un turno desde el sitio público (cliente)' })

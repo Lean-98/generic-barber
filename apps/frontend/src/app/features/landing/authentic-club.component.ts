@@ -139,6 +139,12 @@ export class AuthenticClubComponent implements OnInit {
     mostrarServicios: true,
     mostrarGaleria: true,
     mostrarUbicacion: true,
+    fidelizacionActiva: false,
+    fidelizacionVisitasRequeridas: null,
+    fidelizacionDescuentoPorcentaje: null,
+    fidelizacionFechaInicio: null,
+    descuentoEmpleadoActivo: false,
+    descuentoEmpleadoPorcentaje: null,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();

@@ -40,4 +40,10 @@ export class CreateServicioDto {
   @IsOptional()
   @Type(() => Boolean)
   vigente?: boolean;
+
+  @ApiPropertyOptional({ description: 'Si las visitas de este servicio cuentan para el programa de fidelización', example: false })
+  @IsBoolean()
+  @IsOptional()
+  @Type(() => Boolean)
+  cuentaParaFidelizacion?: boolean;
 }

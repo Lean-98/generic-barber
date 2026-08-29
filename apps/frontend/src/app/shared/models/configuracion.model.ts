@@ -60,6 +60,12 @@ export interface ConfiguracionNegocio {
   mostrarServicios: boolean;
   mostrarGaleria: boolean;
   mostrarUbicacion: boolean;
+  fidelizacionActiva: boolean;
+  fidelizacionVisitasRequeridas: number | null;
+  fidelizacionDescuentoPorcentaje: number | null;
+  fidelizacionFechaInicio: string | null;
+  descuentoEmpleadoActivo: boolean;
+  descuentoEmpleadoPorcentaje: number | null;
   updatedAt?: string;
 }
 
@@ -99,4 +105,10 @@ export interface UpdateConfiguracionRequest {
   mostrarServicios?: boolean;
   mostrarGaleria?: boolean;
   mostrarUbicacion?: boolean;
+  fidelizacionActiva?: boolean;
+  fidelizacionVisitasRequeridas?: number;
+  fidelizacionDescuentoPorcentaje?: number;
+  fidelizacionFechaInicio?: string;
+  descuentoEmpleadoActivo?: boolean;
+  descuentoEmpleadoPorcentaje?: number;
 }

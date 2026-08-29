@@ -19,6 +19,7 @@ export class ServiciosService {
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
         vigente: data.vigente ?? true,
+        cuentaParaFidelizacion: data.cuentaParaFidelizacion ?? false,
       },
     });
 
@@ -83,6 +84,7 @@ export class ServiciosService {
         duracionMinutos: data.duracionMinutos,
         urlImagen: data.urlImagen,
         vigente: data.vigente,
+        cuentaParaFidelizacion: data.cuentaParaFidelizacion,
       },
     });
 

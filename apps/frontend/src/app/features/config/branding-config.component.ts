@@ -479,6 +479,87 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
             </div>
           </div>
 
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Descuentos</h2>
+              <p class="text-sm text-base-content/60">Reglas de descuento automático, aplicadas al cobrar un turno en caja.</p>
+
+              <div class="space-y-3 rounded-lg border border-base-300 p-4">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="fidelizacionActiva" name="fidelizacionActiva" />
+                  <span class="label-text font-medium">Programa de fidelización</span>
+                </label>
+                @if (fidelizacionActiva) {
+                  <div class="grid gap-4 pl-1 sm:grid-cols-3">
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Cada cuántas visitas</span></label>
+                      <input
+                        type="number"
+                        class="input input-bordered w-full"
+                        [(ngModel)]="fidelizacionVisitasRequeridas"
+                        name="fidelizacionVisitasRequeridas"
+                        min="2"
+                        placeholder="5"
+                      />
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">% de descuento</span></label>
+                      <input
+                        type="number"
+                        class="input input-bordered w-full"
+                        [(ngModel)]="fidelizacionDescuentoPorcentaje"
+                        name="fidelizacionDescuentoPorcentaje"
+                        min="0"
+                        max="100"
+                        placeholder="50"
+                      />
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Contar visitas desde</span></label>
+                      <input
+                        type="date"
+                        class="input input-bordered w-full"
+                        [(ngModel)]="fidelizacionFechaInicio"
+                        name="fidelizacionFechaInicio"
+                      />
+                    </div>
+                  </div>
+                  <p class="pl-1 text-xs text-base-content/50">
+                    Solo cuentan los servicios marcados como "cuenta para el programa de fidelización" (se marca en cada servicio,
+                    en la sección Servicios). No se aplica a clientes con cuenta de staff. Dejá "Contar visitas desde" vacío para
+                    contar todo el historial ya cargado.
+                  </p>
+                }
+              </div>
+
+              <div class="space-y-3 rounded-lg border border-base-300 p-4">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="descuentoEmpleadoActivo" name="descuentoEmpleadoActivo" />
+                  <span class="label-text font-medium">Descuento de personal</span>
+                </label>
+                @if (descuentoEmpleadoActivo) {
+                  <div class="grid gap-4 pl-1 sm:grid-cols-3">
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">% de descuento</span></label>
+                      <input
+                        type="number"
+                        class="input input-bordered w-full"
+                        [(ngModel)]="descuentoEmpleadoPorcentaje"
+                        name="descuentoEmpleadoPorcentaje"
+                        min="0"
+                        max="100"
+                        placeholder="15"
+                      />
+                    </div>
+                  </div>
+                  <p class="pl-1 text-xs text-base-content/50">
+                    Se puede activar al reservar un turno para un cliente que además tenga una cuenta de staff en el sistema.
+                  </p>
+                }
+              </div>
+            </div>
+          </div>
+
           <div class="flex items-center gap-3 pt-2">
             <button type="submit" class="btn btn-primary gap-2" [disabled]="guardando()">
               @if (guardando()) {
@@ -560,6 +641,12 @@ export class BrandingConfigComponent implements OnInit {
   mostrarServicios = true;
   mostrarGaleria = true;
   mostrarUbicacion = true;
+  fidelizacionActiva = false;
+  fidelizacionVisitasRequeridas: number | null = null;
+  fidelizacionDescuentoPorcentaje: number | null = null;
+  fidelizacionFechaInicio = '';
+  descuentoEmpleadoActivo = false;
+  descuentoEmpleadoPorcentaje: number | null = null;
   authenticClubImagenUrl = '';
   bloquesAuthenticClub: FilaAuthenticClub[] = BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
@@ -599,6 +686,12 @@ export class BrandingConfigComponent implements OnInit {
         this.mostrarServicios = data.mostrarServicios;
         this.mostrarGaleria = data.mostrarGaleria;
         this.mostrarUbicacion = data.mostrarUbicacion;
+        this.fidelizacionActiva = data.fidelizacionActiva;
+        this.fidelizacionVisitasRequeridas = data.fidelizacionVisitasRequeridas;
+        this.fidelizacionDescuentoPorcentaje = data.fidelizacionDescuentoPorcentaje;
+        this.fidelizacionFechaInicio = data.fidelizacionFechaInicio ? data.fidelizacionFechaInicio.slice(0, 10) : '';
+        this.descuentoEmpleadoActivo = data.descuentoEmpleadoActivo;
+        this.descuentoEmpleadoPorcentaje = data.descuentoEmpleadoPorcentaje;
         this.authenticClubImagenUrl = data.authenticClubImagenUrl ?? '';
         this.bloquesAuthenticClub = this.mapearAuthenticClub(data.authenticClubBeneficios);
         this.loading.set(false);
@@ -724,6 +817,12 @@ export class BrandingConfigComponent implements OnInit {
         mostrarServicios: this.mostrarServicios,
         mostrarGaleria: this.mostrarGaleria,
         mostrarUbicacion: this.mostrarUbicacion,
+        fidelizacionActiva: this.fidelizacionActiva,
+        fidelizacionVisitasRequeridas: this.fidelizacionVisitasRequeridas ?? undefined,
+        fidelizacionDescuentoPorcentaje: this.fidelizacionDescuentoPorcentaje ?? undefined,
+        fidelizacionFechaInicio: this.fidelizacionFechaInicio || undefined,
+        descuentoEmpleadoActivo: this.descuentoEmpleadoActivo,
+        descuentoEmpleadoPorcentaje: this.descuentoEmpleadoPorcentaje ?? undefined,
       })
       .subscribe({
         next: () => {

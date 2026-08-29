@@ -21,6 +21,8 @@ export interface TurnoDetalle {
   idServicio: number;
   precioReal: number;
   cantidad: number;
+  descuentoPorcentaje: number;
+  descuentoMotivo?: string | null;
   servicio?: ServicioRef;
 }
 
@@ -35,6 +37,7 @@ export interface CreateTurnoRequest {
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];
+  aplicarDescuentoEmpleado?: boolean;
 }
 
 export interface UpdateTurnoRequest {

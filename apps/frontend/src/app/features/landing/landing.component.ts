@@ -421,6 +421,12 @@ export class LandingComponent implements OnInit, OnDestroy {
     mostrarServicios: true,
     mostrarGaleria: true,
     mostrarUbicacion: true,
+    fidelizacionActiva: false,
+    fidelizacionVisitasRequeridas: null,
+    fidelizacionDescuentoPorcentaje: null,
+    fidelizacionFechaInicio: null,
+    descuentoEmpleadoActivo: false,
+    descuentoEmpleadoPorcentaje: null,
   });
   servicios = signal<Servicio[]>([]);
   hayProductos = signal(false);

@@ -131,6 +131,12 @@ export class TiendaComponent implements OnInit {
     mostrarServicios: true,
     mostrarGaleria: true,
     mostrarUbicacion: true,
+    fidelizacionActiva: false,
+    fidelizacionVisitasRequeridas: null,
+    fidelizacionDescuentoPorcentaje: null,
+    fidelizacionFechaInicio: null,
+    descuentoEmpleadoActivo: false,
+    descuentoEmpleadoPorcentaje: null,
   });
   productos = signal<Producto[]>([]);
   cargando = signal(true);

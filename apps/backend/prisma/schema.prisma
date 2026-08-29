@@ -16,6 +16,7 @@ model Servicio {
   duracionMinutos Int
   urlImagen      String?
   vigente        Boolean  @default(true)
+  cuentaParaFidelizacion Boolean @default(false) @map("cuenta_para_fidelizacion")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -63,6 +64,8 @@ model TurnoDetalle {
   idServicio     Int
   precioReal     Decimal @db.Decimal(10, 2) @map("precio_real")
   cantidad       Int     @default(1)
+  descuentoPorcentaje Decimal @default(0) @db.Decimal(5, 2) @map("descuento_porcentaje")
+  descuentoMotivo     String? @map("descuento_motivo")
 
   turno    Turno    @relation(fields: [idTurno], references: [idTurno], onDelete: Cascade)
   servicio Servicio @relation(fields: [idServicio], references: [idServicio])
@@ -80,6 +83,7 @@ model Persona {
   instagram      String?
   ultimoCorte    DateTime? @map("ultimo_corte")
   usuario        String?   @unique
+  aplicaDescuentoPersonal Boolean @default(false) @map("aplica_descuento_personal")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -216,6 +220,12 @@ model ConfiguracionNegocio {
   mostrarServicios      Boolean @default(true) @map("mostrar_servicios")
   mostrarGaleria        Boolean @default(true) @map("mostrar_galeria")
   mostrarUbicacion      Boolean @default(true) @map("mostrar_ubicacion")
+  fidelizacionActiva              Boolean  @default(false) @map("fidelizacion_activa")
+  fidelizacionVisitasRequeridas   Int?     @map("fidelizacion_visitas_requeridas")
+  fidelizacionDescuentoPorcentaje Decimal? @db.Decimal(5, 2) @map("fidelizacion_descuento_porcentaje")
+  fidelizacionFechaInicio         DateTime? @db.Date @map("fidelizacion_fecha_inicio")
+  descuentoEmpleadoActivo         Boolean  @default(false) @map("descuento_empleado_activo")
+  descuentoEmpleadoPorcentaje     Decimal? @db.Decimal(5, 2) @map("descuento_empleado_porcentaje")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")

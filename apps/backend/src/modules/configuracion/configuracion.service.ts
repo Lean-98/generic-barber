@@ -41,6 +41,12 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   mostrarGaleria: true,
   mostrarUbicacion: true,
   authenticClubBeneficios: null,
+  fidelizacionActiva: false,
+  fidelizacionVisitasRequeridas: null,
+  fidelizacionDescuentoPorcentaje: null,
+  fidelizacionFechaInicio: null,
+  descuentoEmpleadoActivo: false,
+  descuentoEmpleadoPorcentaje: null,
   updatedAt: new Date(0),
 };
 
@@ -68,6 +74,10 @@ export class ConfiguracionService {
     const clean: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(dto)) {
       if (value === undefined) continue;
+      if (key === 'fidelizacionFechaInicio') {
+        clean[key] = value === '' ? null : new Date(value as string);
+        continue;
+      }
       clean[key] = value === '' ? null : value;
     }
     return clean as Prisma.ConfiguracionNegocioUpdateInput & Prisma.ConfiguracionNegocioCreateInput;

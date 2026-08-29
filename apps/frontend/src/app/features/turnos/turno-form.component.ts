@@ -1,9 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TurnosService } from '../../shared/services/turnos.service';
 import { PersonasService } from '../../shared/services/personas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
+import { BrandingService } from '../../core/services/branding.service';
 import { Persona } from '../../shared/models/persona.model';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
@@ -156,6 +157,12 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} minutos</strong></span>
                 <span class="tabular-nums font-display text-lg font-semibold">Total estimado: {{ totalEstimado() | pesos }}</span>
               </div>
+              @if (descuentoEmpleadoDisponible()) {
+                <label class="label cursor-pointer justify-start gap-3 rounded-box border border-dashed p-4">
+                  <input type="checkbox" class="toggle toggle-sm" [ngModel]="aplicarDescuentoEmpleado()" (ngModelChange)="aplicarDescuentoEmpleado.set($event)" name="aplicarDescuentoEmpleado" />
+                  <span class="label-text">Aplicar descuento de personal ({{ descuentoEmpleadoPorcentaje() }}%)</span>
+                </label>
+              }
             } @else {
               <div class="rounded-box border border-dashed p-6 text-center text-base-content/60">
                 <app-icon name="scissors" [size]="28" className="mx-auto mb-2" />
@@ -225,6 +232,7 @@ export class TurnoFormComponent implements OnInit {
   private readonly turnosService = inject(TurnosService);
   private readonly personasService = inject(PersonasService);
   private readonly serviciosService = inject(ServiciosService);
+  private readonly brandingService = inject(BrandingService);
   router = inject(Router);
   route = inject(ActivatedRoute);
 
@@ -246,6 +254,13 @@ export class TurnoFormComponent implements OnInit {
   fecha = signal<string>('');
   hora = signal<string>('');
   observacion = signal<string>('');
+
+  // Descuento de personal: solo disponible si el cliente elegido es un empleado
+  // (tiene cuenta de staff vinculada) y la configuración lo tiene activo.
+  aplicarDescuentoEmpleado = signal(false);
+  esEmpleado = computed(() => !!this.clienteSeleccionado()?.aplicaDescuentoPersonal);
+  descuentoEmpleadoDisponible = computed(() => this.esEmpleado() && this.brandingService.branding().descuentoEmpleadoActivo);
+  descuentoEmpleadoPorcentaje = computed(() => this.brandingService.branding().descuentoEmpleadoPorcentaje ?? 0);
 
   // Estado
   loading = signal(false);
@@ -272,6 +287,7 @@ export class TurnoFormComponent implements OnInit {
     this.clienteSeleccionado.set(cliente);
     this.clientesEncontrados.set([]);
     this.busquedaCliente = '';
+    this.aplicarDescuentoEmpleado.set(false);
   }
 
   limpiarCliente(): void {
@@ -279,6 +295,7 @@ export class TurnoFormComponent implements OnInit {
     this.nuevoClienteNombre.set('');
     this.nuevoClienteApellido.set('');
     this.nuevoClienteTelefono.set('');
+    this.aplicarDescuentoEmpleado.set(false);
   }
 
   crearCliente(): void {
@@ -349,6 +366,7 @@ export class TurnoFormComponent implements OnInit {
         idServicio: item.servicio.idServicio,
         cantidad: item.cantidad,
       })),
+      aplicarDescuentoEmpleado: this.descuentoEmpleadoDisponible() ? this.aplicarDescuentoEmpleado() : undefined,
     }).subscribe({
       next: () => {
         this.router.navigate(['/turnos']);

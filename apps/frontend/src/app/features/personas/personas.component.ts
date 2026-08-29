@@ -63,7 +63,14 @@ const LIMITE_PAGINA = 20;
                         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-content">
                           {{ persona.nombre.charAt(0) }}{{ persona.apellido.charAt(0) }}
                         </div>
-                        <div class="font-medium">{{ persona.nombre }} {{ persona.apellido }}</div>
+                        <div>
+                          <div class="flex items-center gap-2">
+                            <span class="font-medium">{{ persona.nombre }} {{ persona.apellido }}</span>
+                            @if (persona.aplicaDescuentoPersonal) {
+                              <span class="badge badge-primary badge-outline badge-sm">Empleado</span>
+                            }
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -153,6 +160,12 @@ const LIMITE_PAGINA = 20;
           <div class="form-control">
             <label class="label"><span class="label-text">Fecha de nacimiento</span></label>
             <input type="date" class="input input-bordered w-full" [(ngModel)]="nuevaFechaNacimiento" name="fechaNacimiento" />
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="nuevoAplicaDescuentoPersonal" name="aplicaDescuentoPersonal" />
+              <span class="label-text">Es empleado</span>
+            </label>
           </div>
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
@@ -246,6 +259,12 @@ const LIMITE_PAGINA = 20;
             <div class="form-control">
               <label class="label"><span class="label-text">Fecha de nacimiento</span></label>
               <input type="date" class="input input-bordered w-full" [(ngModel)]="p.fechaNacimiento" name="editFechaNacimiento" />
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="p.aplicaDescuentoPersonal" name="editAplicaDescuentoPersonal" />
+                <span class="label-text">Es empleado</span>
+              </label>
             </div>
             <div class="modal-action">
               <button type="button" class="btn btn-ghost" (click)="cerrarEditar()">Cancelar</button>
@@ -371,6 +390,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
   nuevoTelefono = '';
   nuevoInstagram = '';
   nuevaFechaNacimiento = '';
+  nuevoAplicaDescuentoPersonal = false;
 
   ngOnInit(): void {
     this.loadPersonas();
@@ -423,6 +443,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
     this.nuevoTelefono = '';
     this.nuevoInstagram = '';
     this.nuevaFechaNacimiento = '';
+    this.nuevoAplicaDescuentoPersonal = false;
     this.crearModalRef.nativeElement.showModal();
   }
 
@@ -441,6 +462,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
       telefono: this.nuevoTelefono || undefined,
       instagram: this.nuevoInstagram || undefined,
       fechaNacimiento: this.nuevaFechaNacimiento || undefined,
+      aplicaDescuentoPersonal: this.nuevoAplicaDescuentoPersonal,
     }).subscribe({
       next: () => {
         this.creando.set(false);
@@ -504,6 +526,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
       telefono: p.telefono || undefined,
       instagram: p.instagram || undefined,
       fechaNacimiento: p.fechaNacimiento || undefined,
+      aplicaDescuentoPersonal: p.aplicaDescuentoPersonal,
     };
 
     this.personasService.update(p.idPersona, data).subscribe({

@@ -18,6 +18,7 @@ export class PersonasService {
         telefono: data.telefono,
         fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : undefined,
         instagram: data.instagram,
+        aplicaDescuentoPersonal: data.aplicaDescuentoPersonal ?? false,
       },
     });
   }
@@ -58,6 +59,7 @@ export class PersonasService {
         telefono: data.telefono,
         fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : undefined,
         instagram: data.instagram,
+        aplicaDescuentoPersonal: data.aplicaDescuentoPersonal,
       },
     });
   }

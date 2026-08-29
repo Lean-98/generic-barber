@@ -10,6 +10,7 @@ export interface Servicio {
   duracionMinutos: number;
   urlImagen?: string;
   vigente: boolean;
+  cuentaParaFidelizacion: boolean;
   createdAt?: string;
   updatedAt?: string;
   historial?: ServicioHistorial[];
@@ -32,6 +33,7 @@ export interface CreateServicioRequest {
   duracionMinutos: number;
   urlImagen?: string;
   vigente?: boolean;
+  cuentaParaFidelizacion?: boolean;
 }
 
 export interface UpdateServicioRequest {
@@ -42,4 +44,5 @@ export interface UpdateServicioRequest {
   duracionMinutos?: number;
   urlImagen?: string;
   vigente?: boolean;
+  cuentaParaFidelizacion?: boolean;
 }

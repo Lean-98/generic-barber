@@ -1,19 +1,20 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ReservasPublicasService } from '../../shared/services/reservas-publicas.service';
+import { ReservasPublicasService, ClienteExistenteResponse } from '../../shared/services/reservas-publicas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { EmailValidoPipe, EMAIL_REGEX } from '../../shared/pipes/email-valido.pipe';
 import { BrandingService } from '../../core/services/branding.service';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
 @Component({
   selector: 'app-reservar',
   standalone: true,
-  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe],
+  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe, EmailValidoPipe],
   template: `
     <div class="min-h-screen bg-base-200 py-8 px-4 md:py-12 text-base-content">
       <div class="mx-auto max-w-4xl space-y-8">
@@ -143,7 +144,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 <div class="bg-primary text-primary-content flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">3</div>
                 <h2 class="card-title text-lg">Seleccionar horario</h2>
               </div>
-              <p class="text-sm text-base-content/60 mb-4">Slots disponibles para {{ fechaSeleccionada() | fechaAr:'completa' }}</p>
+              <p class="text-sm text-base-content/60 mb-4">Slots disponibles para {{ fechaSeleccionada() | fechaAr:'completa':true }}</p>
               
               @if (slots().length > 0) {
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -178,33 +179,56 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 <h2 class="card-title text-lg">Tus datos</h2>
               </div>
               
-              <div class="grid gap-4 md:grid-cols-2">
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Nombre</span>
-                  </label>
-                  <input type="text" class="input input-bordered w-full" [(ngModel)]="nombre" name="nombre" placeholder="Tu nombre" required />
-                </div>
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Apellido</span>
-                  </label>
-                  <input type="text" class="input input-bordered w-full" [(ngModel)]="apellido" name="apellido" placeholder="Tu apellido" required />
-                </div>
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Email</span>
-                  </label>
-                  <input type="email" class="input input-bordered w-full" [(ngModel)]="email" name="email" placeholder="tu@email.com" required />
-                </div>
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-medium">Teléfono</span>
-                  </label>
-                  <input type="text" class="input input-bordered w-full" [(ngModel)]="telefono" name="telefono" placeholder="+54 11 1234-5678" />
-                </div>
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-medium">Email</span>
+                </label>
+                <input
+                  type="email"
+                  class="input input-bordered w-full"
+                  [ngModel]="email()"
+                  (ngModelChange)="onEmailChange($event)"
+                  name="email"
+                  placeholder="tu@email.com"
+                  required
+                  (blur)="verificarEmail()"
+                />
+                @if (email() && !(email() | emailValido)) {
+                  <label class="label"><span class="label-text-alt text-error">Ingresá un email válido</span></label>
+                } @else if (verificandoCliente()) {
+                  <label class="label"><span class="label-text-alt flex items-center gap-1 text-base-content/50"><app-icon name="loader" [size]="12" className="animate-spin" /> Verificando...</span></label>
+                }
               </div>
-              
+
+              @if (clienteExistente()?.existe) {
+                <div class="alert alert-success mt-4">
+                  <app-icon name="check-circle" [size]="18" />
+                  <span>¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente, no hace falta que completes más datos.</span>
+                </div>
+                <button type="button" class="btn btn-ghost btn-xs mt-1" (click)="cambiarEmail()">¿No sos vos? Usar otro email</button>
+              } @else if (clienteExistente()) {
+                <div class="grid gap-4 md:grid-cols-2 mt-4">
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Nombre</span>
+                    </label>
+                    <input type="text" class="input input-bordered w-full" [(ngModel)]="nombre" name="nombre" placeholder="Tu nombre" required />
+                  </div>
+                  <div class="form-control">
+                    <label class="label">
+                      <span class="label-text font-medium">Apellido</span>
+                    </label>
+                    <input type="text" class="input input-bordered w-full" [(ngModel)]="apellido" name="apellido" placeholder="Tu apellido" required />
+                  </div>
+                  <div class="form-control md:col-span-2">
+                    <label class="label">
+                      <span class="label-text font-medium">Teléfono</span>
+                    </label>
+                    <input type="text" class="input input-bordered w-full" [(ngModel)]="telefono" name="telefono" placeholder="+54 11 1234-5678" />
+                  </div>
+                </div>
+              }
+
               <div class="form-control mt-2">
                 <label class="label">
                   <span class="label-text font-medium">Notas (opcional)</span>
@@ -278,6 +302,9 @@ export class ReservarComponent implements OnInit {
   email = signal('');
   telefono = signal('');
   observacion = signal('');
+  verificandoCliente = signal(false);
+  clienteExistente = signal<ClienteExistenteResponse | null>(null);
+  private emailVerificado = '';
 
   // Estado
   loading = signal(false);
@@ -391,17 +418,60 @@ export class ReservarComponent implements OnInit {
     this.slotSeleccionado.set(slot);
   }
 
+  onEmailChange(value: string): void {
+    this.email.set(value);
+    // Si edita el email después de haber verificado, invalidamos el resultado
+    // anterior: puede haberse equivocado al tipear, o cambiar de persona.
+    if (this.clienteExistente() && value.trim() !== this.emailVerificado) {
+      this.clienteExistente.set(null);
+    }
+  }
+
+  verificarEmail(): void {
+    const value = this.email().trim();
+    if (!EMAIL_REGEX.test(value) || this.verificandoCliente() || (this.clienteExistente() && this.emailVerificado === value)) {
+      return;
+    }
+    this.verificandoCliente.set(true);
+    this.reservasService.buscarClientePorEmail(value).subscribe({
+      next: (res) => {
+        this.clienteExistente.set(res);
+        this.emailVerificado = value;
+        this.verificandoCliente.set(false);
+      },
+      error: () => {
+        // Si falla la verificación, no bloqueamos la reserva: mostramos el
+        // formulario completo como si fuera un cliente nuevo.
+        this.clienteExistente.set({ existe: false });
+        this.emailVerificado = value;
+        this.verificandoCliente.set(false);
+      },
+    });
+  }
+
+  cambiarEmail(): void {
+    this.clienteExistente.set(null);
+    this.emailVerificado = '';
+    this.email.set('');
+    this.nombre.set('');
+    this.apellido.set('');
+    this.telefono.set('');
+  }
+
   puedeReservar(): boolean {
-    return !!this.nombre() && !!this.apellido() && !!this.email() && !!this.slotSeleccionado();
+    if (!EMAIL_REGEX.test(this.email().trim()) || !this.slotSeleccionado()) return false;
+    if (this.clienteExistente()?.existe) return true;
+    return !!this.nombre() && !!this.apellido();
   }
 
   reservar(): void {
     this.loading.set(true);
     this.error.set('');
-    
+
+    const esClienteExistente = this.clienteExistente()?.existe;
     this.reservasService.reservar({
-      nombre: this.nombre(),
-      apellido: this.apellido(),
+      nombre: esClienteExistente ? undefined : this.nombre(),
+      apellido: esClienteExistente ? undefined : this.apellido(),
       email: this.email(),
       telefono: this.telefono() || undefined,
       fechaHoraInicio: this.slotSeleccionado()!,
@@ -433,6 +503,8 @@ export class ReservarComponent implements OnInit {
     this.email.set('');
     this.telefono.set('');
     this.observacion.set('');
+    this.clienteExistente.set(null);
+    this.emailVerificado = '';
     this.exito.set(false);
     this.error.set('');
   }

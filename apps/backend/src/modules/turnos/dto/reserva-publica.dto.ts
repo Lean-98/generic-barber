@@ -16,15 +16,15 @@ class ServicioReservaDto {
 }
 
 export class ReservaPublicaDto {
-  @ApiProperty({ description: 'Nombre del cliente', example: 'Juan' })
+  @ApiPropertyOptional({ description: 'Nombre del cliente (requerido solo si el email no pertenece a un cliente existente)', example: 'Juan' })
   @IsString()
-  @IsNotEmpty()
-  nombre: string;
+  @IsOptional()
+  nombre?: string;
 
-  @ApiProperty({ description: 'Apellido del cliente', example: 'Pérez' })
+  @ApiPropertyOptional({ description: 'Apellido del cliente (requerido solo si el email no pertenece a un cliente existente)', example: 'Pérez' })
   @IsString()
-  @IsNotEmpty()
-  apellido: string;
+  @IsOptional()
+  apellido?: string;
 
   @ApiProperty({ description: 'Email del cliente', example: 'juan@example.com' })
   @IsEmail()

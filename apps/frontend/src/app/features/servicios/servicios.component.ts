@@ -183,6 +183,12 @@ const LIMITE_PAGINA = 20;
             <label class="label"><span class="label-text">Descripción</span></label>
             <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevaDescripcion" name="descripcion"></textarea>
           </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="nuevaCuentaParaFidelizacion" name="cuentaParaFidelizacion" />
+              <span class="label-text">Cuenta para el programa de fidelización</span>
+            </label>
+          </div>
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
             <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoPrecio || !nuevaDuracion">
@@ -240,6 +246,12 @@ const LIMITE_PAGINA = 20;
               <label class="label cursor-pointer gap-3">
                 <span class="label-text">Vigente</span>
                 <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="s.vigente" name="editVigente" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="s.cuentaParaFidelizacion" name="editCuentaParaFidelizacion" />
+                <span class="label-text">Cuenta para el programa de fidelización</span>
               </label>
             </div>
             <div class="modal-action">
@@ -398,6 +410,7 @@ export class ServiciosComponent implements OnInit {
   nuevaDuracion = '';
   nuevaDescripcion = '';
   nuevaUrlImagen = '';
+  nuevaCuentaParaFidelizacion = false;
   nuevaCategoriaNombre = '';
 
   ngOnInit(): void {
@@ -442,6 +455,7 @@ export class ServiciosComponent implements OnInit {
     this.nuevaDuracion = '';
     this.nuevaDescripcion = '';
     this.nuevaUrlImagen = '';
+    this.nuevaCuentaParaFidelizacion = false;
     this.crearModalRef.nativeElement.showModal();
   }
 
@@ -459,6 +473,7 @@ export class ServiciosComponent implements OnInit {
       duracionMinutos: Number(this.nuevaDuracion),
       descripcion: this.nuevaDescripcion || undefined,
       urlImagen: this.nuevaUrlImagen || undefined,
+      cuentaParaFidelizacion: this.nuevaCuentaParaFidelizacion,
     };
 
     this.creando.set(true);
@@ -498,6 +513,7 @@ export class ServiciosComponent implements OnInit {
       duracionMinutos: Number(s.duracionMinutos),
       urlImagen: s.urlImagen || undefined,
       vigente: s.vigente,
+      cuentaParaFidelizacion: s.cuentaParaFidelizacion,
     };
 
     this.serviciosService.update(s.idServicio, data).subscribe({

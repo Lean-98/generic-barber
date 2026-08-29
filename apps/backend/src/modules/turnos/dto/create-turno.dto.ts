@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsDateString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsDateString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ServicioTurnoDto {
@@ -36,4 +36,12 @@ export class CreateTurnoDto {
   @ArrayMinSize(1)
   @Type(() => ServicioTurnoDto)
   servicios: ServicioTurnoDto[];
+
+  @ApiPropertyOptional({
+    description: 'Aplicar el descuento de personal a este turno (solo válido si el cliente es un empleado y el descuento está activo)',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  aplicarDescuentoEmpleado?: boolean;
 }

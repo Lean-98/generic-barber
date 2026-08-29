@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail, IsDateString, IsDate, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsDateString, IsDate, IsNotEmpty, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePersonaDto {
@@ -32,4 +32,10 @@ export class CreatePersonaDto {
   @IsString()
   @IsOptional()
   instagram?: string;
+
+  @ApiPropertyOptional({ description: 'Si aplica el descuento de personal al reservarle un turno', example: false })
+  @IsBoolean()
+  @IsOptional()
+  @Type(() => Boolean)
+  aplicaDescuentoPersonal?: boolean;
 }

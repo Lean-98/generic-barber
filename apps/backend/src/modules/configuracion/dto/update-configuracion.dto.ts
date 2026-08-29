@@ -4,9 +4,11 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEmail,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -322,4 +324,43 @@ export class UpdateConfiguracionDto {
   @IsOptional()
   @IsBoolean()
   mostrarUbicacion?: boolean;
+
+  // --- Programa de fidelización (descuento automático por visitas) ---
+
+  @ApiPropertyOptional({ description: 'Si el programa de fidelización está activo' })
+  @IsOptional()
+  @IsBoolean()
+  fidelizacionActiva?: boolean;
+
+  @ApiPropertyOptional({ description: 'Cada cuántas visitas se otorga el descuento de fidelización', example: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(2)
+  fidelizacionVisitasRequeridas?: number;
+
+  @ApiPropertyOptional({ description: 'Porcentaje de descuento del programa de fidelización', example: 50 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  fidelizacionDescuentoPorcentaje?: number;
+
+  @ApiPropertyOptional({ description: 'Fecha desde la que se cuentan visitas para fidelización (no cuenta historial anterior)', example: '2026-01-01' })
+  @IsOptional()
+  @IsDateString()
+  fidelizacionFechaInicio?: string;
+
+  // --- Descuento de personal ---
+
+  @ApiPropertyOptional({ description: 'Si el descuento de personal está activo' })
+  @IsOptional()
+  @IsBoolean()
+  descuentoEmpleadoActivo?: boolean;
+
+  @ApiPropertyOptional({ description: 'Porcentaje de descuento de personal', example: 15 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  descuentoEmpleadoPorcentaje?: number;
 }

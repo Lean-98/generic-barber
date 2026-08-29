@@ -30,6 +30,7 @@ describe('PersonasService', () => {
     instagram: '@juan_perez',
     ultimoCorte: null,
     usuario: null,
+    aplicaDescuentoPersonal: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -84,6 +85,7 @@ describe('PersonasService', () => {
           telefono: dto.telefono,
           fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
           instagram: dto.instagram,
+          aplicaDescuentoPersonal: false,
         },
       });
       expect(result).toBeDefined();

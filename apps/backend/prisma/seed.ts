@@ -140,6 +140,33 @@ async function main() {
   }
   console.log('✅ Clientes de demo creados');
 
+  // 3.b Clientes de prueba para el motor de descuentos. Quedan fuera del
+  // array `clientes` a propósito, para que el generador de turnos aleatorios
+  // (paso 8) no les toque turnos y su historial quede 100% controlado.
+  const clienteFidelizado = await prisma.persona.upsert({
+    where: { mail: 'fidelizado.demo@mail.com' },
+    update: {},
+    create: {
+      nombre: 'Cliente',
+      apellido: 'Fidelizado (demo)',
+      mail: 'fidelizado.demo@mail.com',
+      telefono: '+54 11 5000-0001',
+    },
+  });
+
+  const clienteEmpleado = await prisma.persona.upsert({
+    where: { mail: 'empleado.demo@mail.com' },
+    update: { aplicaDescuentoPersonal: true },
+    create: {
+      nombre: 'Empleado',
+      apellido: 'Demo',
+      mail: 'empleado.demo@mail.com',
+      telefono: '+54 11 5000-0002',
+      aplicaDescuentoPersonal: true,
+    },
+  });
+  console.log('✅ Clientes de prueba para descuentos creados (Cliente Fidelizado, Empleado Demo)');
+
   // 4. Categorías de servicios y de productos (entidades independientes)
   const categoriasServicioData = ['Corte', 'Color', 'Tratamiento', 'Peinado'];
   const categoriasServicio: { idCategoria: number; nombre: string }[] = [];
@@ -164,8 +191,8 @@ async function main() {
 
   // 5. Servicios de demo
   const serviciosData = [
-    { nombre: 'Corte de pelo', precio: 25.0, duracionMinutos: 30, categoriaNombre: 'Corte' },
-    { nombre: 'Corte + barba', precio: 35.0, duracionMinutos: 45, categoriaNombre: 'Corte' },
+    { nombre: 'Corte de pelo', precio: 25.0, duracionMinutos: 30, categoriaNombre: 'Corte', cuentaParaFidelizacion: true },
+    { nombre: 'Corte + barba', precio: 35.0, duracionMinutos: 45, categoriaNombre: 'Corte', cuentaParaFidelizacion: true },
     { nombre: 'Coloración completa', precio: 80.0, duracionMinutos: 120, categoriaNombre: 'Color' },
     { nombre: 'Mechas', precio: 120.0, duracionMinutos: 150, categoriaNombre: 'Color' },
     { nombre: 'Retoque de raíces', precio: 60.0, duracionMinutos: 90, categoriaNombre: 'Color' },
@@ -184,7 +211,13 @@ async function main() {
     if (!servicio) {
       const idCategoria = categoriasServicio.find((c) => c.nombre === s.categoriaNombre)!.idCategoria;
       servicio = await prisma.servicio.create({
-        data: { nombre: s.nombre, precio: s.precio, duracionMinutos: s.duracionMinutos, idCategoria },
+        data: { nombre: s.nombre, precio: s.precio, duracionMinutos: s.duracionMinutos, idCategoria, cuentaParaFidelizacion: s.cuentaParaFidelizacion ?? false },
+      });
+    } else if (servicio.cuentaParaFidelizacion !== (s.cuentaParaFidelizacion ?? false)) {
+      // Re-seed sobre datos viejos: aseguramos el flag aunque el servicio ya existiera.
+      servicio = await prisma.servicio.update({
+        where: { idServicio: servicio.idServicio },
+        data: { cuentaParaFidelizacion: s.cuentaParaFidelizacion ?? false },
       });
     }
     servicios.push({
@@ -288,10 +321,11 @@ async function main() {
   console.log('✅ Productos y cursos de demo creados');
 
   // 7. Limpiar datos previos de demo
-  await prisma.pago.deleteMany({ where: { turno: { idPersona: { in: clientes.map((c) => c.idPersona) } } } });
+  const idsClientesDemo = [...clientes.map((c) => c.idPersona), clienteFidelizado.idPersona, clienteEmpleado.idPersona];
+  await prisma.pago.deleteMany({ where: { turno: { idPersona: { in: idsClientesDemo } } } });
   await prisma.movimientoCaja.deleteMany({ where: { idUsuario: 'admin' } });
-  await prisma.turnoDetalle.deleteMany({ where: { turno: { idPersona: { in: clientes.map((c) => c.idPersona) } } } });
-  await prisma.turno.deleteMany({ where: { idPersona: { in: clientes.map((c) => c.idPersona) } } });
+  await prisma.turnoDetalle.deleteMany({ where: { turno: { idPersona: { in: idsClientesDemo } } } });
+  await prisma.turno.deleteMany({ where: { idPersona: { in: idsClientesDemo } } });
   await prisma.cierreCaja.deleteMany({ where: { idUsuarioCierra: 'admin' } });
 
   // 8. Generar turnos realistas de los últimos 30 días + hoy + próximos días
@@ -438,6 +472,75 @@ async function main() {
   }
   console.log(`✅ ${totalTurnos} turnos de demo creados`);
 
+  // 9.b Historial fijo del "Cliente Fidelizado": 4 cortes completados en el
+  // pasado (con "Corte de pelo", que cuenta para fidelización). El próximo
+  // corte que se le cargue y complete desde la app va a ser la 5ta visita, y
+  // debería salir con el descuento automático aplicado. Se recrea en cada
+  // corrida del seed para que el conteo siempre arranque en exactamente 4.
+  const corteFidelizacion = servicios.find((s) => s.nombre === 'Corte de pelo')!;
+  const diasCortesFidelizado = [28, 21, 14, 7];
+  for (const dias of diasCortesFidelizado) {
+    const inicio = setTime(addDays(hoy, -dias), 11, 0);
+    const fin = addMinutes(inicio, corteFidelizacion.duracionMinutos);
+
+    const turno = await prisma.turno.create({
+      data: {
+        idPersona: clienteFidelizado.idPersona,
+        fechaHoraInicio: inicio,
+        fechaHoraFin: fin,
+        estado: 'COMPLETADO',
+        observacion: 'Atendido',
+      },
+    });
+
+    await prisma.turnoDetalle.create({
+      data: {
+        idTurno: turno.idTurno,
+        idServicio: corteFidelizacion.idServicio,
+        precioReal: corteFidelizacion.precio,
+        cantidad: 1,
+      },
+    });
+
+    await prisma.pago.create({
+      data: { idTurno: turno.idTurno, idFormaPago: formaEfectivo.idFormaPago, monto: corteFidelizacion.precio, fechaHora: inicio },
+    });
+    await prisma.movimientoCaja.create({
+      data: {
+        idUsuario: 'admin',
+        idTurno: turno.idTurno,
+        idFormaPago: formaEfectivo.idFormaPago,
+        tipo: 'INGRESO',
+        monto: corteFidelizacion.precio,
+        concepto: `Pago - ${corteFidelizacion.nombre}`,
+        fechaHora: inicio,
+      },
+    });
+  }
+  console.log('✅ Historial de 4 visitas del Cliente Fidelizado creado (falta la 5ta para el descuento)');
+
+  // 9.c Motor de descuentos: activado con valores listos para probar sin
+  // esperar. "Cada 5 visitas" ya calza con las 4 visitas previas de arriba.
+  await prisma.configuracionNegocio.upsert({
+    where: { id: 1 },
+    update: {
+      fidelizacionActiva: true,
+      fidelizacionVisitasRequeridas: 5,
+      fidelizacionDescuentoPorcentaje: 50,
+      descuentoEmpleadoActivo: true,
+      descuentoEmpleadoPorcentaje: 15,
+    },
+    create: {
+      id: 1,
+      fidelizacionActiva: true,
+      fidelizacionVisitasRequeridas: 5,
+      fidelizacionDescuentoPorcentaje: 50,
+      descuentoEmpleadoActivo: true,
+      descuentoEmpleadoPorcentaje: 15,
+    },
+  });
+  console.log('✅ Motor de descuentos activado (fidelización cada 5 visitas al 50%, personal al 15%)');
+
   // 10. Egresos realistas (días que tuvieron turnos)
   const conceptosEgresos = [
     { concepto: 'Café y desayuno', min: 8, max: 25 },
@@ -522,6 +625,10 @@ async function main() {
   console.log('✅ Cierres de caja de demo creados');
 
   console.log('🌱 Seed de demo realista completado exitosamente');
+  console.log('');
+  console.log('💡 Para probar el motor de descuentos:');
+  console.log('   - Fidelización: cargale un turno con "Corte de pelo" a "Cliente Fidelizado (demo)" y completalo (Confirmar → Iniciar → Finalizar). Es su 5ta visita, sale con 50% off.');
+  console.log('   - Personal: cargale cualquier turno a "Empleado Demo" — va a aparecer la opción de aplicar el 15% de descuento.');
 }
 
 main()
