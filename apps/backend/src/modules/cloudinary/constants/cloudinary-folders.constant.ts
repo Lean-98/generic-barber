@@ -4,7 +4,7 @@ export const CLOUDINARY_FOLDERS = {
   CURSOS: 'cursos',
   SERVICIOS: 'servicios',
   MARCA: 'marca',
-  AUTHENTIC_CLUB: 'authentic-club',
+  CLUB: 'club',
 } as const;
 
 export type CloudinaryFolder = (typeof CLOUDINARY_FOLDERS)[keyof typeof CLOUDINARY_FOLDERS];

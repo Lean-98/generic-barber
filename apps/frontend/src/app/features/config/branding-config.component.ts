@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
 import { BrandingService } from '../../core/services/branding.service';
-import { BloqueAuthenticClub, BloqueSobreNosotros, ClaveBloqueAuthenticClub, ClaveBloqueSobreNosotros, HorarioDia } from '../../shared/models/configuracion.model';
+import { BloqueClub, BloqueSobreNosotros, ClaveBloqueClub, ClaveBloqueSobreNosotros, HorarioDia } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { ImageUploadComponent } from '../../shared/ui/image-upload.component';
@@ -35,13 +35,13 @@ const BLOQUES_SOBRE_NOSOTROS_DEFECTO: { clave: ClaveBloqueSobreNosotros; titulo:
   { clave: 'valores', titulo: 'Valores' },
 ];
 
-interface FilaAuthenticClub {
-  clave: ClaveBloqueAuthenticClub;
+interface FilaClub {
+  clave: ClaveBloqueClub;
   titulo: string;
   descripcion: string;
 }
 
-const BLOQUES_AUTHENTIC_CLUB_DEFECTO: { clave: ClaveBloqueAuthenticClub; titulo: string }[] = [
+const BLOQUES_CLUB_DEFECTO: { clave: ClaveBloqueClub; titulo: string }[] = [
   { clave: 'presentarTarjeta', titulo: 'Beneficio por presentar la tarjeta' },
   { clave: 'empresa', titulo: 'Beneficio para la empresa' },
   { clave: 'cumpleanos', titulo: 'Beneficio de cumpleaños' },
@@ -332,8 +332,8 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                   <input
                     type="text"
                     class="input input-bordered w-full"
-                    [(ngModel)]="authenticClubNombre"
-                    name="authenticClubNombre"
+                    [(ngModel)]="clubNombre"
+                    name="clubNombre"
                     placeholder="Ej: Premium (vacío = solo &quot;Club&quot;)"
                     maxlength="40"
                   />
@@ -346,31 +346,31 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                 <input
                   type="text"
                   class="input input-bordered w-full"
-                  [(ngModel)]="authenticClubBajada"
-                  name="authenticClubBajada"
+                  [(ngModel)]="clubBajada"
+                  name="clubBajada"
                   placeholder="Más cortes, más beneficios cada vez que nos visitás."
                   maxlength="200"
                 />
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Imagen de la tarjeta</span></label>
-                <app-image-upload [folder]="'authentic-club'" [(url)]="authenticClubImagenUrl" />
+                <app-image-upload [folder]="'club'" [(url)]="clubImagenUrl" />
               </div>
               <div class="grid gap-4 md:grid-cols-2">
-                @for (beneficio of bloquesAuthenticClub; track beneficio.clave) {
+                @for (beneficio of bloquesClub; track beneficio.clave) {
                   <div class="form-control gap-2 rounded-lg border border-base-300 p-3">
                     <input
                       type="text"
                       class="input input-bordered input-sm w-full font-medium"
                       [(ngModel)]="beneficio.titulo"
-                      [name]="'authenticClubTitulo' + beneficio.clave"
+                      [name]="'clubTitulo' + beneficio.clave"
                       maxlength="80"
                     />
                     <textarea
                       class="textarea textarea-bordered w-full"
                       rows="3"
                       [(ngModel)]="beneficio.descripcion"
-                      [name]="'authenticClubDescripcion' + beneficio.clave"
+                      [name]="'clubDescripcion' + beneficio.clave"
                       placeholder="Descripción breve..."
                       maxlength="1000"
                     ></textarea>
@@ -382,8 +382,8 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                 <input
                   type="text"
                   class="input input-bordered w-full"
-                  [(ngModel)]="authenticClubNota"
-                  name="authenticClubNota"
+                  [(ngModel)]="clubNota"
+                  name="clubNota"
                   placeholder="Ej: Pedí tu tarjeta en el local. Es gratuita y con cada corte sumás un sello."
                   maxlength="300"
                 />
@@ -453,7 +453,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                   <span class="label-text">Sobre nosotros</span>
                 </label>
                 <label class="label cursor-pointer justify-start gap-3">
-                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarAuthenticClub" name="mostrarAuthenticClub" />
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="mostrarClub" name="mostrarClub" />
                   <span class="label-text">Authentic Club</span>
                 </label>
                 <label class="label cursor-pointer justify-start gap-3">
@@ -631,11 +631,11 @@ export class BrandingConfigComponent implements OnInit {
   cursosDescripcion = '';
   bloquesSobreNosotros: FilaSobreNosotros[] = BLOQUES_SOBRE_NOSOTROS_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
   sobreNosotrosBajada = '';
-  authenticClubNombre = '';
-  authenticClubBajada = '';
-  authenticClubNota = '';
+  clubNombre = '';
+  clubBajada = '';
+  clubNota = '';
   mostrarNosotros = true;
-  mostrarAuthenticClub = true;
+  mostrarClub = true;
   mostrarTienda = true;
   mostrarCursos = true;
   mostrarServicios = true;
@@ -647,8 +647,8 @@ export class BrandingConfigComponent implements OnInit {
   fidelizacionFechaInicio = '';
   descuentoEmpleadoActivo = false;
   descuentoEmpleadoPorcentaje: number | null = null;
-  authenticClubImagenUrl = '';
-  bloquesAuthenticClub: FilaAuthenticClub[] = BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
+  clubImagenUrl = '';
+  bloquesClub: FilaClub[] = BLOQUES_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({
@@ -676,11 +676,11 @@ export class BrandingConfigComponent implements OnInit {
         this.cursosDescripcion = data.cursosDescripcion ?? '';
         this.bloquesSobreNosotros = this.mapearSobreNosotros(data.sobreNosotros);
         this.sobreNosotrosBajada = data.sobreNosotrosBajada ?? '';
-        this.authenticClubNombre = data.authenticClubNombre ?? '';
-        this.authenticClubBajada = data.authenticClubBajada ?? '';
-        this.authenticClubNota = data.authenticClubNota ?? '';
+        this.clubNombre = data.clubNombre ?? '';
+        this.clubBajada = data.clubBajada ?? '';
+        this.clubNota = data.clubNota ?? '';
         this.mostrarNosotros = data.mostrarNosotros;
-        this.mostrarAuthenticClub = data.mostrarAuthenticClub;
+        this.mostrarClub = data.mostrarClub;
         this.mostrarTienda = data.mostrarTienda;
         this.mostrarCursos = data.mostrarCursos;
         this.mostrarServicios = data.mostrarServicios;
@@ -692,8 +692,8 @@ export class BrandingConfigComponent implements OnInit {
         this.fidelizacionFechaInicio = data.fidelizacionFechaInicio ? data.fidelizacionFechaInicio.slice(0, 10) : '';
         this.descuentoEmpleadoActivo = data.descuentoEmpleadoActivo;
         this.descuentoEmpleadoPorcentaje = data.descuentoEmpleadoPorcentaje;
-        this.authenticClubImagenUrl = data.authenticClubImagenUrl ?? '';
-        this.bloquesAuthenticClub = this.mapearAuthenticClub(data.authenticClubBeneficios);
+        this.clubImagenUrl = data.clubImagenUrl ?? '';
+        this.bloquesClub = this.mapearClub(data.clubBeneficios);
         this.loading.set(false);
       },
       error: () => {
@@ -729,8 +729,8 @@ export class BrandingConfigComponent implements OnInit {
     });
   }
 
-  private mapearAuthenticClub(beneficios: BloqueAuthenticClub[] | null): FilaAuthenticClub[] {
-    return BLOQUES_AUTHENTIC_CLUB_DEFECTO.map(({ clave, titulo }) => {
+  private mapearClub(beneficios: BloqueClub[] | null): FilaClub[] {
+    return BLOQUES_CLUB_DEFECTO.map(({ clave, titulo }) => {
       const existente = beneficios?.find((b) => b.clave === clave);
       return {
         clave,
@@ -774,9 +774,9 @@ export class BrandingConfigComponent implements OnInit {
       titulo: b.titulo.trim() || BLOQUES_SOBRE_NOSOTROS_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
       descripcion: b.descripcion,
     }));
-    const authenticClubBeneficios: BloqueAuthenticClub[] = this.bloquesAuthenticClub.map((b) => ({
+    const clubBeneficios: BloqueClub[] = this.bloquesClub.map((b) => ({
       clave: b.clave,
-      titulo: b.titulo.trim() || BLOQUES_AUTHENTIC_CLUB_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
+      titulo: b.titulo.trim() || BLOQUES_CLUB_DEFECTO.find((d) => d.clave === b.clave)!.titulo,
       descripcion: b.descripcion,
     }));
 
@@ -805,13 +805,13 @@ export class BrandingConfigComponent implements OnInit {
         cursosDescripcion: this.cursosDescripcion,
         sobreNosotros,
         sobreNosotrosBajada: this.sobreNosotrosBajada,
-        authenticClubNombre: this.authenticClubNombre,
-        authenticClubBajada: this.authenticClubBajada,
-        authenticClubImagenUrl: this.authenticClubImagenUrl,
-        authenticClubBeneficios,
-        authenticClubNota: this.authenticClubNota,
+        clubNombre: this.clubNombre,
+        clubBajada: this.clubBajada,
+        clubImagenUrl: this.clubImagenUrl,
+        clubBeneficios,
+        clubNota: this.clubNota,
         mostrarNosotros: this.mostrarNosotros,
-        mostrarAuthenticClub: this.mostrarAuthenticClub,
+        mostrarClub: this.mostrarClub,
         mostrarTienda: this.mostrarTienda,
         mostrarCursos: this.mostrarCursos,
         mostrarServicios: this.mostrarServicios,

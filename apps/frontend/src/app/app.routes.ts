@@ -41,7 +41,7 @@ export const routes: Routes = [
   },
   {
     path: 'club',
-    loadComponent: () => import('./features/landing/authentic-club.component').then((m) => m.AuthenticClubComponent),
+    loadComponent: () => import('./features/landing/club.component').then((m) => m.ClubComponent),
   },
   {
     path: '',

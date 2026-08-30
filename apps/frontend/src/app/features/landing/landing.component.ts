@@ -68,7 +68,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
           @if (config().mostrarUbicacion && config().direccion) {
             <a href="#ubicacion" class="opacity-80 hover:opacity-100">Ubicación</a>
           }
-          @if (config().mostrarAuthenticClub) {
+          @if (config().mostrarClub) {
             <a routerLink="/club" class="opacity-80 hover:opacity-100">Authentic Club</a>
           }
         </nav>
@@ -103,7 +103,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
             @if (config().mostrarUbicacion && config().direccion) {
               <a href="#ubicacion" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Ubicación</a>
             }
-            @if (config().mostrarAuthenticClub) {
+            @if (config().mostrarClub) {
               <a routerLink="/club" class="rounded-md px-3 py-2.5 text-sm font-medium opacity-80 hover:bg-white/5 hover:opacity-100" (click)="menuAbierto.set(false)">Authentic Club</a>
             }
           </nav>
@@ -409,13 +409,13 @@ export class LandingComponent implements OnInit, OnDestroy {
     cursosDescripcion: null,
     sobreNosotros: null,
     sobreNosotrosBajada: null,
-    authenticClubNombre: null,
-    authenticClubBajada: null,
-    authenticClubImagenUrl: null,
-    authenticClubBeneficios: null,
-    authenticClubNota: null,
+    clubNombre: null,
+    clubBajada: null,
+    clubImagenUrl: null,
+    clubBeneficios: null,
+    clubNota: null,
     mostrarNosotros: true,
-    mostrarAuthenticClub: true,
+    mostrarClub: true,
     mostrarTienda: true,
     mostrarCursos: true,
     mostrarServicios: true,

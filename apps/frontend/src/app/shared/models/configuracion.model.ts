@@ -15,10 +15,10 @@ export interface BloqueSobreNosotros {
   descripcion?: string;
 }
 
-export type ClaveBloqueAuthenticClub = 'presentarTarjeta' | 'empresa' | 'cumpleanos' | 'recomendar';
+export type ClaveBloqueClub = 'presentarTarjeta' | 'empresa' | 'cumpleanos' | 'recomendar';
 
-export interface BloqueAuthenticClub {
-  clave: ClaveBloqueAuthenticClub;
+export interface BloqueClub {
+  clave: ClaveBloqueClub;
   titulo: string;
   descripcion?: string;
 }
@@ -48,13 +48,13 @@ export interface ConfiguracionNegocio {
   cursosDescripcion: string | null;
   sobreNosotros: BloqueSobreNosotros[] | null;
   sobreNosotrosBajada: string | null;
-  authenticClubNombre: string | null;
-  authenticClubBajada: string | null;
-  authenticClubImagenUrl: string | null;
-  authenticClubBeneficios: BloqueAuthenticClub[] | null;
-  authenticClubNota: string | null;
+  clubNombre: string | null;
+  clubBajada: string | null;
+  clubImagenUrl: string | null;
+  clubBeneficios: BloqueClub[] | null;
+  clubNota: string | null;
   mostrarNosotros: boolean;
-  mostrarAuthenticClub: boolean;
+  mostrarClub: boolean;
   mostrarTienda: boolean;
   mostrarCursos: boolean;
   mostrarServicios: boolean;
@@ -93,13 +93,13 @@ export interface UpdateConfiguracionRequest {
   cursosDescripcion?: string;
   sobreNosotros?: BloqueSobreNosotros[];
   sobreNosotrosBajada?: string;
-  authenticClubNombre?: string;
-  authenticClubBajada?: string;
-  authenticClubImagenUrl?: string;
-  authenticClubBeneficios?: BloqueAuthenticClub[];
-  authenticClubNota?: string;
+  clubNombre?: string;
+  clubBajada?: string;
+  clubImagenUrl?: string;
+  clubBeneficios?: BloqueClub[];
+  clubNota?: string;
   mostrarNosotros?: boolean;
-  mostrarAuthenticClub?: boolean;
+  mostrarClub?: boolean;
   mostrarTienda?: boolean;
   mostrarCursos?: boolean;
   mostrarServicios?: boolean;

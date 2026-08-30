@@ -1,11 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ConfiguracionService } from '../../shared/services/configuracion.service';
-import { ClaveBloqueAuthenticClub, ConfiguracionNegocio } from '../../shared/models/configuracion.model';
+import { ClaveBloqueClub, ConfiguracionNegocio } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 
-const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
+const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
   presentarTarjeta: 'credit-card',
   empresa: 'bar-chart',
   cumpleanos: 'star',
@@ -13,7 +13,7 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
 };
 
 @Component({
-  selector: 'app-authentic-club',
+  selector: 'app-club',
   standalone: true,
   imports: [RouterLink, IconComponent, BrandMarkComponent],
   template: `
@@ -40,16 +40,16 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent"></div>
         <div class="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h1 class="font-display text-4xl font-semibold sm:text-5xl">
-            {{ config().authenticClubNombre }} <span class="text-primary">Club</span>
+            {{ config().clubNombre }} <span class="text-primary">Club</span>
           </h1>
-          @if (config().authenticClubBajada; as bajada) {
+          @if (config().clubBajada; as bajada) {
             <p class="mx-auto mt-3 max-w-xl text-neutral-content/70">{{ bajada }}</p>
           }
 
-          @if (!cargando() && config().authenticClubImagenUrl) {
+          @if (!cargando() && config().clubImagenUrl) {
             <div class="mt-8 flex justify-center">
               <img
-                [src]="config().authenticClubImagenUrl"
+                [src]="config().clubImagenUrl"
                 [alt]="'Tarjeta ' + nombreClub()"
                 class="w-full max-w-md rounded-2xl border border-primary/30 shadow-xl transition-all duration-300 ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:scale-[1.02] motion-safe:hover:border-primary/60 motion-safe:hover:shadow-2xl"
               />
@@ -85,7 +85,7 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
             </div>
           }
 
-          @if (config().authenticClubNota; as nota) {
+          @if (config().clubNota; as nota) {
             <div class="mt-10 flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/60 p-4 text-sm text-base-content/70">
               <app-icon name="scissors" [size]="18" className="shrink-0 text-primary" />
               {{ nota }}
@@ -100,7 +100,7 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueAuthenticClub, string> = {
     </div>
   `,
 })
-export class AuthenticClubComponent implements OnInit {
+export class ClubComponent implements OnInit {
   private readonly configuracionService = inject(ConfiguracionService);
 
   config = signal<ConfiguracionNegocio>({
@@ -127,13 +127,13 @@ export class AuthenticClubComponent implements OnInit {
     cursosDescripcion: null,
     sobreNosotros: null,
     sobreNosotrosBajada: null,
-    authenticClubNombre: null,
-    authenticClubBajada: null,
-    authenticClubImagenUrl: null,
-    authenticClubBeneficios: null,
-    authenticClubNota: null,
+    clubNombre: null,
+    clubBajada: null,
+    clubImagenUrl: null,
+    clubBeneficios: null,
+    clubNota: null,
     mostrarNosotros: true,
-    mostrarAuthenticClub: true,
+    mostrarClub: true,
     mostrarTienda: true,
     mostrarCursos: true,
     mostrarServicios: true,
@@ -150,12 +150,12 @@ export class AuthenticClubComponent implements OnInit {
   currentYear = new Date().getFullYear();
 
   nombreClub = computed(() => {
-    const nombre = this.config().authenticClubNombre?.trim();
+    const nombre = this.config().clubNombre?.trim();
     return nombre ? `${nombre} Club` : 'Club';
   });
 
   beneficios = computed(() =>
-    (this.config().authenticClubBeneficios ?? [])
+    (this.config().clubBeneficios ?? [])
       .filter((b) => !!b.descripcion?.trim())
       .map((b) => ({ ...b, icono: ICONO_POR_CLAVE[b.clave] })),
   );

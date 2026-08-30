@@ -78,12 +78,12 @@ export class BloqueSobreNosotrosDto {
   descripcion?: string;
 }
 
-const CLAVES_BLOQUE_AUTHENTIC_CLUB = ['presentarTarjeta', 'empresa', 'cumpleanos', 'recomendar'] as const;
+const CLAVES_BLOQUE_CLUB = ['presentarTarjeta', 'empresa', 'cumpleanos', 'recomendar'] as const;
 
-export class BloqueAuthenticClubDto {
-  @ApiPropertyOptional({ description: 'Identificador del beneficio', enum: CLAVES_BLOQUE_AUTHENTIC_CLUB })
-  @IsIn(CLAVES_BLOQUE_AUTHENTIC_CLUB)
-  clave: (typeof CLAVES_BLOQUE_AUTHENTIC_CLUB)[number];
+export class BloqueClubDto {
+  @ApiPropertyOptional({ description: 'Identificador del beneficio', enum: CLAVES_BLOQUE_CLUB })
+  @IsIn(CLAVES_BLOQUE_CLUB)
+  clave: (typeof CLAVES_BLOQUE_CLUB)[number];
 
   @ApiPropertyOptional({ description: 'Título del beneficio', example: 'Beneficio de cumpleaños' })
   @IsString()
@@ -255,50 +255,50 @@ export class UpdateConfiguracionDto {
   @MaxLength(200)
   sobreNosotrosBajada?: string;
 
-  @ApiPropertyOptional({ description: 'Primera palabra del nombre del club, ej. "Authentic" en "Authentic Club" (string vacío para restablecer)' })
+  @ApiPropertyOptional({ description: 'Nombre del club de beneficios/fidelización, ej. "Oro" o "VIP" (string vacío para restablecer)' })
   @IsOptional()
   @IsString()
   @MaxLength(40)
-  authenticClubNombre?: string;
+  clubNombre?: string;
 
   @ApiPropertyOptional({ description: 'Bajada/subtítulo de la página del club (string vacío para restablecer)' })
   @IsOptional()
   @IsString()
   @MaxLength(200)
-  authenticClubBajada?: string;
+  clubBajada?: string;
 
-  @ApiPropertyOptional({ description: 'URL de la imagen de la tarjeta Authentic Club (string vacío para quitarla)' })
+  @ApiPropertyOptional({ description: 'URL de la imagen de la tarjeta del club (string vacío para quitarla)' })
   @IsOptional()
   @ValidateIf((_, value) => value !== '')
-  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'authenticClubImagenUrl debe ser una URL https válida' })
-  authenticClubImagenUrl?: string;
+  @IsUrl({ protocols: ['https'], require_protocol: true }, { message: 'clubImagenUrl debe ser una URL https válida' })
+  clubImagenUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'Beneficios de "Authentic Club" (presentar la tarjeta, empresa, cumpleaños, recomendar)',
-    type: [BloqueAuthenticClubDto],
+    description: 'Beneficios del club (presentar la tarjeta, empresa, cumpleaños, recomendar)',
+    type: [BloqueClubDto],
   })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(4)
   @ValidateNested({ each: true })
-  @Type(() => BloqueAuthenticClubDto)
-  authenticClubBeneficios?: BloqueAuthenticClubDto[];
+  @Type(() => BloqueClubDto)
+  clubBeneficios?: BloqueClubDto[];
 
   @ApiPropertyOptional({ description: 'Nota al pie de la página del club, ej. cómo pedir la tarjeta (string vacío para quitarla)' })
   @IsOptional()
   @IsString()
   @MaxLength(300)
-  authenticClubNota?: string;
+  clubNota?: string;
 
   @ApiPropertyOptional({ description: 'Mostrar el link a "Sobre nosotros" en el navbar' })
   @IsOptional()
   @IsBoolean()
   mostrarNosotros?: boolean;
 
-  @ApiPropertyOptional({ description: 'Mostrar el link a "Authentic Club" en el navbar' })
+  @ApiPropertyOptional({ description: 'Mostrar el link al club en el navbar' })
   @IsOptional()
   @IsBoolean()
-  mostrarAuthenticClub?: boolean;
+  mostrarClub?: boolean;
 
   @ApiPropertyOptional({ description: 'Mostrar el link a la tienda en el navbar (además de requerir productos cargados)' })
   @IsOptional()
