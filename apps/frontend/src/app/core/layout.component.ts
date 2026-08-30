@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../shared/services/auth.service';
 import { ThemeService } from './services/theme.service';
@@ -26,7 +26,14 @@ interface NavGroup {
       <!-- Mobile top bar -->
       <nav class="navbar sticky top-0 z-50 bg-neutral px-4 text-neutral-content shadow-sm md:hidden">
         <div class="navbar-start gap-2">
-          <button class="btn btn-ghost btn-square text-neutral-content" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
+          <button
+            #hamburgerBtn
+            class="btn btn-ghost btn-square text-neutral-content"
+            (click)="toggleMenu()"
+            aria-label="Menu"
+            aria-controls="mobile-menu-drawer"
+            [attr.aria-expanded]="menuOpen()"
+          >
             <app-icon name="menu" [size]="20" />
           </button>
           <a routerLink="/dashboard" class="flex items-center gap-2 px-1">
@@ -41,7 +48,7 @@ interface NavGroup {
               <app-icon name="moon" [size]="18" />
             }
           </button>
-          <button class="btn btn-ghost btn-sm gap-2 text-neutral-content" (click)="logout()">
+          <button class="btn btn-ghost btn-sm gap-2 text-neutral-content" (click)="logout()" aria-label="Salir">
             <app-icon name="log-out" [size]="18" />
             <span class="hidden sm:inline">Salir</span>
           </button>
@@ -50,16 +57,25 @@ interface NavGroup {
 
       <!-- Mobile menu overlay -->
       @if (menuOpen()) {
-        <div class="fixed inset-0 z-40 md:hidden" (click)="menuOpen.set(false)">
+        <div class="fixed inset-0 z-40 md:hidden" (click)="cerrarMenu()" (keydown.escape)="cerrarMenu()">
           <div class="absolute inset-0 bg-black/50"></div>
-          <aside class="absolute left-0 top-0 h-full w-64 bg-neutral text-neutral-content shadow-xl" (click)="$event.stopPropagation()">
+          <aside
+            #drawerNav
+            id="mobile-menu-drawer"
+            class="absolute left-0 top-0 h-full w-64 bg-neutral text-neutral-content shadow-xl focus:outline-none"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            tabindex="-1"
+            (click)="$event.stopPropagation()"
+          >
             <div class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
               <app-brand-mark barHeight="h-6" />
             </div>
             <ul class="flex flex-col gap-1 p-3">
               @for (group of navGroups; track $index) {
                 @if (group.label) {
-                  <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/40 first:mt-0">
+                  <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/60 first:mt-0">
                     {{ group.label }}
                   </li>
                 }
@@ -70,6 +86,7 @@ interface NavGroup {
                       class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
                       routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                       [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                      ariaCurrentWhenActive="page"
                       (click)="menuOpen.set(false)"
                     >
                       <app-icon [name]="item.icon" [size]="18" />
@@ -99,7 +116,7 @@ interface NavGroup {
           <ul class="flex flex-col gap-1">
             @for (group of navGroups; track $index) {
               @if (group.label) {
-                <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/40 first:mt-0">
+                <li class="mb-1 mt-4 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-content/60 first:mt-0">
                   {{ group.label }}
                 </li>
               }
@@ -110,6 +127,7 @@ interface NavGroup {
                     class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
                     routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                     [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                    ariaCurrentWhenActive="page"
                   >
                     <app-icon [name]="item.icon" [size]="18" />
                     {{ item.label }}
@@ -161,6 +179,8 @@ export class LayoutComponent {
   themeService = inject(ThemeService);
   router = inject(Router);
   menuOpen = signal(false);
+  private hamburgerBtn = viewChild<ElementRef<HTMLButtonElement>>('hamburgerBtn');
+  private drawerNav = viewChild<ElementRef<HTMLElement>>('drawerNav');
 
   navGroups: NavGroup[] = [
     {
@@ -198,6 +218,20 @@ export class LayoutComponent {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  toggleMenu(): void {
+    if (this.menuOpen()) {
+      this.cerrarMenu();
+    } else {
+      this.menuOpen.set(true);
+      setTimeout(() => this.drawerNav()?.nativeElement.focus());
+    }
+  }
+
+  cerrarMenu(): void {
+    this.menuOpen.set(false);
+    setTimeout(() => this.hamburgerBtn()?.nativeElement.focus());
   }
 
   toggleTheme(): void {
