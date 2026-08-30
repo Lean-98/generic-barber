@@ -25,7 +25,7 @@ interface NavGroup {
     <div class="min-h-screen bg-base-200">
       <!-- Mobile top bar -->
       <nav class="navbar sticky top-0 z-50 bg-neutral px-4 text-neutral-content shadow-sm md:hidden">
-        <div class="navbar-start gap-2">
+        <div class="navbar-start min-w-0 gap-2">
           <button
             #hamburgerBtn
             class="btn btn-ghost btn-square text-neutral-content"
@@ -36,19 +36,19 @@ interface NavGroup {
           >
             <app-icon name="menu" [size]="20" />
           </button>
-          <a routerLink="/dashboard" class="flex items-center gap-2 px-1">
+          <a routerLink="/dashboard" class="flex min-w-0 items-center gap-2 px-1">
             <app-brand-mark barHeight="h-6" />
           </a>
         </div>
-        <div class="navbar-end gap-1">
-          <button class="btn btn-ghost btn-square btn-sm text-neutral-content" (click)="toggleTheme()" [attr.aria-label]="themeService.theme() === 'barber-noche' ? 'Modo claro' : 'Modo oscuro'">
+        <div class="navbar-end shrink-0 gap-1">
+          <button class="btn btn-ghost btn-square text-neutral-content" (click)="toggleTheme()" [attr.aria-label]="themeService.theme() === 'barber-noche' ? 'Modo claro' : 'Modo oscuro'">
             @if (themeService.theme() === 'barber-noche') {
               <app-icon name="sun" [size]="18" />
             } @else {
               <app-icon name="moon" [size]="18" />
             }
           </button>
-          <button class="btn btn-ghost btn-sm gap-2 text-neutral-content" (click)="logout()" aria-label="Salir">
+          <button class="btn btn-ghost gap-2 text-neutral-content" (click)="logout()" aria-label="Salir">
             <app-icon name="log-out" [size]="18" />
             <span class="hidden sm:inline">Salir</span>
           </button>
@@ -83,20 +83,20 @@ interface NavGroup {
                   <li>
                     <a
                       [routerLink]="item.route"
-                      class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                      class="flex min-w-0 items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-3.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
                       routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                       [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
                       ariaCurrentWhenActive="page"
                       (click)="menuOpen.set(false)"
                     >
-                      <app-icon [name]="item.icon" [size]="18" />
-                      {{ item.label }}
+                      <app-icon [name]="item.icon" [size]="18" className="shrink-0" />
+                      <span class="truncate">{{ item.label }}</span>
                     </a>
                   </li>
                 }
               }
               <li class="mt-3 border-t border-white/10 pt-3">
-                <a class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:bg-white/5 hover:text-neutral-content" (click)="logout()">
+                <a class="flex items-center gap-3 rounded-md px-3 py-3.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:bg-white/5 hover:text-neutral-content" (click)="logout()">
                   <app-icon name="log-out" [size]="18" />
                   Salir
                 </a>
@@ -124,13 +124,13 @@ interface NavGroup {
                 <li>
                   <a
                     [routerLink]="item.route"
-                    class="flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
+                    class="flex min-w-0 items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-3.5 text-sm font-medium text-neutral-content/70 transition-colors duration-200 hover:border-l-primary hover:bg-white/5 hover:text-neutral-content"
                     routerLinkActive="!border-l-primary bg-white/[0.07] !text-neutral-content"
                     [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
                     ariaCurrentWhenActive="page"
                   >
-                    <app-icon [name]="item.icon" [size]="18" />
-                    {{ item.label }}
+                    <app-icon [name]="item.icon" [size]="18" className="shrink-0" />
+                    <span class="truncate">{{ item.label }}</span>
                   </a>
                 </li>
               }
