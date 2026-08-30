@@ -87,7 +87,7 @@ const LIMITE_PAGINA = 20;
                       @if (servicio.categoria) {
                         <span class="badge badge-ghost badge-sm">{{ servicio.categoria.nombre }}</span>
                       } @else {
-                        <span class="text-sm text-base-content/50">—</span>
+                        <span class="text-sm text-base-content/60">—</span>
                       }
                     </td>
                     <td class="tabular-nums font-medium">{{ servicio.precio | pesos }}</td>
@@ -106,18 +106,18 @@ const LIMITE_PAGINA = 20;
                     </td>
                     <td class="text-right">
                       <div class="flex flex-wrap items-center justify-end gap-1">
-                        <button class="btn btn-ghost btn-sm" (click)="verHistorial(servicio)" title="Historial de precios">
+                        <button class="btn btn-ghost btn-sm" (click)="verHistorial(servicio)" title="Historial de precios" aria-label="Historial de precios">
                           <app-icon name="calendar" [size]="16" />
                         </button>
-                        <button class="btn btn-ghost btn-sm" (click)="editar(servicio)" title="Editar">
+                        <button class="btn btn-ghost btn-sm" (click)="editar(servicio)" title="Editar" aria-label="Editar">
                           <app-icon name="edit" [size]="16" />
                         </button>
                         @if (servicio.vigente) {
-                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(servicio)" title="Marcar no vigente">
+                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(servicio)" title="Marcar no vigente" aria-label="Marcar no vigente">
                             <app-icon name="trash" [size]="16" />
                           </button>
                         } @else {
-                          <button class="btn btn-ghost btn-sm text-success hover:bg-success/10" (click)="restaurar(servicio)" title="Restaurar">
+                          <button class="btn btn-ghost btn-sm text-success hover:bg-success/10" (click)="restaurar(servicio)" title="Restaurar" aria-label="Restaurar">
                             <app-icon name="check" [size]="16" />
                           </button>
                         }
@@ -359,9 +359,9 @@ const LIMITE_PAGINA = 20;
             <li class="flex items-center justify-between py-2">
               <span [class.opacity-50]="!cat.vigente">{{ cat.nombre }}</span>
               @if (cat.vigente) {
-                <button class="btn btn-ghost btn-xs text-error" (click)="desactivarCategoria(cat)">Desactivar</button>
+                <button class="btn btn-ghost btn-sm text-error" (click)="desactivarCategoria(cat)">Desactivar</button>
               } @else {
-                <button class="btn btn-ghost btn-xs text-success" (click)="reactivarCategoria(cat)">Reactivar</button>
+                <button class="btn btn-ghost btn-sm text-success" (click)="reactivarCategoria(cat)">Reactivar</button>
               }
             </li>
           } @empty {

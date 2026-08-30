@@ -18,7 +18,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
   template: `
     <div class="mx-auto max-w-4xl space-y-6 text-base-content">
       <div class="flex items-center gap-4">
-        <button class="btn btn-ghost btn-square" (click)="router.navigate(['/turnos'])">
+        <button class="btn btn-ghost btn-square" (click)="router.navigate(['/turnos'])" aria-label="Volver a turnos">
           <app-icon name="arrow-left" [size]="20" />
         </button>
         <div>
@@ -44,7 +44,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 </label>
                 <div class="join w-full">
                   <input type="text" class="input input-bordered join-item w-full" [(ngModel)]="busquedaCliente" name="busqueda" placeholder="Escribí nombre o apellido..." (input)="buscarCliente()" />
-                  <button class="btn join-item" [disabled]="!busquedaCliente">
+                  <button class="btn join-item" [disabled]="!busquedaCliente" aria-label="Buscar cliente">
                     <app-icon name="search" [size]="18" />
                   </button>
                 </div>
@@ -69,7 +69,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 </div>
               }
               
-              <div class="divider text-sm text-base-content/50">o creá uno nuevo</div>
+              <div class="divider text-sm text-base-content/60">o creá uno nuevo</div>
               
               <div class="grid gap-4 md:grid-cols-3">
                 <div class="form-control">
@@ -147,7 +147,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                       <p class="font-medium">{{ item.servicio.nombre }}</p>
                       <p class="text-sm text-base-content/60">{{ item.servicio.precio | pesos }} x {{ item.cantidad }} = {{ calcularSubtotal(item) | pesos }}</p>
                     </div>
-                    <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="quitarServicio(item.servicio.idServicio)">
+                    <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="quitarServicio(item.servicio.idServicio)" aria-label="Quitar servicio">
                       <app-icon name="trash" [size]="16" />
                     </button>
                   </div>

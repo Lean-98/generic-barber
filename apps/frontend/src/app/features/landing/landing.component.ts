@@ -117,6 +117,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
         style="background-size: cover; background-position: center;"
       >
         <div class="absolute inset-0 bg-gradient-to-t from-neutral via-neutral/40 to-neutral/10"></div>
+        <h1 class="sr-only">{{ config().nombre }}</h1>
 
         @if (config().mostrarGaleria && galeriaItems().length > 0) {
           <a
@@ -188,7 +189,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                 >
                   @for (item of galeriaItems(); track item.id; let i = $index) {
                     <div class="carousel-item relative w-full">
-                      <img [src]="item.url" alt="" class="aspect-video w-full object-cover" loading="lazy" />
+                      <img [src]="item.url" [alt]="'Foto ' + (i + 1) + ' de la galería de ' + config().nombre" class="aspect-video w-full object-cover" loading="lazy" />
                       @if (galeriaItems().length > 1) {
                         <div class="absolute left-2 right-2 top-1/2 flex -translate-y-1/2 justify-between">
                           <button
@@ -263,7 +264,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                     }
                   </div>
                 </div>
-                <h1 class="font-display mt-4 text-2xl font-semibold">{{ config().nombre }}</h1>
+                <p class="font-display mt-4 text-2xl font-semibold">{{ config().nombre }}</p>
                 <a routerLink="/reservar" class="btn btn-primary btn-block mt-5 gap-2">
                   <app-icon name="calendar" [size]="20" />
                   Reservar
@@ -287,7 +288,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                           </div>
                         }
                       </div>
-                      <p class="mt-2 text-xs text-base-content/50">Zona horaria: Argentina (UTC-3)</p>
+                      <p class="mt-2 text-xs text-base-content/60">Zona horaria: Argentina (UTC-3)</p>
                     </div>
                   </div>
                 }
@@ -346,7 +347,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
       </div>
 
       <!-- Footer -->
-      <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/50">
+      <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/60">
         © {{ currentYear }} {{ config().nombre }}
       </footer>
 

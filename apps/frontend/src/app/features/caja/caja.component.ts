@@ -30,7 +30,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Ingresos</span>
+            <span class="text-sm font-medium text-base-content/60">Ingresos</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-success/10 text-success">
               <app-icon name="credit-card" [size]="16" />
             </span>
@@ -39,7 +39,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         </div>
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Egresos</span>
+            <span class="text-sm font-medium text-base-content/60">Egresos</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-error/10 text-error">
               <app-icon name="credit-card" [size]="16" />
             </span>
@@ -48,7 +48,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         </div>
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Balance</span>
+            <span class="text-sm font-medium text-base-content/60">Balance</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
               <app-icon name="calendar" [size]="16" />
             </span>

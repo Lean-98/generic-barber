@@ -67,7 +67,7 @@ const LIMITE_PAGINA = 20;
                       @if (curso.duracion) {
                         <span class="badge badge-ghost badge-sm">{{ curso.duracion }}</span>
                       } @else {
-                        <span class="text-sm text-base-content/50">—</span>
+                        <span class="text-sm text-base-content/60">—</span>
                       }
                     </td>
                     <td>
@@ -79,15 +79,15 @@ const LIMITE_PAGINA = 20;
                     </td>
                     <td class="text-right">
                       <div class="flex flex-wrap items-center justify-end gap-1">
-                        <button class="btn btn-ghost btn-sm" (click)="editar(curso)" title="Editar">
+                        <button class="btn btn-ghost btn-sm" (click)="editar(curso)" title="Editar" aria-label="Editar">
                           <app-icon name="edit" [size]="16" />
                         </button>
                         @if (curso.vigente) {
-                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(curso)" title="Marcar no vigente">
+                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(curso)" title="Marcar no vigente" aria-label="Marcar no vigente">
                             <app-icon name="trash" [size]="16" />
                           </button>
                         } @else {
-                          <button class="btn btn-ghost btn-sm text-success hover:bg-success/10" (click)="restaurar(curso)" title="Restaurar">
+                          <button class="btn btn-ghost btn-sm text-success hover:bg-success/10" (click)="restaurar(curso)" title="Restaurar" aria-label="Restaurar">
                             <app-icon name="check" [size]="16" />
                           </button>
                         }

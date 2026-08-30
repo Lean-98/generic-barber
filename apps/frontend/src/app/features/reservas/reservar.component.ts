@@ -196,7 +196,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 @if (email() && !(email() | emailValido)) {
                   <label class="label"><span class="label-text-alt text-error">Ingresá un email válido</span></label>
                 } @else if (verificandoCliente()) {
-                  <label class="label"><span class="label-text-alt flex items-center gap-1 text-base-content/50"><app-icon name="loader" [size]="12" className="animate-spin" /> Verificando...</span></label>
+                  <label class="label"><span class="label-text-alt flex items-center gap-1 text-base-content/60"><app-icon name="loader" [size]="12" className="animate-spin" /> Verificando...</span></label>
                 }
               </div>
 

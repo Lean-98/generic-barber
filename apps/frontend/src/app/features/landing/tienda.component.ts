@@ -92,7 +92,7 @@ import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
         }
       </div>
 
-      <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/50">
+      <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/60">
         © {{ currentYear }} {{ config().nombre }}
       </footer>
     </div>

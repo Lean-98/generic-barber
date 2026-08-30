@@ -33,7 +33,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Turnos hoy</span>
+            <span class="text-sm font-medium text-base-content/60">Turnos hoy</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
               <app-icon name="calendar" [size]="16" />
             </span>
@@ -43,7 +43,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Ingresos hoy</span>
+            <span class="text-sm font-medium text-base-content/60">Ingresos hoy</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary/10 text-secondary">
               <app-icon name="credit-card" [size]="16" />
             </span>
@@ -53,7 +53,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Clientes</span>
+            <span class="text-sm font-medium text-base-content/60">Clientes</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
               <app-icon name="users" [size]="16" />
             </span>
@@ -63,7 +63,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Servicios</span>
+            <span class="text-sm font-medium text-base-content/60">Servicios</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-base-200 text-base-content/60">
               <app-icon name="scissors" [size]="16" />
             </span>
@@ -166,11 +166,11 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                         @if (cliente.telefono) {
                           <span class="text-sm">{{ cliente.telefono }}</span>
                         } @else {
-                          <span class="text-sm text-base-content/50">—</span>
+                          <span class="text-sm text-base-content/60">—</span>
                         }
                       </td>
                       <td>
-                        <a [routerLink]="['/personas']" class="btn btn-ghost btn-xs">Ver</a>
+                        <a [routerLink]="['/personas']" class="btn btn-ghost btn-sm">Ver</a>
                       </td>
                     </tr>
                   } @empty {

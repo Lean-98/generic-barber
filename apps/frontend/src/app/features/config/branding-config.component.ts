@@ -95,12 +95,12 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                   <div class="form-control">
                     <label class="label"><span class="label-text">URL del logo</span></label>
                     <input type="text" class="input input-bordered w-full" [(ngModel)]="logoUrl" name="logoUrl" placeholder="https://res.cloudinary.com/.../logo.png" />
-                    <label class="label"><span class="label-text-alt text-base-content/50">Usado en el panel y en el login. Dejar vacío para quitarlo.</span></label>
+                    <label class="label"><span class="label-text-alt text-base-content/60">Usado en el panel y en el login. Dejar vacío para quitarlo.</span></label>
                   </div>
                   <div class="form-control">
                     <label class="label"><span class="label-text">URL del ícono</span></label>
                     <input type="text" class="input input-bordered w-full" [(ngModel)]="iconoUrl" name="iconoUrl" placeholder="https://res.cloudinary.com/.../icono.png" />
-                    <label class="label"><span class="label-text-alt text-base-content/50">Usado como marca compacta si no hay logo.</span></label>
+                    <label class="label"><span class="label-text-alt text-base-content/60">Usado como marca compacta si no hay logo.</span></label>
                   </div>
                 </div>
 
@@ -172,7 +172,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
               <div class="form-control">
                 <label class="label"><span class="label-text">URL de imagen de portada</span></label>
                 <input type="text" class="input input-bordered w-full" [(ngModel)]="heroImageUrl" name="heroImageUrl" placeholder="https://res.cloudinary.com/.../portada.jpg" />
-                <label class="label"><span class="label-text-alt text-base-content/50">Dejar vacío para usar un fondo con tus colores de marca.</span></label>
+                <label class="label"><span class="label-text-alt text-base-content/60">Dejar vacío para usar un fondo con tus colores de marca.</span></label>
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Descripción / Acerca de</span></label>
@@ -197,7 +197,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
               <div class="form-control">
                 <label class="label"><span class="label-text">Dirección</span></label>
                 <input type="text" class="input input-bordered w-full" [(ngModel)]="direccion" name="direccion" placeholder="Av. Siempre Viva 123, Santa Rosa, La Pampa" />
-                <label class="label"><span class="label-text-alt text-base-content/50">Se usa para mostrar el mapa en la landing.</span></label>
+                <label class="label"><span class="label-text-alt text-base-content/60">Se usa para mostrar el mapa en la landing.</span></label>
               </div>
             </div>
           </div>
@@ -218,12 +218,12 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
               <div class="form-control">
                 <label class="label"><span class="label-text">URL para dejar reseña en Google</span></label>
                 <input type="text" class="input input-bordered w-full" [(ngModel)]="googleReviewsUrl" name="googleReviewsUrl" placeholder="https://g.page/r/.../review" />
-                <label class="label"><span class="label-text-alt text-base-content/50">La sacás de tu ficha de Google Business.</span></label>
+                <label class="label"><span class="label-text-alt text-base-content/60">La sacás de tu ficha de Google Business.</span></label>
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Link de WhatsApp</span></label>
                 <input type="text" class="input input-bordered w-full" [(ngModel)]="whatsappUrl" name="whatsappUrl" placeholder="https://wa.me/5491112345678" />
-                <label class="label"><span class="label-text-alt text-base-content/50">Formato wa.me con tu número completo (código de país + área, sin espacios ni guiones).</span></label>
+                <label class="label"><span class="label-text-alt text-base-content/60">Formato wa.me con tu número completo (código de país + área, sin espacios ni guiones).</span></label>
               </div>
             </div>
           </div>
@@ -339,7 +339,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                   />
                   <span class="text-base-content/60">Club</span>
                 </div>
-                <label class="label"><span class="label-text-alt text-base-content/50">"Club" es fijo, esto va antes (vacío = solo "Club").</span></label>
+                <label class="label"><span class="label-text-alt text-base-content/60">"Club" es fijo, esto va antes (vacío = solo "Club").</span></label>
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Bajada / subtítulo</span></label>
@@ -405,13 +405,13 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                     @if (!fila.cerrado) {
                       <div class="flex flex-wrap items-center gap-2">
                         <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.abre" [name]="'abre' + fila.dia" />
-                        <span class="text-base-content/50">a</span>
+                        <span class="text-base-content/60">a</span>
                         <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.cierra" [name]="'cierra' + fila.dia" />
 
                         @if (fila.tieneSegundoTurno) {
-                          <span class="text-base-content/50">y</span>
+                          <span class="text-base-content/60">y</span>
                           <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.abre2" [name]="'abre2' + fila.dia" />
-                          <span class="text-base-content/50">a</span>
+                          <span class="text-base-content/60">a</span>
                           <input type="time" class="input input-bordered input-sm" [(ngModel)]="fila.cierra2" [name]="'cierra2' + fila.dia" />
                           <button type="button" class="btn btn-ghost btn-square btn-xs" (click)="quitarSegundoTurno(fila)" aria-label="Quitar segundo horario">
                             <app-icon name="x" [size]="14" />
@@ -473,7 +473,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                   <span class="label-text">Ubicación</span>
                 </label>
               </div>
-              <p class="text-xs text-base-content/50">
+              <p class="text-xs text-base-content/60">
                 Tienda, Cursos, Galería y Ubicación igual se ocultan solos si no hay contenido cargado, aunque estén activados acá.
               </p>
             </div>
@@ -524,7 +524,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                       />
                     </div>
                   </div>
-                  <p class="pl-1 text-xs text-base-content/50">
+                  <p class="pl-1 text-xs text-base-content/60">
                     Solo cuentan los servicios marcados como "cuenta para el programa de fidelización" (se marca en cada servicio,
                     en la sección Servicios). No se aplica a clientes con cuenta de staff. Dejá "Contar visitas desde" vacío para
                     contar todo el historial ya cargado.
@@ -552,7 +552,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                       />
                     </div>
                   </div>
-                  <p class="pl-1 text-xs text-base-content/50">
+                  <p class="pl-1 text-xs text-base-content/60">
                     Se puede activar al reservar un turno para un cliente que además tenga una cuenta de staff en el sistema.
                   </p>
                 }

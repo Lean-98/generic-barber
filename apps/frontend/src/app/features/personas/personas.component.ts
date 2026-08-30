@@ -33,7 +33,7 @@ const LIMITE_PAGINA = 20;
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="join w-full sm:w-auto">
               <input type="text" class="input input-bordered join-item w-full sm:w-80" [(ngModel)]="filtro" name="filtro" placeholder="Buscar por nombre, email, teléfono o Instagram..." (input)="aplicarFiltro()" />
-              <button class="btn join-item" [disabled]="!filtro()" (click)="limpiarFiltro()">
+              <button class="btn join-item" [disabled]="!filtro()" (click)="limpiarFiltro()" aria-label="Limpiar filtro">
                 <app-icon name="x" [size]="18" />
               </button>
             </div>
@@ -77,7 +77,7 @@ const LIMITE_PAGINA = 20;
                       @if (persona.telefono) {
                         <span class="text-sm">{{ persona.telefono }}</span>
                       } @else {
-                        <span class="text-sm text-base-content/50">—</span>
+                        <span class="text-sm text-base-content/60">—</span>
                       }
                       @if (persona.mail) {
                         <div class="text-sm text-base-content/60">{{ persona.mail }}</div>
@@ -87,21 +87,21 @@ const LIMITE_PAGINA = 20;
                       @if (persona.instagram) {
                         <span class="text-sm font-medium">@{{ persona.instagram }}</span>
                       } @else {
-                        <span class="text-sm text-base-content/50">—</span>
+                        <span class="text-sm text-base-content/60">—</span>
                       }
                     </td>
                     <td class="text-right">
                       <div class="flex flex-wrap items-center justify-end gap-1">
-                        <button class="btn btn-ghost btn-sm" (click)="verDetalle(persona)" title="Ver detalle">
+                        <button class="btn btn-ghost btn-sm" (click)="verDetalle(persona)" title="Ver detalle" aria-label="Ver detalle">
                           <app-icon name="user" [size]="16" />
                         </button>
-                        <button class="btn btn-ghost btn-sm" (click)="verTurnos(persona)" title="Historial de turnos">
+                        <button class="btn btn-ghost btn-sm" (click)="verTurnos(persona)" title="Historial de turnos" aria-label="Historial de turnos">
                           <app-icon name="calendar" [size]="16" />
                         </button>
-                        <button class="btn btn-ghost btn-sm" (click)="editar(persona)" title="Editar">
+                        <button class="btn btn-ghost btn-sm" (click)="editar(persona)" title="Editar" aria-label="Editar">
                           <app-icon name="edit" [size]="16" />
                         </button>
-                        <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(persona)" title="Eliminar">
+                        <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(persona)" title="Eliminar" aria-label="Eliminar">
                           <app-icon name="trash" [size]="16" />
                         </button>
                       </div>
@@ -308,7 +308,7 @@ const LIMITE_PAGINA = 20;
                       @for (detalle of turno.detalles; track detalle.idTurnoDetalle) {
                         <span class="badge badge-ghost badge-sm">{{ detalle.servicio?.nombre }} x{{ detalle.cantidad }}</span>
                       } @empty {
-                        <span class="text-sm text-base-content/50">—</span>
+                        <span class="text-sm text-base-content/60">—</span>
                       }
                     </div>
                   </td>

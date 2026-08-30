@@ -36,7 +36,7 @@ import { BrandingService } from '../../core/services/branding.service';
           </p>
         </div>
 
-        <p class="text-xs text-neutral-content/40">
+        <p class="text-xs text-neutral-content/60">
           © {{ currentYear }} {{ brandingService.branding().nombre }}
         </p>
 

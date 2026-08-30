@@ -43,7 +43,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Ingresos</span>
+            <span class="text-sm font-medium text-base-content/60">Ingresos</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-success/10 text-success">
               <app-icon name="trending-up" [size]="16" />
             </span>
@@ -52,7 +52,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         </div>
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Egresos</span>
+            <span class="text-sm font-medium text-base-content/60">Egresos</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-error/10 text-error">
               <app-icon name="trending-down" [size]="16" />
             </span>
@@ -61,7 +61,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         </div>
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Balance</span>
+            <span class="text-sm font-medium text-base-content/60">Balance</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
               <app-icon name="wallet" [size]="16" />
             </span>
@@ -72,13 +72,13 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         </div>
         <div class="rounded-lg bg-base-100 p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-base-content/50">Turnos</span>
+            <span class="text-sm font-medium text-base-content/60">Turnos</span>
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
               <app-icon name="calendar" [size]="16" />
             </span>
           </div>
           <div class="font-display tabular-nums mt-3 text-2xl font-medium">{{ resumen().totalTurnos }}</div>
-          <div class="mt-1 text-xs text-base-content/50">{{ resumen().turnosPagados }} pagados · {{ resumen().turnosCancelados }} cancelados</div>
+          <div class="mt-1 text-xs text-base-content/60">{{ resumen().turnosPagados }} pagados · {{ resumen().turnosCancelados }} cancelados</div>
         </div>
       </div>
 
@@ -88,7 +88,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           <div class="card-body">
             <h2 class="card-title text-lg">Ingresos por día</h2>
             @if (ingresosPorDia().length === 0) {
-              <div class="py-8 text-center text-base-content/50">Sin datos en este período</div>
+              <div class="py-8 text-center text-base-content/60">Sin datos en este período</div>
             } @else {
               <div class="mt-4 space-y-3">
                 @let maxIngresos = maxIngresosPorDia();
@@ -113,7 +113,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           <div class="card-body">
             <h2 class="card-title text-lg">Turnos por estado</h2>
             @if (turnosPorEstado().length === 0) {
-              <div class="py-8 text-center text-base-content/50">Sin datos en este período</div>
+              <div class="py-8 text-center text-base-content/60">Sin datos en este período</div>
             } @else {
               <div class="mt-4 space-y-3">
                 @let maxTurnos = maxTurnosPorEstado();
@@ -140,7 +140,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           <div class="card-body">
             <h2 class="card-title text-lg">Ingresos por forma de pago</h2>
             @if (formasPago().length === 0) {
-              <div class="py-8 text-center text-base-content/50">Sin datos en este período</div>
+              <div class="py-8 text-center text-base-content/60">Sin datos en este período</div>
             } @else {
               <div class="mt-4 space-y-3">
                 @let maxPago = maxFormasPago();
@@ -165,7 +165,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           <div class="card-body">
             <h2 class="card-title text-lg">Servicios más solicitados</h2>
             @if (servicios().length === 0) {
-              <div class="py-8 text-center text-base-content/50">Sin datos en este período</div>
+              <div class="py-8 text-center text-base-content/60">Sin datos en este período</div>
             } @else {
               <div class="overflow-x-auto">
                 <table class="table table-sm">
@@ -197,7 +197,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
         <div class="card-body">
           <h2 class="card-title text-lg">Top clientes</h2>
           @if (clientes().length === 0) {
-            <div class="py-8 text-center text-base-content/50">Sin datos en este período</div>
+            <div class="py-8 text-center text-base-content/60">Sin datos en este período</div>
           } @else {
             <div class="overflow-x-auto">
               <table class="table table-sm">

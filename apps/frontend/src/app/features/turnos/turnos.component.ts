@@ -37,13 +37,13 @@ interface TurnoVisual {
         <div class="flex flex-wrap items-center gap-2">
           @if (vista() === 'calendario') {
             <div class="join">
-              <button class="btn join-item btn-sm" (click)="semanaAnterior()">
+              <button class="btn join-item btn-sm" (click)="semanaAnterior()" aria-label="Semana anterior">
                 <app-icon name="arrow-left" [size]="16" />
               </button>
               <span class="join-item bg-base-200 px-3 py-2 text-sm font-medium flex items-center">
                 {{ fechaSemana() | fechaAr:'diaMes' }} - {{ finSemana() | fechaAr:'diaMesAnio' }}
               </span>
-              <button class="btn join-item btn-sm" (click)="semanaSiguiente()">
+              <button class="btn join-item btn-sm" (click)="semanaSiguiente()" aria-label="Semana siguiente">
                 <app-icon name="arrow-right" [size]="16" />
               </button>
             </div>
@@ -109,29 +109,29 @@ interface TurnoVisual {
                       <td class="text-right">
                         <div class="flex flex-wrap items-center justify-end gap-1">
                           @if (turno.estado === 'PENDIENTE') {
-                            <button class="btn btn-ghost btn-xs gap-1" (click)="confirmar(turno.idTurno)">
+                            <button class="btn btn-ghost btn-sm gap-1" (click)="confirmar(turno.idTurno)">
                               <app-icon name="check" [size]="14" />
                               Confirmar
                             </button>
                           }
                           @if (turno.estado === 'CONFIRMADO') {
-                            <button class="btn btn-ghost btn-xs gap-1" (click)="iniciar(turno.idTurno)">
+                            <button class="btn btn-ghost btn-sm gap-1" (click)="iniciar(turno.idTurno)">
                               Iniciar
                             </button>
                           }
                           @if (turno.estado === 'EN_PROCESO') {
-                            <button class="btn btn-ghost btn-xs gap-1" (click)="finalizar(turno.idTurno)">
+                            <button class="btn btn-ghost btn-sm gap-1" (click)="finalizar(turno.idTurno)">
                               Finalizar
                             </button>
                           }
                           @if (turno.estado === 'COMPLETADO') {
-                            <button class="btn btn-primary btn-xs gap-1" (click)="pagar(turno.idTurno)">
+                            <button class="btn btn-primary btn-sm gap-1" (click)="pagar(turno.idTurno)">
                               <app-icon name="credit-card" [size]="14" />
                               Pagar
                             </button>
                           }
                           @if (turno.estado === 'PENDIENTE' || turno.estado === 'CONFIRMADO') {
-                            <button class="btn btn-ghost btn-xs text-error hover:bg-error/10" (click)="cancelar(turno.idTurno)">
+                            <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="cancelar(turno.idTurno)">
                               Cancelar
                             </button>
                           }
