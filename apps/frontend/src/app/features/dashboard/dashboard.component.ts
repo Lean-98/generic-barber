@@ -31,36 +31,44 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
       <!-- Stats -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Turnos hoy</span>
-            <app-icon name="calendar" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Turnos hoy</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <app-icon name="calendar" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ turnosHoy().length }}</div>
+          <div class="font-display tabular-nums mt-3 text-3xl font-medium">{{ turnosHoy().length }}</div>
         </div>
 
-        <div class="rounded-lg border-t-2 border-secondary bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Ingresos hoy</span>
-            <app-icon name="credit-card" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Ingresos hoy</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary/10 text-secondary">
+              <app-icon name="credit-card" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ ingresosHoy() | pesos }}</div>
+          <div class="font-display tabular-nums mt-3 text-3xl font-medium">{{ ingresosHoy() | pesos }}</div>
         </div>
 
-        <div class="rounded-lg border-t-2 border-accent bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Clientes</span>
-            <app-icon name="users" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Clientes</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <app-icon name="users" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totalClientes() }}</div>
+          <div class="font-display tabular-nums mt-3 text-3xl font-medium">{{ totalClientes() }}</div>
         </div>
 
-        <div class="rounded-lg border-t-2 border-base-300 bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Servicios</span>
-            <app-icon name="scissors" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Servicios</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-base-200 text-base-content/60">
+              <app-icon name="scissors" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-3xl font-medium">{{ totalServicios() }}</div>
+          <div class="font-display tabular-nums mt-3 text-3xl font-medium">{{ totalServicios() }}</div>
         </div>
       </div>
 

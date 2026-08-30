@@ -66,13 +66,13 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
           </div>
         } @else {
           @if (beneficios().length === 0) {
-            <p class="rounded-xl border border-base-300 bg-base-100 py-16 text-center text-base-content/60 shadow-sm">
+            <p class="rounded-xl bg-base-200/50 py-16 text-center text-base-content/60">
               Todavía no hay beneficios cargados.
             </p>
           } @else {
             <div class="grid gap-6 sm:grid-cols-2">
               @for (beneficio of beneficios(); track beneficio.clave) {
-                <div class="card border border-base-300 bg-base-100 shadow-sm transition-shadow hover:shadow-md">
+                <div class="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
                   <div class="card-body">
                     <div class="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-content">
                       <app-icon [name]="beneficio.icono" [size]="20" />

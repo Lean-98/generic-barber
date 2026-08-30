@@ -58,13 +58,13 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueSobreNosotros, string> = {
             <span class="text-base-content/70">Cargando...</span>
           </div>
         } @else if (bloques().length === 0) {
-          <p class="rounded-xl border border-base-300 bg-base-100 py-16 text-center text-base-content/60 shadow-sm">
+          <p class="rounded-xl bg-base-200/50 py-16 text-center text-base-content/60">
             Todavía no hay contenido cargado.
           </p>
         } @else {
           <div class="space-y-6">
             @if (destacado(); as bloque) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
+              <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-4 sm:flex-row sm:items-center">
                   <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary text-primary-content">
                     <app-icon [name]="bloque.icono" [size]="28" />
@@ -79,7 +79,7 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueSobreNosotros, string> = {
             @if (resto().length > 0) {
               <div class="grid gap-6 sm:grid-cols-3">
                 @for (bloque of resto(); track bloque.clave) {
-                  <div class="card border border-base-300 bg-base-100 shadow-sm transition-shadow hover:shadow-md">
+                  <div class="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
                     <div class="card-body">
                       <div class="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-content">
                         <app-icon [name]="bloque.icono" [size]="20" />

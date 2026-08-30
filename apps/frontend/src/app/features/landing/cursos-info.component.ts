@@ -52,7 +52,7 @@ import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
         } @else {
           <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             @for (curso of cursos(); track curso.idCurso) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
+              <div class="card overflow-hidden bg-base-100 shadow-sm transition-shadow duration-300 hover:shadow-xl">
                 @if (curso.urlImagen) {
                   <figure class="aspect-video overflow-hidden bg-base-200">
                     <img [src]="curso.urlImagen" [alt]="curso.nombre" class="h-full w-full object-cover" loading="lazy" />
@@ -89,50 +89,54 @@ import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
                     </div>
                   }
 
-                  <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-base-content/60">
+                  <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-base-content/60">
                     @if (curso.fechaInicio && curso.fechaFin) {
-                      <span class="col-span-2 flex items-center gap-1.5">
+                      <span class="flex w-full items-center gap-1.5">
                         <app-icon name="calendar" [size]="13" />
                         {{ curso.fechaInicio | date: 'd MMM' }} al {{ curso.fechaFin | date: 'd MMM' }}
                       </span>
                     } @else if (curso.fechaInicio) {
-                      <span class="flex items-center gap-1.5">
+                      <span class="flex w-full items-center gap-1.5">
                         <app-icon name="calendar" [size]="13" />
                         Inicio: {{ curso.fechaInicio | date: 'd MMM' }}
                       </span>
                     } @else if (curso.fechaFin) {
-                      <span class="flex items-center gap-1.5">
+                      <span class="flex w-full items-center gap-1.5">
                         <app-icon name="calendar" [size]="13" />
                         Hasta: {{ curso.fechaFin | date: 'd MMM' }}
                       </span>
                     }
-                    @if (curso.duracion) {
-                      <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.duracion }}</span>
-                    }
-                    @if (curso.diaCursada?.length) {
-                      <span class="flex items-center gap-1.5"><app-icon name="calendar" [size]="13" />{{ curso.diaCursada!.join(', ') }}</span>
-                    }
-                    @if (curso.horario) {
-                      <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.horario }}</span>
+                    @if (curso.duracion || curso.diaCursada?.length || curso.horario) {
+                      <span class="flex w-full flex-wrap items-center gap-x-4 gap-y-1.5">
+                        @if (curso.duracion) {
+                          <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.duracion }}</span>
+                        }
+                        @if (curso.diaCursada?.length) {
+                          <span class="flex items-center gap-1.5"><app-icon name="calendar" [size]="13" />{{ curso.diaCursada!.join(', ') }}</span>
+                        }
+                        @if (curso.horario) {
+                          <span class="flex items-center gap-1.5"><app-icon name="clock" [size]="13" />{{ curso.horario }}</span>
+                        }
+                      </span>
                     }
                     @if (curso.lugar) {
-                      <span class="col-span-2 flex items-center gap-1.5"><app-icon name="map-pin" [size]="13" />{{ curso.lugar }}</span>
+                      <span class="flex w-full items-center gap-1.5"><app-icon name="map-pin" [size]="13" />{{ curso.lugar }}</span>
                     }
                     @if (curso.cupos) {
-                      <span class="col-span-2 flex items-center gap-1.5"><app-icon name="users" [size]="13" />Cupos limitados: {{ curso.cupos }}</span>
+                      <span class="flex w-full items-center gap-1.5"><app-icon name="users" [size]="13" />Cupos limitados: {{ curso.cupos }}</span>
                     }
                     @if (curso.inscripcionInicio && curso.inscripcionHasta) {
-                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                      <span class="flex w-full items-center gap-1.5 font-medium text-primary">
                         <app-icon name="alert-circle" [size]="13" />
                         Inscripción del {{ curso.inscripcionInicio | date: 'd MMM' }} al {{ curso.inscripcionHasta | date: 'd MMM' }}
                       </span>
                     } @else if (curso.inscripcionHasta) {
-                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                      <span class="flex w-full items-center gap-1.5 font-medium text-primary">
                         <app-icon name="alert-circle" [size]="13" />
                         Inscribite antes del {{ curso.inscripcionHasta | date: 'd MMM' }}
                       </span>
                     } @else if (curso.inscripcionInicio) {
-                      <span class="col-span-2 flex items-center gap-1.5 font-medium text-primary">
+                      <span class="flex w-full items-center gap-1.5 font-medium text-primary">
                         <app-icon name="alert-circle" [size]="13" />
                         Inscripción abierta desde el {{ curso.inscripcionInicio | date: 'd MMM' }}
                       </span>

@@ -41,35 +41,43 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
 
       <!-- Resumen -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-lg border-t-2 border-success bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Ingresos</span>
-            <app-icon name="trending-up" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Ingresos</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-success/10 text-success">
+              <app-icon name="trending-up" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-2xl font-medium text-success">{{ resumen().totalIngresos | pesos }}</div>
+          <div class="font-display tabular-nums mt-3 text-2xl font-medium text-success">{{ resumen().totalIngresos | pesos }}</div>
         </div>
-        <div class="rounded-lg border-t-2 border-error bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Egresos</span>
-            <app-icon name="trending-down" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Egresos</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-error/10 text-error">
+              <app-icon name="trending-down" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-2xl font-medium text-error">{{ resumen().totalEgresos | pesos }}</div>
+          <div class="font-display tabular-nums mt-3 text-2xl font-medium text-error">{{ resumen().totalEgresos | pesos }}</div>
         </div>
-        <div class="rounded-lg border-t-2 border-primary bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Balance</span>
-            <app-icon name="wallet" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Balance</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <app-icon name="wallet" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-2xl font-medium" [class.text-success]="resumen().balance >= 0" [class.text-error]="resumen().balance < 0">
+          <div class="font-display tabular-nums mt-3 text-2xl font-medium" [class.text-success]="resumen().balance >= 0" [class.text-error]="resumen().balance < 0">
             {{ resumen().balance | pesos }}
           </div>
         </div>
-        <div class="rounded-lg border-t-2 border-accent bg-base-100 p-5 shadow-sm">
-          <div class="flex items-center justify-between text-base-content/50">
-            <span class="text-sm font-medium">Turnos</span>
-            <app-icon name="calendar" [size]="18" />
+        <div class="rounded-lg bg-base-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-base-content/50">Turnos</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <app-icon name="calendar" [size]="16" />
+            </span>
           </div>
-          <div class="font-display tabular-nums mt-2 text-2xl font-medium">{{ resumen().totalTurnos }}</div>
+          <div class="font-display tabular-nums mt-3 text-2xl font-medium">{{ resumen().totalTurnos }}</div>
           <div class="mt-1 text-xs text-base-content/50">{{ resumen().turnosPagados }} pagados · {{ resumen().turnosCancelados }} cancelados</div>
         </div>
       </div>

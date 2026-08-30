@@ -136,7 +136,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                así la sidebar tiene "espacio" para quedar fija durante todo el scroll de la página. -->
           <div class="order-2 min-w-0 flex-1 space-y-6 lg:order-1">
             @if (config().descripcion; as descripcion) {
-              <div id="acerca-de" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+              <div id="acerca-de" class="card scroll-mt-24 bg-base-100 shadow-sm">
                 <div class="card-body">
                   <h2 class="font-display text-lg font-semibold">Acerca de {{ config().nombre }}</h2>
                   <p class="whitespace-pre-line text-base-content/70">{{ descripcion }}</p>
@@ -144,7 +144,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
               </div>
             }
 
-            <div id="servicios" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+            <div id="servicios" class="card scroll-mt-24 bg-base-100 shadow-sm">
               <div class="card-body">
                 <h2 class="font-display text-lg font-semibold">Servicios</h2>
                 @if (servicios().length > 0) {
@@ -174,7 +174,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
             </div>
 
             @if (config().mostrarGaleria && galeriaItems().length > 0) {
-              <div id="galeria" class="card scroll-mt-24 overflow-hidden border border-base-300 bg-base-100 shadow-sm">
+              <div id="galeria" class="card scroll-mt-24 overflow-hidden bg-base-100 shadow-sm">
                 <div class="card-body pb-4">
                   <h2 class="font-display text-lg font-semibold">Galería</h2>
                 </div>
@@ -222,7 +222,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
             }
 
             @if (config().direccion) {
-              <div id="ubicacion" class="card scroll-mt-24 border border-base-300 bg-base-100 shadow-sm">
+              <div id="ubicacion" class="card scroll-mt-24 bg-base-100 shadow-sm">
                 <div class="card-body">
                   <h2 class="font-display text-lg font-semibold">Ubicación</h2>
                   <p class="mt-1 flex items-center gap-2 text-base-content/70">
@@ -239,7 +239,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
             }
 
             @if (config().politicaReservas; as politica) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
+              <div class="card bg-base-100 shadow-sm">
                 <div class="card-body">
                   <h2 class="font-display text-lg font-semibold">Política de reservas</h2>
                   <p class="whitespace-pre-line text-base-content/70">{{ politica }}</p>
@@ -252,7 +252,7 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                Solo en desktop (lg): en mobile el card es alto y, si quedara sticky, tapa
                casi toda la pantalla e impide ver el resto de las secciones al hacer scroll. -->
           <aside id="horarios" class="order-1 scroll-mt-24 lg:sticky lg:top-20 lg:order-2 lg:w-[360px] lg:shrink-0">
-            <div class="card border border-base-300 bg-base-100 shadow-sm">
+            <div class="card bg-base-100 shadow-sm">
               <div class="card-body items-center p-7 text-center">
                 <div class="avatar placeholder">
                   <div class="w-24 rounded-full bg-base-200 text-3xl">

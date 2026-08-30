@@ -49,28 +49,35 @@ import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
         } @else if (productos().length === 0) {
           <p class="py-16 text-center text-base-content/60">Todavía no hay productos cargados.</p>
         } @else {
-          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             @for (producto of productos(); track producto.idProducto) {
-              <div class="card border border-base-300 bg-base-100 shadow-sm">
-                @if (producto.urlImagen) {
-                  <figure class="aspect-square overflow-hidden bg-base-200">
-                    <img [src]="producto.urlImagen" [alt]="producto.nombre" class="h-full w-full object-cover" loading="lazy" />
-                  </figure>
-                } @else {
-                  <figure class="flex aspect-square items-center justify-center bg-base-200 text-base-content/30">
-                    <app-icon name="shopping-bag" [size]="40" />
-                  </figure>
-                }
-                <div class="card-body">
+              <div class="group overflow-hidden rounded-2xl bg-base-100 shadow-sm transition-shadow duration-300 ease-out hover:shadow-xl">
+                <figure class="relative aspect-square overflow-hidden bg-base-200">
+                  @if (producto.urlImagen) {
+                    <img
+                      [src]="producto.urlImagen"
+                      [alt]="producto.nombre"
+                      loading="lazy"
+                      class="h-full w-full object-cover transition-transform duration-500 ease-out motion-safe:group-hover:scale-110"
+                    />
+                  } @else {
+                    <div class="flex h-full w-full items-center justify-center text-base-content/25">
+                      <app-icon name="shopping-bag" [size]="40" />
+                    </div>
+                  }
                   @if (producto.categoria?.nombre; as categoria) {
-                    <span class="badge badge-outline badge-sm self-start">{{ categoria }}</span>
+                    <span class="absolute left-3 top-3 rounded-full bg-neutral/90 px-3 py-1 text-[11px] font-medium tracking-wide text-neutral-content backdrop-blur-sm">
+                      {{ categoria }}
+                    </span>
                   }
-                  <h2 class="card-title text-base">{{ producto.nombre }}</h2>
+                </figure>
+                <div class="px-1 pt-4">
+                  <h2 class="font-display text-lg font-semibold leading-snug">{{ producto.nombre }}</h2>
                   @if (producto.descripcion) {
-                    <p class="line-clamp-2 text-sm text-base-content/60">{{ producto.descripcion }}</p>
+                    <p class="mt-1 line-clamp-2 text-sm text-base-content/60">{{ producto.descripcion }}</p>
                   }
-                  <div class="card-actions mt-2 items-center justify-between">
-                    <span class="text-lg font-semibold text-primary">{{ producto.precio | pesos }}</span>
+                  <div class="mt-4 flex items-center justify-between gap-3">
+                    <span class="font-display text-lg font-semibold text-primary">{{ producto.precio | pesos }}</span>
                     @if (config().whatsappUrl; as url) {
                       <a [href]="whatsappHref(url, producto)" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
                         <app-icon name="whatsapp" [size]="16" />
