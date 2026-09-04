@@ -151,20 +151,37 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
                 @if (servicios().length > 0) {
                   <ul class="mt-2 divide-y divide-base-300">
                     @for (servicio of servicios(); track servicio.idServicio) {
-                      <li class="-mx-2 flex items-center gap-4 rounded-lg px-2 py-3 transition-colors hover:bg-base-200">
-                        <div class="avatar placeholder shrink-0">
-                          <div class="w-11 rounded-full bg-primary text-primary-content">
-                            <app-icon name="scissors" [size]="18" />
+                      <li class="-mx-2 rounded-lg px-2 py-3 transition-colors hover:bg-base-200">
+                        <div class="flex items-center gap-4">
+                          <div class="avatar placeholder shrink-0">
+                            <div class="w-11 rounded-full bg-primary text-primary-content">
+                              <app-icon name="scissors" [size]="18" />
+                            </div>
                           </div>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                          <div class="truncate font-medium">{{ servicio.nombre }}</div>
+                          <div class="min-w-0 flex-1">
+                            <div class="truncate font-medium">{{ servicio.nombre }}</div>
+                            <div class="text-sm text-base-content/60">{{ servicio.duracionMinutos }} min</div>
+                          </div>
+                          <div class="shrink-0 tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</div>
                           @if (servicio.descripcion) {
-                            <div class="truncate text-sm text-base-content/60">{{ servicio.descripcion }}</div>
+                            <button
+                              type="button"
+                              class="btn btn-ghost btn-square btn-sm shrink-0"
+                              (click)="toggleDescripcionServicio(servicio.idServicio)"
+                              [attr.aria-expanded]="descripcionesExpandidas().has(servicio.idServicio)"
+                              [attr.aria-label]="descripcionesExpandidas().has(servicio.idServicio) ? 'Ocultar descripción de ' + servicio.nombre : 'Ver descripción de ' + servicio.nombre"
+                            >
+                              <app-icon
+                                name="chevron-down"
+                                [size]="16"
+                                [className]="'transition-transform ' + (descripcionesExpandidas().has(servicio.idServicio) ? 'rotate-180' : '')"
+                              />
+                            </button>
                           }
-                          <div class="text-sm text-base-content/60">{{ servicio.duracionMinutos }} min</div>
                         </div>
-                        <div class="shrink-0 tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</div>
+                        @if (servicio.descripcion && descripcionesExpandidas().has(servicio.idServicio)) {
+                          <p class="mt-2 whitespace-pre-line pl-[3.75rem] text-sm text-base-content/70">{{ servicio.descripcion }}</p>
+                        }
                       </li>
                     }
                   </ul>
@@ -430,6 +447,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     descuentoEmpleadoPorcentaje: null,
   });
   servicios = signal<Servicio[]>([]);
+  descripcionesExpandidas = signal<Set<number>>(new Set());
   hayProductos = signal(false);
   hayCursos = signal(false);
   menuAbierto = signal(false);
@@ -536,6 +554,18 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detenerAutoplayGaleria();
+  }
+
+  toggleDescripcionServicio(idServicio: number): void {
+    this.descripcionesExpandidas.update((actuales) => {
+      const nuevas = new Set(actuales);
+      if (nuevas.has(idServicio)) {
+        nuevas.delete(idServicio);
+      } else {
+        nuevas.add(idServicio);
+      }
+      return nuevas;
+    });
   }
 
   pausarAutoplayGaleria(): void {

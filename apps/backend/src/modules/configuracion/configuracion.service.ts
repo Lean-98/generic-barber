@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfiguracionNegocio, Prisma } from '@prisma/client';
 import { UpdateConfiguracionDto } from './dto/update-configuracion.dto';
 
 const CONFIG_ID = 1;
+const NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const DEFAULT_CONFIG: ConfiguracionNegocio = {
   id: CONFIG_ID,
   nombre: 'Peluquería',
@@ -60,12 +61,37 @@ export class ConfiguracionService {
   }
 
   async updateBranding(dto: UpdateConfiguracionDto): Promise<ConfiguracionNegocio> {
+    this.validarHorarios(dto.horarios);
     const data = this.sanitize(dto);
     return this.prisma.configuracionNegocio.upsert({
       where: { id: CONFIG_ID },
       update: data,
       create: { id: CONFIG_ID, ...data },
     });
+  }
+
+  // Los inputs de hora son de tipeo libre (type="time"); sin esta validación
+  // un cierre cargado antes de la apertura (ej. AM/PM confundido) se guarda
+  // silenciosamente y esa franja queda sin turnos disponibles, sin ningún
+  // error visible para el negocio.
+  private validarHorarios(horarios: UpdateConfiguracionDto['horarios']): void {
+    if (!horarios) return;
+
+    for (const dia of horarios) {
+      if (dia.cerrado) continue;
+      const nombreDia = NOMBRES_DIA[dia.dia] ?? `día ${dia.dia}`;
+
+      if (dia.abre && dia.cierra && dia.cierra <= dia.abre) {
+        throw new BadRequestException(
+          `El horario del ${nombreDia} es inválido: el cierre (${dia.cierra}) debe ser posterior a la apertura (${dia.abre})`,
+        );
+      }
+      if (dia.abre2 && dia.cierra2 && dia.cierra2 <= dia.abre2) {
+        throw new BadRequestException(
+          `El segundo turno del ${nombreDia} es inválido: el cierre (${dia.cierra2}) debe ser posterior a la apertura (${dia.abre2})`,
+        );
+      }
+    }
   }
 
   private sanitize(

@@ -756,7 +756,15 @@ export class BrandingConfigComponent implements OnInit {
     this.galeria = this.galeria.filter((_, i) => i !== index);
   }
 
+  private clampPorcentaje(valor: number | null): number | null {
+    if (valor === null || valor === undefined) return valor;
+    return Math.min(100, Math.max(0, valor));
+  }
+
   guardar(): void {
+    this.fidelizacionDescuentoPorcentaje = this.clampPorcentaje(this.fidelizacionDescuentoPorcentaje);
+    this.descuentoEmpleadoPorcentaje = this.clampPorcentaje(this.descuentoEmpleadoPorcentaje);
+
     this.guardando.set(true);
     this.mensaje.set('');
 
