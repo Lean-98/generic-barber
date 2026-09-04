@@ -193,11 +193,13 @@ export class GoogleCalendarService {
         dateTime: turno.fechaHoraFin.toISOString(),
         timeZone: 'America/Argentina/Buenos_Aires',
       },
+      attendees: turno.persona.mail ? [{ email: turno.persona.mail }] : undefined,
     };
 
     const response = await calendar.events.insert({
       calendarId: config.calendarId,
       requestBody: event,
+      sendUpdates: 'all',
     });
 
     return response.data.id || null;
@@ -234,12 +236,14 @@ export class GoogleCalendarService {
         dateTime: turno.fechaHoraFin.toISOString(),
         timeZone: 'America/Argentina/Buenos_Aires',
       },
+      attendees: turno.persona.mail ? [{ email: turno.persona.mail }] : undefined,
     };
 
     await calendar.events.update({
       calendarId: config.calendarId,
       eventId: turno.googleEventId,
       requestBody: event,
+      sendUpdates: 'all',
     });
   }
 
@@ -262,6 +266,7 @@ export class GoogleCalendarService {
     await calendar.events.delete({
       calendarId: config.calendarId,
       eventId: googleEventId,
+      sendUpdates: 'all',
     });
   }
 }

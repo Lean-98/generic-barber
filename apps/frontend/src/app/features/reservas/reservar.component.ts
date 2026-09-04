@@ -32,7 +32,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           }
           <p class="text-sm font-medium uppercase tracking-[0.15em] text-primary">{{ branding().nombre }}</p>
           <h1 class="text-3xl font-medium tracking-tight md:text-4xl">Reservar Turno</h1>
-          <p class="text-base-content/60 max-w-md mx-auto">Seleccioná los servicios, fecha y horario para tu turno. Te enviaremos un recordatorio.</p>
+          <p class="text-base-content/60 max-w-md mx-auto">Seleccioná los servicios, fecha y horario para tu turno.</p>
         </div>
 
         <!-- Paso 1: Servicios -->
@@ -262,7 +262,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                   <app-icon name="check-circle" [size]="20" />
                   <div class="flex-1">
                     <p class="font-medium">¡Turno reservado con éxito!</p>
-                    <p class="text-sm opacity-90">Te enviaremos un recordatorio por email. Si el peluquero tiene Google Calendar conectado, el turno aparecerá automáticamente.</p>
+                    <p class="text-sm opacity-90">Te esperamos en el horario elegido. Te enviaremos un recordatorio por email.</p>
                     <button class="btn btn-primary btn-sm mt-3 gap-2" (click)="reset()">
                       <app-icon name="plus" [size]="16" />
                       Reservar otro
