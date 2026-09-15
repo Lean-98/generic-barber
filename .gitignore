@@ -11,3 +11,8 @@ Thumbs.db
 
 /.agents
 /.claude
+
+# Producción / docker-compose (contiene secretos reales)
+.env
+.env.production
+!.env.production.example
