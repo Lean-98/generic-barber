@@ -8,6 +8,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
+import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
 
 @Component({
   selector: 'app-tienda',
@@ -93,7 +94,8 @@ import { whatsappLinkConMensaje } from '../../shared/utils/whatsapp.util';
       </div>
 
       <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/60">
-        © {{ currentYear }} {{ config().nombre }}
+        <p>© {{ currentYear }} {{ config().nombre }}</p>
+        <p class="mt-1 text-xs text-base-content/40">Powered by {{ poweredBy }}</p>
       </footer>
     </div>
   `,
@@ -149,6 +151,7 @@ export class TiendaComponent implements OnInit {
   productos = signal<Producto[]>([]);
   cargando = signal(true);
   currentYear = new Date().getFullYear();
+  protected readonly poweredBy = POWERED_BY_NAME;
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({

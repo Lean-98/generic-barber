@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { POWERED_BY_NAME } from '../../common/constants/branding.constant';
 
 export interface TurnoMailData {
   nombreCliente: string;
@@ -189,6 +190,7 @@ export class MailService {
 
               <div style="padding:28px 32px 32px;text-align:center;">
                 <p style="margin:0;font-size:12px;color:${MARCA.textoSuave};">${nombreNegocio}${data.direccion ? ` · ${data.direccion}` : ''}</p>
+                <p style="margin:6px 0 0;font-size:11px;color:${MARCA.textoSuave};opacity:0.7;">Powered by ${POWERED_BY_NAME}</p>
               </div>
 
             </td>

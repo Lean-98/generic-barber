@@ -4,6 +4,7 @@ import { AuthService } from '../shared/services/auth.service';
 import { ThemeService } from './services/theme.service';
 import { IconComponent } from '../shared/ui/icon.component';
 import { BrandMarkComponent } from '../shared/ui/brand-mark.component';
+import { POWERED_BY_NAME } from '../shared/constants/branding.constant';
 
 interface NavItem {
   label: string;
@@ -102,6 +103,7 @@ interface NavGroup {
                 </a>
               </li>
             </ul>
+            <p class="px-6 pb-4 text-xs text-neutral-content/30">Powered by {{ poweredBy }}</p>
           </aside>
         </div>
       }
@@ -163,6 +165,8 @@ interface NavGroup {
               </button>
             </div>
           }
+
+          <p class="px-1 text-center text-xs text-neutral-content/30">Powered by {{ poweredBy }}</p>
         </div>
       </aside>
 
@@ -179,6 +183,7 @@ export class LayoutComponent {
   themeService = inject(ThemeService);
   router = inject(Router);
   menuOpen = signal(false);
+  protected readonly poweredBy = POWERED_BY_NAME;
   private hamburgerBtn = viewChild<ElementRef<HTMLButtonElement>>('hamburgerBtn');
   private drawerNav = viewChild<ElementRef<HTMLElement>>('drawerNav');
 

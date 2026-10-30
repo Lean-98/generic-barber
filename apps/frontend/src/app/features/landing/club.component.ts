@@ -4,6 +4,7 @@ import { ConfiguracionService } from '../../shared/services/configuracion.servic
 import { ClaveBloqueClub, ConfiguracionNegocio } from '../../shared/models/configuracion.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
+import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
 
 const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
   presentarTarjeta: 'credit-card',
@@ -95,7 +96,8 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
       </div>
 
       <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/60">
-        © {{ currentYear }} {{ config().nombre }}
+        <p>© {{ currentYear }} {{ config().nombre }}</p>
+        <p class="mt-1 text-xs text-base-content/40">Powered by {{ poweredBy }}</p>
       </footer>
     </div>
   `,
@@ -149,6 +151,7 @@ export class ClubComponent implements OnInit {
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();
+  protected readonly poweredBy = POWERED_BY_NAME;
 
   nombreClub = computed(() => {
     const nombre = this.config().clubNombre?.trim();

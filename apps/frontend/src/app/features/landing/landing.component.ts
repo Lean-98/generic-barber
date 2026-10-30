@@ -10,6 +10,7 @@ import { CursosService } from '../../shared/services/cursos.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
+import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
 
 const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   { dia: 1, nombre: 'Lunes' },
@@ -365,7 +366,8 @@ function rangosDe(horario: HorarioDia): { abre: string; cierra: string }[] {
 
       <!-- Footer -->
       <footer class="border-t border-base-300 py-8 text-center text-sm text-base-content/60">
-        © {{ currentYear }} {{ config().nombre }}
+        <p>© {{ currentYear }} {{ config().nombre }}</p>
+        <p class="mt-1 text-xs text-base-content/40">Powered by {{ poweredBy }}</p>
       </footer>
 
       <!-- WhatsApp flotante -->
@@ -453,6 +455,7 @@ export class LandingComponent implements OnInit, OnDestroy {
   hayCursos = signal(false);
   menuAbierto = signal(false);
   currentYear = new Date().getFullYear();
+  protected readonly poweredBy = POWERED_BY_NAME;
 
   tituloCorto = computed(() => `Bienvenido a ${this.config().nombre}`);
 
