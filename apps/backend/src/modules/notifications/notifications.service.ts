@@ -44,13 +44,15 @@ export class NotificationsService {
       if (!turno.persona.mail) continue;
 
       try {
-        await this.mailService.sendTurnoRecordatorio(turno.persona.mail, {
+        const enviado = await this.mailService.sendTurnoRecordatorio(turno.persona.mail, {
           nombreCliente: turno.persona.nombre,
           fechaHoraInicio: turno.fechaHoraInicio,
           servicios: turno.detalles.map((d) => d.servicio.nombre),
           direccion: config?.direccion,
           whatsappUrl: config?.whatsappUrl,
         });
+
+        if (!enviado) continue;
 
         await this.prisma.turno.update({
           where: { idTurno: turno.idTurno },

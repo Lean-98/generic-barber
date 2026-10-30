@@ -11,8 +11,9 @@
 -- Esto prueba solo el RECORDATORIO (el cron de NotificationsService),
 -- que lee la base directo. El email de CONFIRMACIÓN se dispara desde
 -- turnos.service.ts al crear un turno por la app — insertar acá no lo
--- gatilla. Para probar la confirmación, reservá un turno real desde
--- /reservar o el panel admin.
+-- gatilla. Para probar la confirmación, usá scripts/mock-confirmacion.sh
+-- (le pega al endpoint real de reserva), o reservá un turno a mano
+-- desde /reservar o el panel admin.
 --
 -- ANTES DE CORRER:
 --   Reemplazá TU-EMAIL-REAL@ejemplo.com por un mail real tuyo (control-F
@@ -54,7 +55,7 @@ servicio AS (
 
 persona_con_mail AS (
   INSERT INTO personas (nombre, apellido, mail, telefono, created_at, updated_at)
-  VALUES ('Mock', 'Notificaciones', 'TU-EMAIL-REAL@ejemplo.com', '3510000000', now(), now())
+  VALUES ('Mock', 'Notificaciones', 'leanfrag23@gmail.com', '3510000000', now(), now())
   ON CONFLICT (mail) DO UPDATE SET updated_at = now()
   RETURNING "idPersona"
 ),

@@ -18,7 +18,7 @@ describe('NotificationsService', () => {
 
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
-    mailMock = { sendTurnoRecordatorio: jest.fn().mockResolvedValue(undefined) };
+    mailMock = { sendTurnoRecordatorio: jest.fn().mockResolvedValue(true) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -83,6 +83,16 @@ describe('NotificationsService', () => {
     mailMock.sendTurnoRecordatorio.mockRejectedValue(new Error('boom'));
 
     await expect(service.enviarRecordatorios()).resolves.toBeUndefined();
+    expect(prismaMock.turno.update).not.toHaveBeenCalled();
+  });
+
+  it('should not mark the reminder as sent when the mail service reports it was not actually sent', async () => {
+    prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ recordatorioHorasAntes: 24 });
+    prismaMock.turno.findMany.mockResolvedValue([mockTurno]);
+    mailMock.sendTurnoRecordatorio.mockResolvedValue(false);
+
+    await service.enviarRecordatorios();
+
     expect(prismaMock.turno.update).not.toHaveBeenCalled();
   });
 });

@@ -58,15 +58,20 @@ export class MailService {
     await this.enviarTurnoMail(to, '¡Turno confirmado!', `Hola ${data.nombreCliente}, tu turno quedó registrado.`, data);
   }
 
-  /** Se manda desde el cron de recordatorios, con la anticipación configurada en el negocio. Silencioso por el mismo motivo. */
-  async sendTurnoRecordatorio(to: string, data: TurnoMailData): Promise<void> {
-    await this.enviarTurnoMail(to, 'Recordatorio de tu turno', `Hola ${data.nombreCliente}, te recordamos tu turno.`, data);
+  /**
+   * Se manda desde el cron de recordatorios. Nunca tira excepción (mismo motivo
+   * que el resto de esta clase), pero a diferencia de la confirmación, el cron
+   * necesita saber si realmente se mandó: solo así puede decidir si marca el
+   * turno como notificado o lo deja para reintentar en la próxima corrida.
+   */
+  async sendTurnoRecordatorio(to: string, data: TurnoMailData): Promise<boolean> {
+    return this.enviarTurnoMail(to, 'Recordatorio de tu turno', `Hola ${data.nombreCliente}, te recordamos tu turno.`, data);
   }
 
-  private async enviarTurnoMail(to: string, subject: string, intro: string, data: TurnoMailData): Promise<void> {
+  private async enviarTurnoMail(to: string, subject: string, intro: string, data: TurnoMailData): Promise<boolean> {
     if (!this.resend) {
       this.logger.warn(`RESEND_API_KEY no configurada: no se envió "${subject}" a ${to}`);
-      return;
+      return false;
     }
 
     const fecha = data.fechaHoraInicio.toLocaleString('es-AR', {
@@ -93,6 +98,9 @@ export class MailService {
 
     if (error) {
       this.logger.error(`Fallo al enviar "${subject}" a ${to}: ${JSON.stringify(error)}`);
+      return false;
     }
+
+    return true;
   }
 }

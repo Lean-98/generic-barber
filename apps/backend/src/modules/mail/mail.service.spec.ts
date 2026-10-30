@@ -87,21 +87,28 @@ describe('MailService', () => {
     );
   });
 
-  it('should send turno reminder', async () => {
+  it('should send turno reminder and report success', async () => {
     sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
     const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
 
-    await service.sendTurnoRecordatorio('user@test.com', turnoData);
+    await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBe(true);
 
     expect(sendMock).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'user@test.com', subject: 'Recordatorio de tu turno' }),
     );
   });
 
-  it('should not throw when sending turno reminder fails', async () => {
+  it('should not throw and should report failure when sending turno reminder fails', async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
     const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
 
-    await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBeUndefined();
+    await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBe(false);
+  });
+
+  it('should report failure when sending turno reminder with no RESEND_API_KEY configured', async () => {
+    const service = await buildService({ MAIL_FROM: 'test@test.com' });
+
+    await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBe(false);
+    expect(sendMock).not.toHaveBeenCalled();
   });
 });
