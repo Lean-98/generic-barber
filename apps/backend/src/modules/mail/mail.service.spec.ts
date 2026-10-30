@@ -87,6 +87,35 @@ describe('MailService', () => {
     );
   });
 
+  it('should include the reservation policy in the confirmation when it is set', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', {
+      ...turnoData,
+      politicaReservas: 'Cancelaciones con 24hs de anticipación.',
+    });
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining('Cancelaciones con 24hs de anticipación.'),
+      }),
+    );
+  });
+
+  it('should not render the reservation policy block when it is not set', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', turnoData);
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.not.stringContaining('Política de reservas'),
+      }),
+    );
+  });
+
   it('should send turno reminder and report success', async () => {
     sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
     const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });

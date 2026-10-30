@@ -8,6 +8,8 @@ export interface TurnoMailData {
   servicios: string[];
   direccion?: string | null;
   whatsappUrl?: string | null;
+  /** Solo se pasa en la confirmación, no en el recordatorio (ver turnos.service.ts). */
+  politicaReservas?: string | null;
 }
 
 @Injectable()
@@ -93,6 +95,7 @@ export class MailService {
         <p><strong>Servicios:</strong> ${data.servicios.join(', ')}</p>
         ${data.direccion ? `<p><strong>Dirección:</strong> ${data.direccion}</p>` : ''}
         ${data.whatsappUrl ? `<p>Si necesitás modificar o cancelar tu turno, escribinos por <a href="${data.whatsappUrl}">WhatsApp</a>.</p>` : ''}
+        ${data.politicaReservas ? `<p><strong>Política de reservas:</strong> ${data.politicaReservas}</p>` : ''}
       `,
     });
 

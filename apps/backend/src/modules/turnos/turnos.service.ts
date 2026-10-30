@@ -149,6 +149,7 @@ export class TurnosService {
           servicios: servicios.map((s) => s.nombre),
           direccion: config?.direccion,
           whatsappUrl: config?.whatsappUrl,
+          politicaReservas: config?.politicaReservas,
         });
       } catch {
         // Silencioso
