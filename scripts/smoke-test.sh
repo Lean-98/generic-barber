@@ -148,7 +148,7 @@ if [ -n "$TURNO_PAGO" ]; then
     code=$(echo "$resp" | tail -n1)
     body=$(echo "$resp" | sed '$d')
     estado=$(echo "$body" | jq -r '.estado // empty')
-    if [ "$code" == "200" ] && [ "$estado" == "$estado_esperado" ]; then
+    if { [ "$code" == "200" ] || [ "$code" == "201" ]; } && [ "$estado" == "$estado_esperado" ]; then
       ok "$accion -> $estado"
     else
       fail "$accion (HTTP $code): $body"
