@@ -150,6 +150,9 @@ export class TurnosService {
           direccion: config?.direccion,
           whatsappUrl: config?.whatsappUrl,
           politicaReservas: config?.politicaReservas,
+          nombreNegocio: config?.nombre,
+          logoUrl: config?.logoUrl,
+          colorPrimario: config?.colorPrimario,
         });
       } catch {
         // Silencioso

@@ -50,6 +50,9 @@ export class NotificationsService {
           servicios: turno.detalles.map((d) => d.servicio.nombre),
           direccion: config?.direccion,
           whatsappUrl: config?.whatsappUrl,
+          nombreNegocio: config?.nombre,
+          logoUrl: config?.logoUrl,
+          colorPrimario: config?.colorPrimario,
         });
 
         if (!enviado) continue;

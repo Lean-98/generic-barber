@@ -116,6 +116,39 @@ describe('MailService', () => {
     );
   });
 
+  it('should render the business name in the header', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', { ...turnoData, nombreNegocio: 'Authentic Barber' });
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining('Authentic Barber') }),
+    );
+  });
+
+  it('should use the custom primary color when it is a valid hex', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', { ...turnoData, colorPrimario: '#123ABC' });
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining('#123ABC') }),
+    );
+  });
+
+  it('should fall back to the default brand color when colorPrimario is invalid', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', { ...turnoData, colorPrimario: 'not-a-color' });
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ html: expect.stringContaining('#A9762F') }),
+    );
+  });
+
   it('should send turno reminder and report success', async () => {
     sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
     const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
