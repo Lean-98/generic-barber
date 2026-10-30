@@ -363,4 +363,13 @@ export class UpdateConfiguracionDto {
   @Min(0)
   @Max(100)
   descuentoEmpleadoPorcentaje?: number;
+
+  // --- Recordatorio de turno por email ---
+
+  @ApiPropertyOptional({ description: 'Con cuántas horas de anticipación se manda el recordatorio de turno por email', example: 24 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  recordatorioHorasAntes?: number;
 }

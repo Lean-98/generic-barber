@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -16,6 +17,7 @@ import { CategoriasServiciosModule } from './modules/categorias-servicios/catego
 import { ProductosModule } from './modules/productos/productos.module';
 import { CursosModule } from './modules/cursos/cursos.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         // Límite general: generoso para no molestar el uso normal del panel.
@@ -49,6 +52,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
     ProductosModule,
     CursosModule,
     CloudinaryModule,
+    NotificationsModule,
   ],
   providers: [
     {

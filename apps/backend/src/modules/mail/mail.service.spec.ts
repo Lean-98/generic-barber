@@ -56,4 +56,52 @@ describe('MailService', () => {
       service.sendPasswordResetEmail('user@test.com', 'https://x/reset-password?token=abc'),
     ).resolves.toBeUndefined();
   });
+
+  const turnoData = {
+    nombreCliente: 'Juan',
+    fechaHoraInicio: new Date('2026-06-15T13:00:00Z'),
+    servicios: ['Corte de pelo'],
+    direccion: 'Av. Siempre Viva 123',
+    whatsappUrl: 'https://wa.me/5491112345678',
+  };
+
+  it('should skip sending turno confirmation when RESEND_API_KEY is not configured', async () => {
+    const service = await buildService({ MAIL_FROM: 'test@test.com' });
+
+    await expect(service.sendTurnoConfirmacion('user@test.com', turnoData)).resolves.toBeUndefined();
+    expect(sendMock).not.toHaveBeenCalled();
+  });
+
+  it('should send turno confirmation with date and services in the body', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', turnoData);
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'user@test.com',
+        subject: '¡Turno confirmado!',
+        html: expect.stringContaining('Corte de pelo'),
+      }),
+    );
+  });
+
+  it('should send turno reminder', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoRecordatorio('user@test.com', turnoData);
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'user@test.com', subject: 'Recordatorio de tu turno' }),
+    );
+  });
+
+  it('should not throw when sending turno reminder fails', async () => {
+    sendMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBeUndefined();
+  });
 });

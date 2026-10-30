@@ -49,6 +49,7 @@ model Turno {
   observacion     String?
   fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
   googleEventId   String?  @map("google_event_id")
+  recordatorioEnviadoEn DateTime? @map("recordatorio_enviado_en")
 
   persona     Persona        @relation(fields: [idPersona], references: [idPersona])
   detalles    TurnoDetalle[]
@@ -226,6 +227,7 @@ model ConfiguracionNegocio {
   fidelizacionFechaInicio         DateTime? @db.Date @map("fidelizacion_fecha_inicio")
   descuentoEmpleadoActivo         Boolean  @default(false) @map("descuento_empleado_activo")
   descuentoEmpleadoPorcentaje     Decimal? @db.Decimal(5, 2) @map("descuento_empleado_porcentaje")
+  recordatorioHorasAntes          Int      @default(24) @map("recordatorio_horas_antes")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")

@@ -5,6 +5,7 @@ import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { MailService } from '../mail/mail.service';
 import { horaArAUtc, inicioDiaAr, finDiaAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 
@@ -26,6 +27,7 @@ export class TurnosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly mailService: MailService,
   ) {}
 
   async create(data: CreateTurnoDto): Promise<Turno> {
@@ -135,6 +137,22 @@ export class TurnosService {
       }
     } catch {
       // Silencioso: no falla si Google Calendar no está conectado
+    }
+
+    // 8. Mandar email de confirmación (silencioso, no debe romper la creación del turno)
+    if (turno.persona.mail) {
+      try {
+        const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+        await this.mailService.sendTurnoConfirmacion(turno.persona.mail, {
+          nombreCliente: turno.persona.nombre,
+          fechaHoraInicio: turno.fechaHoraInicio,
+          servicios: servicios.map((s) => s.nombre),
+          direccion: config?.direccion,
+          whatsappUrl: config?.whatsappUrl,
+        });
+      } catch {
+        // Silencioso
+      }
     }
 
     return this.findOne(turno.idTurno);

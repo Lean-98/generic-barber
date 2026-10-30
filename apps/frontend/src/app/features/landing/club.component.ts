@@ -145,6 +145,7 @@ export class ClubComponent implements OnInit {
     fidelizacionFechaInicio: null,
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
+    recordatorioHorasAntes: 24,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();

@@ -4,6 +4,7 @@ import { TurnosService } from './turnos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { MailService } from '../mail/mail.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 
 /**
@@ -59,6 +60,13 @@ describe('TurnosService', () => {
             updateEvent: jest.fn().mockResolvedValue(undefined),
             deleteEvent: jest.fn().mockResolvedValue(undefined),
             isConnected: jest.fn().mockResolvedValue(false),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendTurnoConfirmacion: jest.fn().mockResolvedValue(undefined),
+            sendTurnoRecordatorio: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

@@ -48,6 +48,7 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   fidelizacionFechaInicio: null,
   descuentoEmpleadoActivo: false,
   descuentoEmpleadoPorcentaje: null,
+  recordatorioHorasAntes: 24,
   updatedAt: new Date(0),
 };
 
