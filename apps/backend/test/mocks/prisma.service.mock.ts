@@ -128,6 +128,11 @@ export class PrismaServiceMock {
     upsert: jest.fn(),
   };
 
+  dispositivoConfiable = {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+  };
+
   // Simula la conexión/desconexión sin hacer nada
   async $connect() {}
   async $disconnect() {}

@@ -9,6 +9,11 @@ import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+
+function sha256(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed'),
@@ -23,7 +28,7 @@ describe('AuthService', () => {
   let prismaMock: PrismaServiceMock;
   let jwtService: JwtService;
   let configService: ConfigService;
-  let mailServiceMock: { sendPasswordResetEmail: jest.Mock };
+  let mailServiceMock: { sendPasswordResetEmail: jest.Mock; sendTwoFactorCode: jest.Mock };
 
   const mockUser = {
     usuario: 'admin',
@@ -41,7 +46,10 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
-    mailServiceMock = { sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined) };
+    mailServiceMock = {
+      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+      sendTwoFactorCode: jest.fn().mockResolvedValue(true),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -115,19 +123,29 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should return JWT token when credentials are valid', async () => {
+    it('should require 2FA and email a code when credentials are valid and there is no trusted device', async () => {
       prismaMock.usuarioWeb.findUnique.mockResolvedValue(mockUser);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
 
       const dto: LoginDto = { login: 'admin', password: 'admin123' };
       const result = await service.login(dto);
 
-      expect(result).toHaveProperty('access_token');
-      expect(result.access_token).toBe('mock-jwt-token');
-      expect(result.user.usuario).toBe('admin');
-      expect(result.user).toHaveProperty('email');
-      expect(result.user).toHaveProperty('rol');
-      expect(result.user).not.toHaveProperty('nombre');
-      expect(result.user).not.toHaveProperty('apellido');
+      expect(result.requiresTwoFactor).toBe(true);
+      expect(result.login).toBe('admin');
+      expect(result).not.toHaveProperty('access_token');
+      expect(prismaMock.usuarioWeb.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { usuario: 'admin' },
+          data: expect.objectContaining({
+            twoFactorCodeHash: expect.any(String),
+            twoFactorCodeExpiresAt: expect.any(Date),
+          }),
+        }),
+      );
+      expect(mailServiceMock.sendTwoFactorCode).toHaveBeenCalledWith(
+        mockUser.email,
+        expect.stringMatching(/^\d{6}$/),
+      );
     });
 
     it('should throw UnauthorizedException when credentials are invalid', async () => {
@@ -135,6 +153,104 @@ describe('AuthService', () => {
 
       const dto: LoginDto = { login: 'admin', password: 'wrong' };
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should skip 2FA and return a token right away when a valid trusted device token is given', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(mockUser);
+      prismaMock.dispositivoConfiable.findUnique.mockResolvedValue({
+        usuario: 'admin',
+        tokenHash: sha256('raw-device-token'),
+        expiraEn: new Date(Date.now() + 1000 * 60),
+      });
+
+      const dto: LoginDto = { login: 'admin', password: 'admin123' };
+      const result = await service.login(dto, 'raw-device-token');
+
+      expect(result.requiresTwoFactor).toBe(false);
+      expect(result.access_token).toBe('mock-jwt-token');
+      expect(result.user?.usuario).toBe('admin');
+      expect(prismaMock.usuarioWeb.update).not.toHaveBeenCalled();
+      expect(mailServiceMock.sendTwoFactorCode).not.toHaveBeenCalled();
+    });
+
+    it('should still require 2FA when the device token belongs to a different user', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(mockUser);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
+      prismaMock.dispositivoConfiable.findUnique.mockResolvedValue({
+        usuario: 'otro-usuario',
+        tokenHash: sha256('raw-device-token'),
+        expiraEn: new Date(Date.now() + 1000 * 60),
+      });
+
+      const dto: LoginDto = { login: 'admin', password: 'admin123' };
+      const result = await service.login(dto, 'raw-device-token');
+
+      expect(result.requiresTwoFactor).toBe(true);
+    });
+  });
+
+  describe('verifyTwoFactor', () => {
+    const userWithCode = {
+      ...mockUser,
+      twoFactorCodeHash: sha256('482913'),
+      twoFactorCodeExpiresAt: new Date(Date.now() + 1000 * 60 * 5),
+    };
+
+    it('should return a token and clear the code when it matches and is not expired', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(userWithCode);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
+
+      const result = await service.verifyTwoFactor({ login: 'admin', code: '482913' });
+
+      expect(result.access_token).toBe('mock-jwt-token');
+      expect(result.user.usuario).toBe('admin');
+      expect(result.deviceToken).toBeUndefined();
+      expect(prismaMock.usuarioWeb.update).toHaveBeenCalledWith({
+        where: { usuario: 'admin' },
+        data: { twoFactorCodeHash: null, twoFactorCodeExpiresAt: null },
+      });
+    });
+
+    it('should also create a trusted device when recordarDispositivo is true', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(userWithCode);
+      prismaMock.usuarioWeb.update.mockResolvedValue(mockUser);
+      prismaMock.dispositivoConfiable.create.mockResolvedValue({});
+
+      const result = await service.verifyTwoFactor({
+        login: 'admin',
+        code: '482913',
+        recordarDispositivo: true,
+      });
+
+      expect(result.deviceToken).toBeDefined();
+      expect(prismaMock.dispositivoConfiable.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            usuario: 'admin',
+            tokenHash: expect.any(String),
+            expiraEn: expect.any(Date),
+          }),
+        }),
+      );
+    });
+
+    it('should throw UnauthorizedException when the code does not match', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue(userWithCode);
+
+      await expect(
+        service.verifyTwoFactor({ login: 'admin', code: '000000' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException when the code expired', async () => {
+      prismaMock.usuarioWeb.findUnique.mockResolvedValue({
+        ...userWithCode,
+        twoFactorCodeExpiresAt: new Date(Date.now() - 1000),
+      });
+
+      await expect(
+        service.verifyTwoFactor({ login: 'admin', code: '482913' }),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 

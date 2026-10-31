@@ -75,6 +75,53 @@ export class MailService {
     }
   }
 
+  /**
+   * Código de verificación en dos pasos del login. No relanza errores (mismo
+   * motivo que el resto de esta clase), pero el login necesita saber si
+   * realmente se mandó: si falla, no tiene sentido dejar al usuario esperando
+   * un código que nunca va a llegar.
+   */
+  async sendTwoFactorCode(to: string, code: string): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY no configurada: no se envió el código 2FA a ${to}`);
+      return false;
+    }
+
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject: 'Tu código de verificación',
+      html: `
+        <!doctype html>
+        <html lang="es">
+        <head><meta charset="utf-8"></head>
+        <body style="margin:0;padding:0;background-color:${MARCA.base200};font-family:${MARCA.fontSans};">
+          <div style="padding:32px 16px;">
+            <table role="presentation" width="100%" style="max-width:420px;margin:0 auto;border-collapse:collapse;">
+              <tr>
+                <td style="background-color:${MARCA.base100};border:1px solid ${MARCA.base300};border-radius:12px;padding:32px;text-align:center;">
+                  <p style="margin:0 0 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${MARCA.primarioDefault};">Verificación de ingreso</p>
+                  <p style="margin:0 0 20px;font-size:14px;color:${MARCA.textoCuerpo};">Usá este código para completar el inicio de sesión:</p>
+                  <div style="font-size:34px;font-weight:700;letter-spacing:0.12em;color:${MARCA.neutral};margin-bottom:20px;">${code}</div>
+                  <p style="margin:0;font-size:12px;color:${MARCA.textoSuave};">Vence en 10 minutos. Si no fuiste vos, ignorá este mensaje.</p>
+                  <p style="margin:18px 0 0;font-size:11px;color:${MARCA.textoSuave};opacity:0.7;">Powered by ${POWERED_BY_NAME}</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      this.logger.error(`Fallo al enviar código 2FA a ${to}: ${JSON.stringify(error)}`);
+      return false;
+    }
+
+    return true;
+  }
+
   /** Se manda apenas se crea el turno (admin o reserva pública). Silencioso: nunca debe hacer fallar la creación del turno. */
   async sendTurnoConfirmacion(to: string, data: TurnoMailData): Promise<void> {
     await this.enviarTurnoMail(to, {

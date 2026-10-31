@@ -11,6 +11,8 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   MessageResponse,
+  Verify2faRequest,
+  Verify2faResponse,
 } from '../models/auth.model';
 
 @Injectable({
@@ -25,13 +27,29 @@ export class AuthService {
   constructor(private readonly http: HttpClient, private readonly router: Router) {}
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
-      tap((response) => {
-        localStorage.setItem('access_token', response.access_token);
-        this.currentUser.set(response.user);
-        this.isAuthenticated.set(true);
-      })
-    );
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials, { withCredentials: true })
+      .pipe(
+        tap((response) => {
+          if (!response.requiresTwoFactor && response.access_token && response.user) {
+            localStorage.setItem('access_token', response.access_token);
+            this.currentUser.set(response.user);
+            this.isAuthenticated.set(true);
+          }
+        })
+      );
+  }
+
+  verifyTwoFactor(data: Verify2faRequest): Observable<Verify2faResponse> {
+    return this.http
+      .post<Verify2faResponse>(`${this.apiUrl}/auth/verify-2fa`, data, { withCredentials: true })
+      .pipe(
+        tap((response) => {
+          localStorage.setItem('access_token', response.access_token);
+          this.currentUser.set(response.user);
+          this.isAuthenticated.set(true);
+        })
+      );
   }
 
   register(data: RegisterRequest): Observable<UserProfile> {

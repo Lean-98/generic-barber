@@ -12,10 +12,24 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Verify2faDto } from './dto/verify-2fa.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+const TWO_FACTOR_CODE_TTL_MS = 10 * 60 * 1000;
+export const DEVICE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const DEVICE_COOKIE_NAME = 'device_token';
+
+export interface LoginResult {
+  requiresTwoFactor: boolean;
+  /** Presente solo cuando requiresTwoFactor es false (login directo o dispositivo ya confiable). */
+  access_token?: string;
+  user?: UserPublic;
+  /** Presente solo cuando requiresTwoFactor es true, para que el siguiente paso sepa a quién validarle el código. */
+  login?: string;
+  message?: string;
+}
 
 /**
  * Datos públicos de un usuario (sin hash de contraseña).
@@ -68,29 +82,106 @@ export class AuthService {
     return null;
   }
 
-  async login(dto: LoginDto) {
-    const user = await this.validateUser(dto.login, dto.password);
-    if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
+  private signAccessToken(user: UserPublic): string {
     const payload = {
       sub: user.usuario,
       email: user.email,
       rol: user.rol,
     };
 
-    return {
-      access_token: this.jwtService.sign(payload, {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
-      }),
-      user: {
-        usuario: user.usuario,
-        email: user.email,
-        rol: user.rol,
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_SECRET'),
+      expiresIn: this.configService.get('JWT_EXPIRES_IN', '7d'),
+    });
+  }
+
+  /**
+   * Si viene un `deviceToken` vigente (cookie seteada al verificar 2FA con
+   * "recordar este dispositivo"), se salta el segundo paso. Si no, el login
+   * queda pendiente de verificación y no devuelve token todavía.
+   */
+  async login(dto: LoginDto, deviceToken?: string): Promise<LoginResult> {
+    const user = await this.validateUser(dto.login, dto.password);
+    if (!user) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    if (deviceToken && (await this.esDispositivoConfiable(user.usuario, deviceToken))) {
+      return {
+        requiresTwoFactor: false,
+        access_token: this.signAccessToken(user),
+        user,
+      };
+    }
+
+    const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
+    await this.prisma.usuarioWeb.update({
+      where: { usuario: user.usuario },
+      data: {
+        twoFactorCodeHash: this.hashToken(code),
+        twoFactorCodeExpiresAt: new Date(Date.now() + TWO_FACTOR_CODE_TTL_MS),
       },
+    });
+    await this.mailService.sendTwoFactorCode(user.email, code);
+
+    return {
+      requiresTwoFactor: true,
+      login: user.usuario,
+      message: 'Te enviamos un código de verificación a tu correo.',
     };
+  }
+
+  private async esDispositivoConfiable(usuario: string, deviceToken: string): Promise<boolean> {
+    const dispositivo = await this.prisma.dispositivoConfiable.findUnique({
+      where: { tokenHash: this.hashToken(deviceToken) },
+    });
+    return !!dispositivo && dispositivo.usuario === usuario && dispositivo.expiraEn > new Date();
+  }
+
+  /**
+   * Segundo paso del login. Si `recordarDispositivo` viene en true, además
+   * genera un token de dispositivo nuevo para que el controller lo deje en
+   * una cookie y así no se vuelva a pedir 2FA desde ahí durante 30 días.
+   */
+  async verifyTwoFactor(
+    dto: Verify2faDto,
+  ): Promise<{ access_token: string; user: UserPublic; deviceToken?: string }> {
+    const user = await this.findUserByLogin(dto.login);
+
+    if (
+      !user ||
+      !user.twoFactorCodeHash ||
+      !user.twoFactorCodeExpiresAt ||
+      user.twoFactorCodeExpiresAt < new Date() ||
+      user.twoFactorCodeHash !== this.hashToken(dto.code)
+    ) {
+      throw new UnauthorizedException('Código inválido o expirado');
+    }
+
+    await this.prisma.usuarioWeb.update({
+      where: { usuario: user.usuario },
+      data: { twoFactorCodeHash: null, twoFactorCodeExpiresAt: null },
+    });
+
+    const userPublic: UserPublic = { usuario: user.usuario, email: user.email, rol: user.rol };
+    const result: { access_token: string; user: UserPublic; deviceToken?: string } = {
+      access_token: this.signAccessToken(userPublic),
+      user: userPublic,
+    };
+
+    if (dto.recordarDispositivo) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      await this.prisma.dispositivoConfiable.create({
+        data: {
+          usuario: user.usuario,
+          tokenHash: this.hashToken(rawToken),
+          expiraEn: new Date(Date.now() + DEVICE_TOKEN_TTL_MS),
+        },
+      });
+      result.deviceToken = rawToken;
+    }
+
+    return result;
   }
 
   async register(dto: RegisterDto) {

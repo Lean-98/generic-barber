@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as swaggerUi from 'swagger-ui-express';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
@@ -13,6 +14,9 @@ async function bootstrap() {
   // 0. Cabeceras de seguridad. CSP desactivada porque rompe los assets
   // inline que usa Swagger UI (montado más abajo).
   app.use(helmet({ contentSecurityPolicy: false }));
+
+  // 0.b Necesario para leer la cookie del dispositivo confiable en /auth/login.
+  app.use(cookieParser());
 
   // 1. Global prefix
   app.setGlobalPrefix('api');

@@ -104,11 +104,30 @@ model UsuarioWeb {
   resetTokenHash      String?   @map("reset_token_hash")
   resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
 
+  twoFactorCodeHash      String?   @map("two_factor_code_hash")
+  twoFactorCodeExpiresAt DateTime? @map("two_factor_code_expires_at")
+
   persona      Persona        @relation(fields: [idPersona], references: [idPersona])
   movimientos  MovimientoCaja[]
   cierres      CierreCaja[]
+  dispositivosConfiables DispositivoConfiable[]
 
   @@map("usuarios_web")
+}
+
+// Dispositivo en el que un usuario eligió "recordar este dispositivo" al
+// verificar el 2FA, para no tener que pedirle el código de nuevo en cada
+// login mientras el token siga vigente (ver auth.service.ts).
+model DispositivoConfiable {
+  id         Int      @id @default(autoincrement())
+  usuario    String
+  tokenHash  String   @unique @map("token_hash")
+  expiraEn   DateTime @map("expira_en")
+  creadoEn   DateTime @default(now()) @map("creado_en")
+
+  usuarioWeb UsuarioWeb @relation(fields: [usuario], references: [usuario], onDelete: Cascade)
+
+  @@map("dispositivos_confiables")
 }
 
 model FormaPago {

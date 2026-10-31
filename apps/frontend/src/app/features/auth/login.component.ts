@@ -53,71 +53,137 @@ import { BrandingService } from '../../core/services/branding.service';
             <app-brand-mark [hero]="true" barHeight="h-10" />
           </div>
 
-          <h2 class="font-display text-2xl font-medium">Iniciar sesión</h2>
-          <p class="mt-1 text-sm text-base-content/60">
-            Ingresá tus credenciales para continuar.
-          </p>
+          @if (step() === 'credentials') {
+            <h2 class="font-display text-2xl font-medium">Iniciar sesión</h2>
+            <p class="mt-1 text-sm text-base-content/60">
+              Ingresá tus credenciales para continuar.
+            </p>
 
-          <form (ngSubmit)="onSubmit()" class="mt-8 space-y-4">
-            <div class="form-control">
-              <label class="label pb-1.5">
-                <span class="label-text text-sm font-medium"
-                  >Usuario o email</span
-                >
-              </label>
-              <input
-                type="text"
-                class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
-                [class.input-error]="error()"
-                [(ngModel)]="login"
-                name="login"
-                placeholder="admin o admin@example.com"
-                required
-              />
-            </div>
-
-            <div class="form-control">
-              <label class="label pb-1.5">
-                <span class="label-text text-sm font-medium">Contraseña</span>
-              </label>
-              <input
-                type="password"
-                class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
-                [class.input-error]="error()"
-                [(ngModel)]="password"
-                name="password"
-                placeholder="••••••••"
-                required
-              />
-              <div class="mt-1.5 text-right">
-                <a routerLink="/forgot-password" class="text-sm text-base-content/60 hover:text-primary">
-                  ¿Olvidaste tu contraseña?
-                </a>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              class="btn btn-primary mt-2 w-full"
-              [disabled]="loading()"
-            >
-              @if (loading()) {
-                <app-icon
-                  name="loader"
-                  [size]="18"
-                  className="animate-spin-slow"
+            <form (ngSubmit)="onSubmit()" class="mt-8 space-y-4">
+              <div class="form-control">
+                <label class="label pb-1.5">
+                  <span class="label-text text-sm font-medium"
+                    >Usuario o email</span
+                  >
+                </label>
+                <input
+                  type="text"
+                  class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  [class.input-error]="error()"
+                  [(ngModel)]="login"
+                  name="login"
+                  placeholder="admin o admin@example.com"
+                  required
                 />
-              }
-              {{ loading() ? 'Ingresando…' : 'Ingresar' }}
-            </button>
-
-            @if (error()) {
-              <div class="alert alert-error py-2.5 text-sm">
-                <app-icon name="alert-circle" [size]="18" />
-                <span>{{ error() }}</span>
               </div>
-            }
-          </form>
+
+              <div class="form-control">
+                <label class="label pb-1.5">
+                  <span class="label-text text-sm font-medium">Contraseña</span>
+                </label>
+                <input
+                  type="password"
+                  class="input input-bordered w-full focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  [class.input-error]="error()"
+                  [(ngModel)]="password"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                />
+                <div class="mt-1.5 text-right">
+                  <a routerLink="/forgot-password" class="text-sm text-base-content/60 hover:text-primary">
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="btn btn-primary mt-2 w-full"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <app-icon
+                    name="loader"
+                    [size]="18"
+                    className="animate-spin-slow"
+                  />
+                }
+                {{ loading() ? 'Ingresando…' : 'Ingresar' }}
+              </button>
+
+              @if (error()) {
+                <div class="alert alert-error py-2.5 text-sm">
+                  <app-icon name="alert-circle" [size]="18" />
+                  <span>{{ error() }}</span>
+                </div>
+              }
+            </form>
+          } @else {
+            <h2 class="font-display text-2xl font-medium">Verificá tu identidad</h2>
+            <p class="mt-1 text-sm text-base-content/60">
+              Te enviamos un código de 6 dígitos por correo. Ingresalo para continuar.
+            </p>
+
+            <form (ngSubmit)="onVerifyCode()" class="mt-8 space-y-4">
+              <div class="form-control">
+                <label class="label pb-1.5">
+                  <span class="label-text text-sm font-medium">Código de verificación</span>
+                </label>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  class="input input-bordered w-full text-center text-lg tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  [class.input-error]="error()"
+                  [(ngModel)]="code"
+                  name="code"
+                  placeholder="000000"
+                  required
+                />
+              </div>
+
+              <label class="flex items-center gap-2 text-sm text-base-content/70">
+                <input
+                  type="checkbox"
+                  class="checkbox checkbox-sm"
+                  [(ngModel)]="recordarDispositivo"
+                  name="recordarDispositivo"
+                />
+                Recordar este dispositivo por 30 días
+              </label>
+
+              <button
+                type="submit"
+                class="btn btn-primary mt-2 w-full"
+                [disabled]="loading()"
+              >
+                @if (loading()) {
+                  <app-icon
+                    name="loader"
+                    [size]="18"
+                    className="animate-spin-slow"
+                  />
+                }
+                {{ loading() ? 'Verificando…' : 'Verificar' }}
+              </button>
+
+              @if (error()) {
+                <div class="alert alert-error py-2.5 text-sm">
+                  <app-icon name="alert-circle" [size]="18" />
+                  <span>{{ error() }}</span>
+                </div>
+              }
+
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm w-full"
+                (click)="volverACredenciales()"
+              >
+                Volver
+              </button>
+            </form>
+          }
         </div>
       </div>
     </div>
@@ -130,6 +196,9 @@ export class LoginComponent {
 
   login = '';
   password = '';
+  code = '';
+  recordarDispositivo = true;
+  step = signal<'credentials' | 'code'>('credentials');
   loading = signal(false);
   error = signal('');
   currentYear = new Date().getFullYear();
@@ -146,9 +215,14 @@ export class LoginComponent {
     this.authService
       .login({ login: this.login, password: this.password })
       .subscribe({
-        next: () => {
+        next: (response) => {
           this.loading.set(false);
-          this.router.navigate(['/dashboard']);
+          if (response.requiresTwoFactor) {
+            this.login = response.login || this.login;
+            this.step.set('code');
+          } else {
+            this.router.navigate(['/dashboard']);
+          }
         },
         error: (err) => {
           this.loading.set(false);
@@ -157,5 +231,40 @@ export class LoginComponent {
           this.error.set(message);
         },
       });
+  }
+
+  onVerifyCode(): void {
+    if (!this.code) {
+      this.error.set('Ingresá el código que te enviamos por correo');
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+
+    this.authService
+      .verifyTwoFactor({
+        login: this.login,
+        code: this.code,
+        recordarDispositivo: this.recordarDispositivo,
+      })
+      .subscribe({
+        next: () => {
+          this.loading.set(false);
+          this.router.navigate(['/dashboard']);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          const message =
+            err?.error?.message || err?.message || 'Código inválido o expirado';
+          this.error.set(message);
+        },
+      });
+  }
+
+  volverACredenciales(): void {
+    this.step.set('credentials');
+    this.code = '';
+    this.error.set('');
   }
 }
