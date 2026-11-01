@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ReservasPublicasService, ClienteExistenteResponse, FormaPagoPublica } from '../../shared/services/reservas-publicas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
@@ -15,10 +15,15 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 @Component({
   selector: 'app-reservar',
   standalone: true,
-  imports: [FormsModule, IconComponent, FechaArPipe, PesosPipe, EmailValidoPipe],
+  imports: [FormsModule, RouterLink, IconComponent, FechaArPipe, PesosPipe, EmailValidoPipe],
   template: `
     <div class="min-h-screen bg-base-200 py-8 px-4 md:py-12 text-base-content">
       <div class="mx-auto max-w-4xl space-y-8">
+
+        <a routerLink="/" class="btn btn-ghost btn-sm -mb-4 gap-2">
+          <app-icon name="arrow-left" [size]="16" />
+          Volver al inicio
+        </a>
 
         <!-- Header -->
         <div class="text-center space-y-3">
@@ -285,10 +290,16 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                   <div class="flex-1">
                     <p class="font-medium">¡Turno reservado con éxito!</p>
                     <p class="text-sm opacity-90">Te esperamos en el horario elegido. Te enviaremos un recordatorio por email.</p>
-                    <button class="btn btn-primary btn-sm mt-3 gap-2" (click)="reset()">
-                      <app-icon name="plus" [size]="16" />
-                      Reservar otro
-                    </button>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <button class="btn btn-primary btn-sm gap-2" (click)="reset()">
+                        <app-icon name="plus" [size]="16" />
+                        Reservar otro
+                      </button>
+                      <a routerLink="/" class="btn btn-ghost btn-sm gap-2">
+                        <app-icon name="arrow-left" [size]="16" />
+                        Volver al inicio
+                      </a>
+                    </div>
                   </div>
                 </div>
               }
