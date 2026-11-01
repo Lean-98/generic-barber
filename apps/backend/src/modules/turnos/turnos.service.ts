@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Turno } from '@prisma/client';
+import { Pago, Prisma, Turno } from '@prisma/client';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
@@ -225,6 +225,8 @@ export class TurnosService {
               servicio: true,
             },
           },
+          // Solo para saber si se cobró (el panel no ofrece "No vino" en un turno ya pagado).
+          pagos: { select: { idPago: true } },
         },
       }),
       this.prisma.turno.count({ where }),
@@ -232,7 +234,7 @@ export class TurnosService {
     return paginar(data, total, page, limit);
   }
 
-  async findOne(id: number): Promise<Turno & { detalles: any[]; persona: any }> {
+  async findOne(id: number): Promise<Turno & { detalles: any[]; persona: any; pagos: Pago[] }> {
     const turno = await this.prisma.turno.findUnique({
       where: { idTurno: id },
       include: {
@@ -433,8 +435,18 @@ export class TurnosService {
 
   async marcarNoShow(id: number): Promise<Turno> {
     const turno = await this.findOne(id);
-    const estado = getTurnoState(turno.estado);
-    estado.marcarNoShow();
+
+    // Excepción a la regla del State: un turno COMPLETADO sin ningún pago es
+    // uno que el cron cerró solo por horario, sin que nadie lo atendiera ni
+    // cobrara. Ese sí se puede corregir a "no vino". Si ya tiene pagos, se
+    // atendió de verdad y no se toca.
+    if (turno.estado === 'COMPLETADO') {
+      if (turno.pagos.length > 0) {
+        throw new BadRequestException('No se puede marcar que no vino: el turno ya tiene pagos registrados');
+      }
+    } else {
+      getTurnoState(turno.estado).marcarNoShow();
+    }
 
     // Si tiene un evento en Google Calendar, eliminarlo
     if (turno.googleEventId) {

@@ -503,4 +503,45 @@ describe('TurnosService', () => {
     });
   });
 
+  describe('marcarNoShow (el cliente no vino)', () => {
+    const conEstado = (estado: string, extra: Record<string, unknown> = {}) => ({
+      ...mockTurno, estado, googleEventId: 'evt-1', pagos: [], ...extra,
+    });
+
+    it.each(['CONFIRMADO', 'EN_PROCESO'])('should mark a %s turno as NO_SHOW and remove the calendar event', async (estado) => {
+      prismaMock.turno.findUnique.mockResolvedValue(conEstado(estado));
+      prismaMock.turno.update.mockResolvedValue(conEstado('NO_SHOW'));
+
+      await service.marcarNoShow(1);
+
+      expect(prismaMock.turno.update).toHaveBeenCalledWith({
+        where: { idTurno: 1 },
+        data: { estado: 'NO_SHOW', googleEventId: null },
+      });
+      expect((service as any).googleCalendarService.deleteEvent).toHaveBeenCalledWith('evt-1');
+    });
+
+    it('should allow it on a COMPLETADO turno that was never paid (closed by the cron)', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(conEstado('COMPLETADO'));
+      prismaMock.turno.update.mockResolvedValue(conEstado('NO_SHOW'));
+
+      await service.marcarNoShow(1);
+
+      expect(prismaMock.turno.update).toHaveBeenCalled();
+    });
+
+    it('should reject it on a COMPLETADO turno that already has payments', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(conEstado('COMPLETADO', { pagos: [{ idPago: 3 }] }));
+
+      await expect(service.marcarNoShow(1)).rejects.toThrow(/ya tiene pagos/);
+      expect(prismaMock.turno.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['CANCELADO', 'NO_SHOW', 'PENDIENTE'])('should reject it on a %s turno', async (estado) => {
+      prismaMock.turno.findUnique.mockResolvedValue(conEstado(estado));
+
+      await expect(service.marcarNoShow(1)).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.update).not.toHaveBeenCalled();
+    });
+  });
 });

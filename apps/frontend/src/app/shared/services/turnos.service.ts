@@ -40,10 +40,6 @@ export class TurnosService {
     return this.http.post<Turno>(`${this.apiUrl}/turnos/${id}/finalizar`, {});
   }
 
-  registrarPago(id: number): Observable<Turno> {
-    return this.http.post<Turno>(`${this.apiUrl}/turnos/${id}/pagar`, {});
-  }
-
   noShow(id: number): Observable<Turno> {
     return this.http.post<Turno>(`${this.apiUrl}/turnos/${id}/no-show`, {});
   }

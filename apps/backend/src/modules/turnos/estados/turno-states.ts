@@ -78,7 +78,8 @@ export class EnProcesoState implements ITurnoState {
     throw new BadRequestException('No se puede registrar pago: el turno está EN_PROCESO (finalice primero)');
   }
   marcarNoShow() {
-    throw new BadRequestException('No se puede marcar no-show: el turno está EN_PROCESO');
+    // Permitido: el cron pasa el turno a EN_PROCESO solo a la hora de inicio,
+    // así que un cliente que no vino casi siempre se detecta en este estado.
   }
   getEstado() { return 'EN_PROCESO'; }
 }

@@ -6,6 +6,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
 import { PaginationComponent } from '../../shared/ui/pagination.component';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 const LIMITE_PAGINA = 20;
 
@@ -68,6 +69,13 @@ interface TurnoVisual {
         </div>
       </div>
 
+      @if (errorAccion()) {
+        <div class="alert alert-error py-2.5 text-sm">
+          <app-icon name="alert-circle" [size]="18" />
+          <span>{{ errorAccion() }}</span>
+        </div>
+      }
+
       @if (vista() === 'lista') {
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
@@ -129,10 +137,10 @@ interface TurnoVisual {
                               Finalizar
                             </button>
                           }
-                          @if (turno.estado === 'COMPLETADO') {
-                            <button class="btn btn-primary btn-sm gap-1" (click)="pagar(turno.idTurno)">
-                              <app-icon name="credit-card" [size]="14" />
-                              Pagar
+                          @if (puedeMarcarNoVino(turno)) {
+                            <button class="btn btn-ghost btn-sm gap-1 text-warning hover:bg-warning/10" (click)="marcarNoVino(turno)" title="El cliente no se presentó">
+                              <app-icon name="x" [size]="14" />
+                              No vino
                             </button>
                           }
                           @if (turno.estado === 'PENDIENTE' || turno.estado === 'CONFIRMADO') {
@@ -264,6 +272,7 @@ export class TurnosComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   turnosLista = signal<Turno[]>([]);
+  errorAccion = signal('');
   turnosSemana = signal<Turno[]>([]);
   pagina = signal(1);
   totalPaginas = signal(1);
@@ -474,8 +483,27 @@ export class TurnosComponent implements OnInit {
     this.turnosService.finalizar(id).subscribe(() => this.loadTurnos());
   }
 
-  pagar(id: number): void {
-    this.turnosService.registrarPago(id).subscribe(() => this.loadTurnos());
+  /**
+   * "No vino": cuando ya llegó la hora del turno (confirmado o en proceso), o
+   * si el sistema lo completó solo por horario y nunca se cobró. Un turno
+   * cobrado se atendió de verdad, así que ahí no se ofrece.
+   */
+  puedeMarcarNoVino(turno: Turno): boolean {
+    if (turno.estado === 'EN_PROCESO') return true;
+    if (turno.estado === 'CONFIRMADO') return new Date(turno.fechaHoraInicio).getTime() <= Date.now();
+    if (turno.estado === 'COMPLETADO') return !turno.pagos?.length;
+    return false;
+  }
+
+  marcarNoVino(turno: Turno): void {
+    const nombre = turno.persona ? `${turno.persona.nombre} ${turno.persona.apellido}` : 'el cliente';
+    if (!confirm(`¿Confirmás que ${nombre} no vino al turno? No se puede deshacer.`)) return;
+
+    this.errorAccion.set('');
+    this.turnosService.noShow(turno.idTurno).subscribe({
+      next: () => this.loadTurnos(),
+      error: (err) => this.errorAccion.set(mensajeDeErrorHttp(err, 'No se pudo marcar el turno')),
+    });
   }
 
   iniciales(persona?: { nombre?: string; apellido?: string }): string {
