@@ -8,6 +8,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { PaginationComponent } from '../../shared/ui/pagination.component';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 const LIMITE_PAGINA = 20;
 
@@ -176,7 +177,7 @@ const LIMITE_PAGINA = 20;
             </div>
             <div class="form-control">
               <label class="label"><span class="label-text">Duración (min)</span></label>
-              <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Duración (min)" required />
+              <input type="number" min="5" max="180" class="input input-bordered w-full" [(ngModel)]="nuevaDuracion" name="duracion" placeholder="Entre 5 y 180" required />
             </div>
           </div>
           <div class="form-control">
@@ -189,6 +190,12 @@ const LIMITE_PAGINA = 20;
               <span class="label-text">Cuenta para el programa de fidelización</span>
             </label>
           </div>
+          @if (errorForm()) {
+            <div class="alert alert-error mt-4 py-2.5 text-sm">
+              <app-icon name="alert-circle" [size]="18" />
+              <span>{{ errorForm() }}</span>
+            </div>
+          }
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
             <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoPrecio || !nuevaDuracion">
@@ -235,7 +242,7 @@ const LIMITE_PAGINA = 20;
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Duración (min)</span></label>
-                <input type="number" class="input input-bordered w-full" [(ngModel)]="s.duracionMinutos" name="editDuracion" required />
+                <input type="number" min="5" max="180" class="input input-bordered w-full" [(ngModel)]="s.duracionMinutos" name="editDuracion" placeholder="Entre 5 y 180" required />
               </div>
             </div>
             <div class="form-control">
@@ -254,6 +261,12 @@ const LIMITE_PAGINA = 20;
                 <span class="label-text">Cuenta para el programa de fidelización</span>
               </label>
             </div>
+            @if (errorForm()) {
+              <div class="alert alert-error mt-4 py-2.5 text-sm">
+                <app-icon name="alert-circle" [size]="18" />
+                <span>{{ errorForm() }}</span>
+              </div>
+            }
             <div class="modal-action">
               <button type="button" class="btn btn-ghost" (click)="cerrarEditar()">Cancelar</button>
               <button type="submit" class="btn btn-primary" [class.btn-loading]="guardando()" [disabled]="guardando()">Guardar</button>
@@ -403,6 +416,7 @@ export class ServiciosComponent implements OnInit {
   guardando = signal(false);
   eliminando = signal(false);
   creando = signal(false);
+  errorForm = signal('');
 
   nuevoNombre = '';
   nuevaCategoria: number | undefined = undefined;
@@ -449,6 +463,7 @@ export class ServiciosComponent implements OnInit {
   }
 
   abrirCrear(): void {
+    this.errorForm.set('');
     this.nuevoNombre = '';
     this.nuevaCategoria = undefined;
     this.nuevoPrecio = '';
@@ -484,13 +499,15 @@ export class ServiciosComponent implements OnInit {
         this.loadServicios();
         this.loadCategorias();
       },
-      error: () => {
+      error: (err) => {
         this.creando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }
 
   editar(servicio: Servicio): void {
+    this.errorForm.set('');
     this.servicioEditando.set({ ...servicio });
     this.editarModalRef.nativeElement.showModal();
   }
@@ -523,8 +540,9 @@ export class ServiciosComponent implements OnInit {
         this.loadServicios();
         this.loadCategorias();
       },
-      error: () => {
+      error: (err) => {
         this.guardando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }

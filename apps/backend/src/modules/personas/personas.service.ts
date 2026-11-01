@@ -76,12 +76,16 @@ export class PersonasService {
   }
 
   async searchByName(query: string, page = 1, limit = 20): Promise<PaginatedResult<Persona>> {
+    const digitosBusqueda = query.replace(/\D/g, '').replace(/^0+/, '');
     const where: Prisma.PersonaWhereInput = {
       OR: [
         { nombre: { contains: query, mode: 'insensitive' } },
         { apellido: { contains: query, mode: 'insensitive' } },
         { mail: { contains: query, mode: 'insensitive' } },
         { telefono: { contains: query, mode: 'insensitive' } },
+        // Los teléfonos se guardan solo con dígitos: "351 339-3667" tiene que
+        // encontrar "3513393667".
+        ...(digitosBusqueda.length >= 3 ? [{ telefono: { contains: digitosBusqueda } }] : []),
       ],
     };
     const [data, total] = await Promise.all([

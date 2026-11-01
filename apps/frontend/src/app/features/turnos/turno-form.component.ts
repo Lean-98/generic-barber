@@ -11,6 +11,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
 import { fechaHoraArAIso } from '../../shared/utils/fecha-ar.util';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 @Component({
   selector: 'app-turno-form',
@@ -89,7 +90,7 @@ import { fechaHoraArAIso } from '../../shared/utils/fecha-ar.util';
                   <label class="label">
                     <span class="label-text">Teléfono</span>
                   </label>
-                  <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoClienteTelefono" name="nuevoTelefono" placeholder="Teléfono" />
+                  <input type="tel" inputmode="tel" class="input input-bordered w-full" [(ngModel)]="nuevoClienteTelefono" name="nuevoTelefono" placeholder="Teléfono (ej: 351 1234567)" />
                 </div>
               </div>
               <button class="btn btn-secondary gap-2" (click)="crearCliente()" [disabled]="!nuevoClienteNombre() || !nuevoClienteApellido()">
@@ -304,8 +305,12 @@ export class TurnoFormComponent implements OnInit {
       nombre: this.nuevoClienteNombre(),
       apellido: this.nuevoClienteApellido(),
       telefono: this.nuevoClienteTelefono() || undefined,
-    }).subscribe((cliente) => {
-      this.clienteSeleccionado.set(cliente);
+    }).subscribe({
+      next: (cliente) => {
+        this.error.set('');
+        this.clienteSeleccionado.set(cliente);
+      },
+      error: (err) => this.error.set(mensajeDeErrorHttp(err, 'No se pudo crear el cliente')),
     });
   }
 

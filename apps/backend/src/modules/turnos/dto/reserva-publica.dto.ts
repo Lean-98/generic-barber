@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsTelefono } from '../../../common/decorators/is-telefono.decorator';
 
 class ServicioReservaDto {
   @ApiProperty({ description: 'ID del servicio', example: 1 })
@@ -31,9 +32,9 @@ export class ReservaPublicaDto {
   @IsNotEmpty()
   email: string;
 
-  @ApiPropertyOptional({ description: 'Teléfono', example: '+54 11 1234-5678' })
-  @IsString()
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Teléfono', example: '3511234567' })
+  // Se guarda solo con dígitos (ver IsTelefono)
+  @IsTelefono()
   telefono?: string;
 
   @ApiProperty({ description: 'Fecha y hora de inicio del turno', example: '2026-06-15T10:00:00.000Z' })

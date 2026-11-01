@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEmail, IsDateString, IsDate, IsNotEmpty, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsTelefono } from '../../../common/decorators/is-telefono.decorator';
 
 export class CreatePersonaDto {
   @ApiProperty({ description: 'Nombre del cliente', example: 'Juan' })
@@ -18,9 +19,9 @@ export class CreatePersonaDto {
   @IsOptional()
   mail?: string;
 
-  @ApiPropertyOptional({ description: 'Teléfono del cliente', example: '+54 11 1234-5678' })
-  @IsString()
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Teléfono del cliente', example: '3511234567' })
+  // Se guarda solo con dígitos (ver IsTelefono)
+  @IsTelefono()
   telefono?: string;
 
   @ApiPropertyOptional({ description: 'Fecha de nacimiento', example: '1990-05-15' })

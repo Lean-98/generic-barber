@@ -92,7 +92,7 @@ async function main() {
       nombre: 'Admin',
       apellido: 'Peluquero',
       mail: 'admin@peluqueria.com',
-      telefono: '+54 11 0000-0000',
+      telefono: '541100000000',
     },
   });
 
@@ -112,21 +112,21 @@ async function main() {
 
   // 3. Clientes de demo
   const clientesData = [
-    { nombre: 'Juan', apellido: 'Pérez', mail: 'juan.perez@mail.com', telefono: '+54 11 1111-1111', instagram: '@juanperez' },
-    { nombre: 'María', apellido: 'García', mail: 'maria.garcia@mail.com', telefono: '+54 11 2222-2222', instagram: '@mariagar' },
-    { nombre: 'Carlos', apellido: 'López', mail: 'carlos.lopez@mail.com', telefono: '+54 11 3333-3333' },
-    { nombre: 'Ana', apellido: 'Martínez', mail: 'ana.martinez@mail.com', telefono: '+54 11 4444-4444', instagram: '@anamartinez' },
-    { nombre: 'Lucía', apellido: 'Rodríguez', mail: 'lucia.rodriguez@mail.com', telefono: '+54 11 5555-5555' },
-    { nombre: 'Pedro', apellido: 'Sánchez', mail: 'pedro.sanchez@mail.com', telefono: '+54 11 6666-6666' },
-    { nombre: 'Sofía', apellido: 'Fernández', mail: 'sofia.fernandez@mail.com', telefono: '+54 11 7777-7777', instagram: '@sofiaf' },
-    { nombre: 'Martín', apellido: 'González', mail: 'martin.gonzalez@mail.com', telefono: '+54 11 8888-8888' },
-    { nombre: 'Valentina', apellido: 'Díaz', mail: 'valentina.diaz@mail.com', telefono: '+54 11 9999-9999' },
-    { nombre: 'Mateo', apellido: 'Ruiz', mail: 'mateo.ruiz@mail.com', telefono: '+54 11 1010-1010' },
-    { nombre: 'Camila', apellido: 'Silva', mail: 'camila.silva@mail.com', telefono: '+54 11 1212-1212' },
-    { nombre: 'Joaquín', apellido: 'Torres', mail: 'joaquin.torres@mail.com', telefono: '+54 11 1313-1313' },
-    { nombre: 'Isabella', apellido: 'Romero', mail: 'isabella.romero@mail.com', telefono: '+54 11 1414-1414' },
-    { nombre: 'Tomás', apellido: 'Flores', mail: 'tomas.flores@mail.com', telefono: '+54 11 1515-1515' },
-    { nombre: 'Morena', apellido: 'Castro', mail: 'morena.castro@mail.com', telefono: '+54 11 1616-1616' },
+    { nombre: 'Juan', apellido: 'Pérez', mail: 'juan.perez@mail.com', telefono: '541111111111', instagram: '@juanperez' },
+    { nombre: 'María', apellido: 'García', mail: 'maria.garcia@mail.com', telefono: '541122222222', instagram: '@mariagar' },
+    { nombre: 'Carlos', apellido: 'López', mail: 'carlos.lopez@mail.com', telefono: '541133333333' },
+    { nombre: 'Ana', apellido: 'Martínez', mail: 'ana.martinez@mail.com', telefono: '541144444444', instagram: '@anamartinez' },
+    { nombre: 'Lucía', apellido: 'Rodríguez', mail: 'lucia.rodriguez@mail.com', telefono: '541155555555' },
+    { nombre: 'Pedro', apellido: 'Sánchez', mail: 'pedro.sanchez@mail.com', telefono: '541166666666' },
+    { nombre: 'Sofía', apellido: 'Fernández', mail: 'sofia.fernandez@mail.com', telefono: '541177777777', instagram: '@sofiaf' },
+    { nombre: 'Martín', apellido: 'González', mail: 'martin.gonzalez@mail.com', telefono: '541188888888' },
+    { nombre: 'Valentina', apellido: 'Díaz', mail: 'valentina.diaz@mail.com', telefono: '541199999999' },
+    { nombre: 'Mateo', apellido: 'Ruiz', mail: 'mateo.ruiz@mail.com', telefono: '541110101010' },
+    { nombre: 'Camila', apellido: 'Silva', mail: 'camila.silva@mail.com', telefono: '541112121212' },
+    { nombre: 'Joaquín', apellido: 'Torres', mail: 'joaquin.torres@mail.com', telefono: '541113131313' },
+    { nombre: 'Isabella', apellido: 'Romero', mail: 'isabella.romero@mail.com', telefono: '541114141414' },
+    { nombre: 'Tomás', apellido: 'Flores', mail: 'tomas.flores@mail.com', telefono: '541115151515' },
+    { nombre: 'Morena', apellido: 'Castro', mail: 'morena.castro@mail.com', telefono: '541116161616' },
   ];
 
   const clientes: { idPersona: number; nombre: string; apellido: string }[] = [];
@@ -150,7 +150,7 @@ async function main() {
       nombre: 'Cliente',
       apellido: 'Fidelizado (demo)',
       mail: 'fidelizado.demo@mail.com',
-      telefono: '+54 11 5000-0001',
+      telefono: '541150000001',
     },
   });
 
@@ -161,7 +161,7 @@ async function main() {
       nombre: 'Empleado',
       apellido: 'Demo',
       mail: 'empleado.demo@mail.com',
-      telefono: '+54 11 5000-0002',
+      telefono: '541150000002',
       aplicaDescuentoPersonal: true,
     },
   });

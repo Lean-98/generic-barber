@@ -10,6 +10,7 @@ import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { EmailValidoPipe, EMAIL_REGEX } from '../../shared/pipes/email-valido.pipe';
 import { BrandingService } from '../../core/services/branding.service';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 @Component({
   selector: 'app-reservar',
@@ -224,7 +225,8 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                     <label class="label">
                       <span class="label-text font-medium">Teléfono</span>
                     </label>
-                    <input type="text" class="input input-bordered w-full" [(ngModel)]="telefono" name="telefono" placeholder="+54 11 1234-5678" />
+                    <input type="tel" inputmode="tel" class="input input-bordered w-full" [(ngModel)]="telefono" name="telefono" placeholder="351 1234567" />
+                    <label class="label"><span class="label-text-alt text-base-content/60">Con código de área, sin el 0 ni el 15. Ej: 351 1234567</span></label>
                   </div>
                 </div>
               }
@@ -432,7 +434,7 @@ export class ReservarComponent implements OnInit {
         this.slots.set(resp.slots);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al consultar disponibilidad');
+        this.error.set(mensajeDeErrorHttp(err, 'Error al consultar disponibilidad'));
       },
     });
   }
@@ -511,7 +513,7 @@ export class ReservarComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al reservar el turno');
+        this.error.set(mensajeDeErrorHttp(err, 'Error al reservar el turno'));
         this.loading.set(false);
       },
     });

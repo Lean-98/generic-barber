@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, IsInt, Min, IsDecimal } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsInt, Min, IsDecimal, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateServicioDto {
@@ -24,9 +24,10 @@ export class CreateServicioDto {
   @Type(() => Number)
   precio: number;
 
-  @ApiProperty({ description: 'Duración en minutos', example: 30 })
-  @IsNumber()
-  @Min(1)
+  @ApiProperty({ description: 'Duración en minutos (entre 5 y 180)', example: 30 })
+  @IsInt({ message: 'La duración tiene que ser un número entero de minutos' })
+  @Min(5, { message: 'La duración mínima de un servicio es de 5 minutos' })
+  @Max(180, { message: 'La duración máxima de un servicio es de 180 minutos' })
   @Type(() => Number)
   duracionMinutos: number;
 

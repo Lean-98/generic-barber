@@ -7,6 +7,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { PaginationComponent } from '../../shared/ui/pagination.component';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 const LIMITE_PAGINA = 20;
 
@@ -150,7 +151,7 @@ const LIMITE_PAGINA = 20;
           <div class="grid gap-4 md:grid-cols-2">
             <div class="form-control">
               <label class="label"><span class="label-text">Teléfono</span></label>
-              <input type="text" class="input input-bordered w-full" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="Teléfono" />
+              <input type="tel" inputmode="tel" class="input input-bordered w-full" [(ngModel)]="nuevoTelefono" name="telefono" placeholder="Ej: 351 1234567 (sin 0 ni 15)" />
             </div>
             <div class="form-control">
               <label class="label"><span class="label-text">Instagram</span></label>
@@ -167,6 +168,12 @@ const LIMITE_PAGINA = 20;
               <span class="label-text">Es empleado</span>
             </label>
           </div>
+          @if (errorForm()) {
+            <div class="alert alert-error mt-4 py-2.5 text-sm">
+              <app-icon name="alert-circle" [size]="18" />
+              <span>{{ errorForm() }}</span>
+            </div>
+          }
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
             <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoApellido">
@@ -249,7 +256,7 @@ const LIMITE_PAGINA = 20;
             <div class="grid gap-4 md:grid-cols-2">
               <div class="form-control">
                 <label class="label"><span class="label-text">Teléfono</span></label>
-                <input type="text" class="input input-bordered w-full" [(ngModel)]="p.telefono" name="editTelefono" />
+                <input type="tel" inputmode="tel" class="input input-bordered w-full" [(ngModel)]="p.telefono" name="editTelefono" placeholder="Ej: 351 1234567 (sin 0 ni 15)" />
               </div>
               <div class="form-control">
                 <label class="label"><span class="label-text">Instagram</span></label>
@@ -266,6 +273,12 @@ const LIMITE_PAGINA = 20;
                 <span class="label-text">Es empleado</span>
               </label>
             </div>
+            @if (errorForm()) {
+              <div class="alert alert-error mt-4 py-2.5 text-sm">
+                <app-icon name="alert-circle" [size]="18" />
+                <span>{{ errorForm() }}</span>
+              </div>
+            }
             <div class="modal-action">
               <button type="button" class="btn btn-ghost" (click)="cerrarEditar()">Cancelar</button>
               <button type="submit" class="btn btn-primary" [class.btn-loading]="guardando()" [disabled]="guardando()">Guardar</button>
@@ -383,6 +396,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
   guardando = signal(false);
   eliminando = signal(false);
   creando = signal(false);
+  errorForm = signal('');
 
   nuevoNombre = '';
   nuevoApellido = '';
@@ -437,6 +451,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
   }
 
   abrirCrear(): void {
+    this.errorForm.set('');
     this.nuevoNombre = '';
     this.nuevoApellido = '';
     this.nuevoMail = '';
@@ -469,8 +484,9 @@ export class PersonasComponent implements OnInit, OnDestroy {
         this.cerrarCrear();
         this.loadPersonas();
       },
-      error: () => {
+      error: (err) => {
         this.creando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }
@@ -499,6 +515,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
   }
 
   editar(persona: Persona): void {
+    this.errorForm.set('');
     this.personaEditando.set({
       ...persona,
       // El backend devuelve fechaNacimiento como ISO datetime completo
@@ -535,8 +552,9 @@ export class PersonasComponent implements OnInit, OnDestroy {
         this.cerrarEditar();
         this.loadPersonas();
       },
-      error: () => {
+      error: (err) => {
         this.guardando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }

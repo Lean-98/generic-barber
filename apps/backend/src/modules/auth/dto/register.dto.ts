@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, MinLength, IsEmail, IsOptional } from 'class-validator';
+import { IsTelefono } from '../../../common/decorators/is-telefono.decorator';
 
 export class RegisterDto {
   @ApiProperty({ description: 'Nombre de usuario', example: 'peluquero' })
@@ -27,8 +28,8 @@ export class RegisterDto {
   @IsNotEmpty()
   apellido: string;
 
-  @ApiPropertyOptional({ description: 'Teléfono', example: '+54 11 1234-5678' })
-  @IsString()
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Teléfono', example: '3511234567' })
+  // Se guarda solo con dígitos (ver IsTelefono)
+  @IsTelefono()
   telefono?: string;
 }
