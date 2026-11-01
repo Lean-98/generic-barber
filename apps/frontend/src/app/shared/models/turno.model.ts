@@ -7,6 +7,8 @@ export interface Turno {
   observacion?: string;
   fechaCreacion: string;
   googleEventId?: string;
+  /** Forma de pago que el cliente eligió al reservar online (sugerencia, no el pago real). */
+  idFormaPagoPreferida?: number;
   persona?: {
     nombre: string;
     apellido: string;

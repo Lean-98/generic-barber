@@ -24,6 +24,14 @@ export class TurnosPublicosController {
     return this.turnosService.getDisponibilidad(fecha, servicios);
   }
 
+  @Get('formas-pago')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Listar formas de pago vigentes, para el selector de la reserva pública' })
+  @ApiResponse({ status: 200, description: 'Lista de formas de pago' })
+  async listarFormasPago() {
+    return this.turnosService.listarFormasPago();
+  }
+
   @Get('cliente')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Verificar si un email ya pertenece a un cliente registrado, para saltear el formulario de datos' })

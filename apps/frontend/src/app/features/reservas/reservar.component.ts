@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ReservasPublicasService, ClienteExistenteResponse } from '../../shared/services/reservas-publicas.service';
+import { ReservasPublicasService, ClienteExistenteResponse, FormaPagoPublica } from '../../shared/services/reservas-publicas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
 import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
@@ -235,7 +235,27 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 </label>
                 <textarea class="textarea textarea-bordered w-full" [(ngModel)]="observacion" name="observacion" placeholder="Alguna nota especial..."></textarea>
               </div>
-              
+
+              <div class="form-control mt-2">
+                <label class="label">
+                  <span class="label-text font-medium">¿Cómo vas a pagar?</span>
+                </label>
+                <select
+                  class="select select-bordered w-full"
+                  [(ngModel)]="formaPagoPreferidaId"
+                  name="formaPagoPreferidaId"
+                  required
+                >
+                  <option [ngValue]="null" disabled>Seleccioná una opción</option>
+                  @for (fp of formasPago(); track fp.idFormaPago) {
+                    <option [ngValue]="fp.idFormaPago">{{ fp.nombre }}</option>
+                  }
+                </select>
+                <label class="label">
+                  <span class="label-text-alt text-base-content/60">Es solo una referencia para agilizar el cobro, no se procesa ningún pago ahora.</span>
+                </label>
+              </div>
+
               <div class="mt-6 flex flex-col items-end gap-3 sm:flex-row sm:justify-between">
                 <div class="text-sm text-base-content/70">
                   Fecha: <strong>{{ slotSeleccionado() | fechaAr:'completa' }}</strong> a las <strong>{{ slotSeleccionado() | fechaAr:'hora' }}</strong>
@@ -302,6 +322,8 @@ export class ReservarComponent implements OnInit {
   email = signal('');
   telefono = signal('');
   observacion = signal('');
+  formasPago = signal<FormaPagoPublica[]>([]);
+  formaPagoPreferidaId = signal<number | null>(null);
   verificandoCliente = signal(false);
   clienteExistente = signal<ClienteExistenteResponse | null>(null);
   private emailVerificado = '';
@@ -315,6 +337,7 @@ export class ReservarComponent implements OnInit {
     this.serviciosService.findAll(undefined, undefined, 1, 200).subscribe((res) => {
       this.servicios.set(res.data.filter((sv) => sv.vigente));
     });
+    this.reservasService.findFormasPago().subscribe((fp) => this.formasPago.set(fp));
   }
 
   toggleServicio(servicio: Servicio): void {
@@ -460,6 +483,7 @@ export class ReservarComponent implements OnInit {
 
   puedeReservar(): boolean {
     if (!EMAIL_REGEX.test(this.email().trim()) || !this.slotSeleccionado()) return false;
+    if (!this.formaPagoPreferidaId()) return false;
     if (this.clienteExistente()?.existe) return true;
     return !!this.nombre() && !!this.apellido();
   }
@@ -480,6 +504,7 @@ export class ReservarComponent implements OnInit {
         idServicio: s.idServicio,
         cantidad: this.cantidades()[s.idServicio] || 1,
       })),
+      idFormaPagoPreferida: this.formaPagoPreferidaId()!,
     }).subscribe({
       next: () => {
         this.exito.set(true);
@@ -503,6 +528,7 @@ export class ReservarComponent implements OnInit {
     this.email.set('');
     this.telefono.set('');
     this.observacion.set('');
+    this.formaPagoPreferidaId.set(null);
     this.clienteExistente.set(null);
     this.emailVerificado = '';
     this.exito.set(false);

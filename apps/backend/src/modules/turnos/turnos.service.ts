@@ -48,6 +48,17 @@ export class TurnosService {
       throw new BadRequestException('Uno o más servicios no existen o no están vigentes');
     }
 
+    // 2.c. Forma de pago preferida: opcional (el alta manual del dueño no la pide),
+    // pero si viene tiene que ser una forma de pago real y vigente.
+    if (data.idFormaPagoPreferida != null) {
+      const formaPago = await this.prisma.formaPago.findUnique({
+        where: { idFormaPago: data.idFormaPagoPreferida },
+      });
+      if (!formaPago || !formaPago.vigente) {
+        throw new BadRequestException('La forma de pago preferida no existe o no está vigente');
+      }
+    }
+
     // 2.b. Descuento de personal: opcional, solo si el cliente está marcado
     // como empleado y el descuento está activo en la configuración.
     let descuentoEmpleadoPorcentaje = 0;
@@ -95,8 +106,14 @@ export class TurnosService {
               idPersona: data.idPersona,
               fechaHoraInicio,
               fechaHoraFin,
-              estado: 'PENDIENTE',
+              // Nace directo CONFIRMADO: el chequeo de disponibilidad de más
+              // arriba ya garantiza atómicamente que el horario no se pisa con
+              // otro turno, así que el paso PENDIENTE no agregaba ninguna
+              // protección real — solo un toque manual de más (ver
+              // TurnosCronService para el resto de las transiciones automáticas).
+              estado: 'CONFIRMADO',
               observacion: data.observacion,
+              idFormaPagoPreferida: data.idFormaPagoPreferida,
             },
             include: { persona: true },
           });
@@ -493,7 +510,16 @@ export class TurnosService {
     return persona ? { existe: true, nombre: persona.nombre } : { existe: false };
   }
 
-  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[] }): Promise<Turno> {
+  /** Formas de pago vigentes, para el selector del formulario de reserva pública. */
+  async listarFormasPago(): Promise<{ idFormaPago: number; nombre: string }[]> {
+    return this.prisma.formaPago.findMany({
+      where: { vigente: true },
+      orderBy: { idFormaPago: 'asc' },
+      select: { idFormaPago: true, nombre: true },
+    });
+  }
+
+  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
     // 1. Buscar o crear persona por email
     let persona = await this.prisma.persona.findUnique({
       where: { mail: data.email },
@@ -533,6 +559,7 @@ export class TurnosService {
       observacion: data.observacion,
       servicios: data.servicios,
       aplicarDescuentoEmpleado,
+      idFormaPagoPreferida: data.idFormaPagoPreferida,
     };
 
     return this.create(createDto);

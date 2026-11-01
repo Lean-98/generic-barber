@@ -44,4 +44,13 @@ export class CreateTurnoDto {
   @IsOptional()
   @IsBoolean()
   aplicarDescuentoEmpleado?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Forma de pago preferida para precargar el cobro en caja (sugerencia, no el pago real). Opcional en el alta manual.',
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  idFormaPagoPreferida?: number;
 }

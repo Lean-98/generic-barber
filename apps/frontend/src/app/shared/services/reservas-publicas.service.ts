@@ -16,11 +16,17 @@ export interface ReservaRequest {
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];
+  idFormaPagoPreferida: number;
 }
 
 export interface ClienteExistenteResponse {
   existe: boolean;
   nombre?: string;
+}
+
+export interface FormaPagoPublica {
+  idFormaPago: number;
+  nombre: string;
 }
 
 @Injectable({
@@ -44,5 +50,9 @@ export class ReservasPublicasService {
 
   buscarClientePorEmail(email: string): Observable<ClienteExistenteResponse> {
     return this.http.get<ClienteExistenteResponse>(`${this.apiUrl}/turnos-publicos/cliente`, { params: { email } });
+  }
+
+  findFormasPago(): Observable<FormaPagoPublica[]> {
+    return this.http.get<FormaPagoPublica[]>(`${this.apiUrl}/turnos-publicos/formas-pago`);
   }
 }

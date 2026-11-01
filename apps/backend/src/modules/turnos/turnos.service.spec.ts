@@ -43,6 +43,13 @@ describe('TurnosService', () => {
     vigente: true,
   };
 
+  const mockFormaPago = {
+    idFormaPago: 1,
+    nombre: 'Efectivo',
+    requiereComprobante: false,
+    vigente: true,
+  };
+
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
 
@@ -108,8 +115,58 @@ describe('TurnosService', () => {
       const result = await service.create(dto);
 
       // Assert
-      expect(prismaMock.turno.create).toHaveBeenCalled();
+      expect(prismaMock.turno.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ estado: 'CONFIRMADO' }),
+        }),
+      );
       expect(result).toBeDefined();
+    });
+
+    it('should persist idFormaPagoPreferida when it is a valid, vigente forma de pago', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(mockFormaPago);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.turno.findUnique.mockResolvedValue({
+        ...mockTurno,
+        detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],
+        persona: mockPersona,
+      });
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+
+      const dto: CreateTurnoDto = {
+        idPersona: 1,
+        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        servicios: [{ idServicio: 1, cantidad: 1 }],
+        idFormaPagoPreferida: 1,
+      };
+
+      await service.create(dto);
+
+      expect(prismaMock.turno.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ idFormaPagoPreferida: 1 }),
+        }),
+      );
+    });
+
+    it('should throw if idFormaPagoPreferida does not exist or is not vigente', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(null);
+
+      const dto: CreateTurnoDto = {
+        idPersona: 1,
+        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        servicios: [{ idServicio: 1 }],
+        idFormaPagoPreferida: 999,
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
     });
 
     it('should throw if person not found', async () => {
@@ -204,6 +261,49 @@ describe('TurnosService', () => {
 
       const result = await service.registrarPago(1);
       expect(result.estado).toBe('COMPLETADO');
+    });
+  });
+
+  describe('reservarPublica', () => {
+    it('should pass idFormaPagoPreferida through to the created turno', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(mockFormaPago);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.turno.findUnique.mockResolvedValue({
+        ...mockTurno,
+        detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],
+        persona: mockPersona,
+      });
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+
+      await service.reservarPublica({
+        email: 'juan@example.com',
+        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        servicios: [{ idServicio: 1, cantidad: 1 }],
+        idFormaPagoPreferida: 1,
+      });
+
+      expect(prismaMock.turno.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ idFormaPagoPreferida: 1, estado: 'CONFIRMADO' }),
+        }),
+      );
+    });
+  });
+
+  describe('listarFormasPago', () => {
+    it('should return only vigente formas de pago', async () => {
+      prismaMock.formaPago.findMany.mockResolvedValue([mockFormaPago]);
+
+      const result = await service.listarFormasPago();
+
+      expect(prismaMock.formaPago.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { vigente: true } }),
+      );
+      expect(result).toEqual([mockFormaPago]);
     });
   });
 

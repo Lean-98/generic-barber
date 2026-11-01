@@ -479,6 +479,9 @@ export class CajaComponent implements OnInit, OnDestroy {
     if (turno) {
       const total = this.totalTurno(turno);
       this.pagoMonto.set(total);
+      // Sugerencia elegida por el cliente al reservar: precarga el combo pero
+      // sigue siendo editable, por si al final pagó distinto.
+      this.pagoFormaPagoId.set(turno.idFormaPagoPreferida ?? null);
       this.cajaService.findPagosByTurno(id).subscribe((p) => this.pagosTurno.set(p));
     }
   }

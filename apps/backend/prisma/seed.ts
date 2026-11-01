@@ -386,11 +386,13 @@ async function main() {
               dia * 300 + i * 2,
             );
           } else if (dia === 0) {
-            // Hoy: completados por la mañana, pendientes/confirmados por la tarde
-            estado = hora < 12 ? 'COMPLETADO' : weightedRandom(['CONFIRMADO', 'PENDIENTE', 'COMPLETADO'], [40, 35, 25], i * 9);
+            // Hoy: completados por la mañana (ya pasaron), confirmados o en
+            // proceso por la tarde — los turnos ya no nacen PENDIENTE, el cron
+            // de TurnosCronService los avanza solo por el reloj.
+            estado = hora < 12 ? 'COMPLETADO' : weightedRandom(['CONFIRMADO', 'EN_PROCESO', 'COMPLETADO'], [40, 35, 25], i * 9);
           } else {
-            // Futuros
-            estado = weightedRandom(['PENDIENTE', 'CONFIRMADO'], [55, 45], dia * 400 + i * 4);
+            // Futuros: siempre CONFIRMADO, igual que en la app real.
+            estado = 'CONFIRMADO';
           }
 
           turnosDelDia.push({ inicio, fin });

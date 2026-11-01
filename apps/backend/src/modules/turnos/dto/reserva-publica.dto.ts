@@ -50,6 +50,14 @@ export class ReservaPublicaDto {
   @ValidateNested({ each: true })
   @Type(() => ServicioReservaDto)
   servicios: ServicioReservaDto[];
+
+  @ApiProperty({
+    description: 'Forma de pago con la que el cliente planea pagar. Es una preferencia para agilizar el cobro en caja, no el pago real.',
+    example: 1,
+  })
+  @IsInt()
+  @Type(() => Number)
+  idFormaPagoPreferida: number;
 }
 
 export class DisponibilidadQueryDto {
