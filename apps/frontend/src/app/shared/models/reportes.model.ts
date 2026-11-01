@@ -39,3 +39,39 @@ export interface IngresosPorFormaPago {
   nombre: string;
   monto: number;
 }
+
+export interface ClienteInactivo {
+  idPersona: number;
+  nombre: string;
+  apellido: string;
+  telefono: string | null;
+  mail: string | null;
+  ultimaVisita: string | null;
+  diasSinVenir: number | null;
+  visitas: number;
+  registradoEl: string;
+}
+
+export interface CostosNegocio {
+  costosFijosMensuales: number;
+  costoHoraTrabajo: number;
+}
+
+export interface ReporteRentabilidad {
+  costosConfigurados: boolean;
+  dias: number;
+  turnosCompletados: number;
+  ingresosServicios: number;
+  costosVariables: number;
+  margenContribucion: number;
+  costosFijosPeriodo: number;
+  resultado: number;
+  costoFidelizacion: number;
+  serviciosConFidelizacion: number;
+  margenPromedioPorTurno: number | null;
+  turnosParaCubrirFijosMes: number | null;
+  turnosParaCubrirFijosPeriodo: number | null;
+  turnosFaltantesPeriodo: number | null;
+  serviciosSinCosto: number;
+  aviso: string | null;
+}

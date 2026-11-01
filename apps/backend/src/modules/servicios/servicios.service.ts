@@ -20,6 +20,7 @@ export class ServiciosService {
         urlImagen: data.urlImagen,
         vigente: data.vigente ?? true,
         cuentaParaFidelizacion: data.cuentaParaFidelizacion ?? false,
+        costoInsumos: data.costoInsumos ?? 0,
       },
     });
 
@@ -85,6 +86,7 @@ export class ServiciosService {
         urlImagen: data.urlImagen,
         vigente: data.vigente,
         cuentaParaFidelizacion: data.cuentaParaFidelizacion,
+        costoInsumos: data.costoInsumos,
       },
     });
 

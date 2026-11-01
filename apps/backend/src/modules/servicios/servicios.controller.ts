@@ -20,6 +20,13 @@ import { UpdateServicioDto } from './dto/update-servicio.dto';
 import { FindServiciosQueryDto } from './dto/find-servicios-query.dto';
 import { Servicio } from '@prisma/client';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+
+function sinCostoInterno<T extends { costoInsumos?: unknown }>(servicio: T): T {
+  const { costoInsumos: _oculto, ...publico } = servicio;
+  return publico as T;
+}
 
 @ApiTags('Servicios')
 @Controller('servicios')
@@ -36,19 +43,28 @@ export class ServiciosController {
     return this.serviciosService.create(createServicioDto);
   }
 
+  // Públicos (los usa la landing), pero el costo de insumos es un dato
+  // interno: solo se devuelve si la request viene del panel con sesión.
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Obtener todos los servicios (paginado)' })
   @ApiResponse({ status: 200, description: 'Página de servicios' })
-  async findAll(@Query() { vigente, idCategoria, page, limit }: FindServiciosQueryDto): Promise<PaginatedResult<Servicio>> {
-    return this.serviciosService.findAll(vigente, idCategoria, page, limit);
+  async findAll(
+    @Query() { vigente, idCategoria, page, limit }: FindServiciosQueryDto,
+    @CurrentUser() user?: unknown,
+  ): Promise<PaginatedResult<Servicio>> {
+    const resultado = await this.serviciosService.findAll(vigente, idCategoria, page, limit);
+    return user ? resultado : { ...resultado, data: resultado.data.map(sinCostoInterno) };
   }
 
   @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Obtener un servicio por ID' })
   @ApiResponse({ status: 200, description: 'Servicio encontrado' })
   @ApiResponse({ status: 404, description: 'Servicio no encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Servicio> {
-    return this.serviciosService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: unknown): Promise<Servicio> {
+    const servicio = await this.serviciosService.findOne(id);
+    return user ? servicio : sinCostoInterno(servicio);
   }
 
   @Put(':id')

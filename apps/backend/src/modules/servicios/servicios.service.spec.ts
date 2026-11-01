@@ -31,6 +31,7 @@ describe('ServiciosService', () => {
     urlImagen: 'https://example.com/corte.jpg',
     vigente: true,
     cuentaParaFidelizacion: false,
+    costoInsumos: 0 as any,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -88,6 +89,7 @@ describe('ServiciosService', () => {
           urlImagen: dto.urlImagen,
           vigente: true,
           cuentaParaFidelizacion: false,
+          costoInsumos: 0,
         },
       });
       expect(result).toBeDefined();

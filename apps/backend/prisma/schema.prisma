@@ -17,6 +17,9 @@ model Servicio {
   urlImagen      String?
   vigente        Boolean  @default(true)
   cuentaParaFidelizacion Boolean @default(false) @map("cuenta_para_fidelizacion")
+  /// Costo estimado de insumos por cada vez que se hace el servicio (para el
+  /// reporte de rentabilidad). 0 = no cargado.
+  costoInsumos   Decimal  @default(0) @db.Decimal(10, 2) @map("costo_insumos")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -325,4 +328,16 @@ model Curso {
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("cursos")
+}
+
+// Costos del negocio para el reporte de rentabilidad. Tabla aparte (y no en
+// configuracion_negocio) porque esa configuración se expone públicamente para
+// la landing, y estos números son internos. Una sola fila (id = 1).
+model CostosNegocio {
+  id                   Int      @id @default(1)
+  costosFijosMensuales Decimal  @default(0) @db.Decimal(12, 2) @map("costos_fijos_mensuales")
+  costoHoraTrabajo     Decimal  @default(0) @db.Decimal(10, 2) @map("costo_hora_trabajo")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("costos_negocio")
 }

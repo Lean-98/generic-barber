@@ -11,6 +11,8 @@ export interface Servicio {
   urlImagen?: string;
   vigente: boolean;
   cuentaParaFidelizacion: boolean;
+  /** Costo estimado de insumos por servicio (solo llega con sesión iniciada). */
+  costoInsumos?: number;
   createdAt?: string;
   updatedAt?: string;
   historial?: ServicioHistorial[];
@@ -34,6 +36,7 @@ export interface CreateServicioRequest {
   urlImagen?: string;
   vigente?: boolean;
   cuentaParaFidelizacion?: boolean;
+  costoInsumos?: number;
 }
 
 export interface UpdateServicioRequest {
@@ -45,4 +48,5 @@ export interface UpdateServicioRequest {
   urlImagen?: string;
   vigente?: boolean;
   cuentaParaFidelizacion?: boolean;
+  costoInsumos?: number;
 }

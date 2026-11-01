@@ -47,4 +47,11 @@ export class CreateServicioDto {
   @IsOptional()
   @Type(() => Boolean)
   cuentaParaFidelizacion?: boolean;
+
+  @ApiPropertyOptional({ description: 'Costo estimado de insumos por servicio (para el reporte de rentabilidad)', example: 800 })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0, { message: 'El costo de insumos no puede ser negativo' })
+  @IsOptional()
+  @Type(() => Number)
+  costoInsumos?: number;
 }

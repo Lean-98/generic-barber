@@ -181,6 +181,11 @@ const LIMITE_PAGINA = 20;
             </div>
           </div>
           <div class="form-control">
+            <label class="label"><span class="label-text">Costo de insumos (opcional)</span></label>
+            <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="nuevoCostoInsumos" name="costoInsumos" placeholder="Ej: lo que gastás en productos por cada servicio" />
+            <label class="label"><span class="label-text-alt text-base-content/60">Interno, no se muestra en la web. Se usa en Reportes → Rentabilidad.</span></label>
+          </div>
+          <div class="form-control">
             <label class="label"><span class="label-text">Descripción</span></label>
             <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevaDescripcion" name="descripcion"></textarea>
           </div>
@@ -244,6 +249,11 @@ const LIMITE_PAGINA = 20;
                 <label class="label"><span class="label-text">Duración (min)</span></label>
                 <input type="number" min="5" max="180" class="input input-bordered w-full" [(ngModel)]="s.duracionMinutos" name="editDuracion" placeholder="Entre 5 y 180" required />
               </div>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Costo de insumos (opcional)</span></label>
+              <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="s.costoInsumos" name="editCostoInsumos" />
+              <label class="label"><span class="label-text-alt text-base-content/60">Interno, no se muestra en la web. Se usa en Reportes → Rentabilidad.</span></label>
             </div>
             <div class="form-control">
               <label class="label"><span class="label-text">Descripción</span></label>
@@ -422,6 +432,7 @@ export class ServiciosComponent implements OnInit {
   nuevaCategoria: number | undefined = undefined;
   nuevoPrecio = '';
   nuevaDuracion = '';
+  nuevoCostoInsumos = '';
   nuevaDescripcion = '';
   nuevaUrlImagen = '';
   nuevaCuentaParaFidelizacion = false;
@@ -468,6 +479,7 @@ export class ServiciosComponent implements OnInit {
     this.nuevaCategoria = undefined;
     this.nuevoPrecio = '';
     this.nuevaDuracion = '';
+    this.nuevoCostoInsumos = '';
     this.nuevaDescripcion = '';
     this.nuevaUrlImagen = '';
     this.nuevaCuentaParaFidelizacion = false;
@@ -486,6 +498,7 @@ export class ServiciosComponent implements OnInit {
       idCategoria: this.nuevaCategoria,
       precio: Number(this.nuevoPrecio),
       duracionMinutos: Number(this.nuevaDuracion),
+      costoInsumos: Number(this.nuevoCostoInsumos) || 0,
       descripcion: this.nuevaDescripcion || undefined,
       urlImagen: this.nuevaUrlImagen || undefined,
       cuentaParaFidelizacion: this.nuevaCuentaParaFidelizacion,
@@ -528,6 +541,7 @@ export class ServiciosComponent implements OnInit {
       idCategoria: s.idCategoria,
       precio: Number(s.precio),
       duracionMinutos: Number(s.duracionMinutos),
+      costoInsumos: Number(s.costoInsumos) || 0,
       urlImagen: s.urlImagen || undefined,
       vigente: s.vigente,
       cuentaParaFidelizacion: s.cuentaParaFidelizacion,

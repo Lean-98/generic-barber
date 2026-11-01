@@ -130,4 +130,136 @@ describe('ReportesService', () => {
       expect(res[0].nombre).toBe('Efectivo');
     });
   });
+
+  describe('clientes inactivos', () => {
+    const AHORA = new Date('2026-11-01T12:00:00Z');
+    const haceDias = (d: number) => new Date(AHORA.getTime() - d * 86_400_000);
+    const persona = (id: number, extra: Record<string, unknown> = {}) => ({
+      idPersona: id, nombre: `N${id}`, apellido: `A${id}`, telefono: '3511234567', mail: null,
+      createdAt: haceDias(400 - id), ...extra,
+    });
+
+    beforeEach(() => {
+      prisma.turno.groupBy = jest.fn().mockResolvedValue([
+        { idPersona: 1, _max: { fechaHoraInicio: haceDias(90) }, _count: { _all: 3 } },
+        { idPersona: 2, _max: { fechaHoraInicio: haceDias(10) }, _count: { _all: 8 } },
+        { idPersona: 3, _max: { fechaHoraInicio: haceDias(120) }, _count: { _all: 12 } },
+        { idPersona: 4, _max: { fechaHoraInicio: haceDias(200) }, _count: { _all: 1 } },
+      ]);
+      // 4 ya tiene un turno reservado: no hace falta escribirle.
+      prisma.turno.findMany = jest.fn().mockResolvedValue([{ idPersona: 4 }, { idPersona: 6 }]);
+      prisma.persona.findMany = jest.fn().mockResolvedValue([1, 2, 3, 4, 5, 6].map((id) => persona(id)));
+    });
+
+    it('lists clients who stopped coming, most frequent first, skipping those already booked', async () => {
+      const res = await service.getClientesInactivos(60, AHORA);
+
+      expect(res.map((c) => c.idPersona)).toEqual([3, 1]);
+      expect(res[0]).toEqual(expect.objectContaining({ visitas: 12, diasSinVenir: 120 }));
+    });
+
+    it('excludes staff and employees from the query', async () => {
+      await service.getClientesInactivos(60, AHORA);
+
+      expect(prisma.persona.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { aplicaDescuentoPersonal: false, usuarioWeb: { is: null } } }),
+      );
+    });
+
+    it('respects the number of days', async () => {
+      const res = await service.getClientesInactivos(150, AHORA);
+      expect(res.map((c) => c.idPersona)).toEqual([]);
+    });
+
+    it('lists registered clients who never completed a turno and have nothing booked', async () => {
+      const res = await service.getClientesSinVisitas(AHORA);
+
+      expect(res.map((c) => c.idPersona)).toEqual([5]);
+      expect(res[0]).toEqual(expect.objectContaining({ ultimaVisita: null, diasSinVenir: null, visitas: 0 }));
+    });
+  });
+
+  describe('rentabilidad', () => {
+    const detalle = (extra: Record<string, unknown> = {}) => ({
+      precioReal: 10000, cantidad: 1, descuentoPorcentaje: 0, descuentoMotivo: null,
+      servicio: { costoInsumos: 1000, duracionMinutos: 30 }, ...extra,
+    });
+
+    beforeEach(() => {
+      prisma.costosNegocio.findUnique.mockResolvedValue({ costosFijosMensuales: 300000, costoHoraTrabajo: 4000 });
+      prisma.servicio.count = jest.fn().mockResolvedValue(2);
+    });
+
+    it('computes margin, prorated fixed costs and break-even', async () => {
+      prisma.turno.findMany = jest.fn().mockResolvedValue([
+        { detalles: [detalle()] },
+        { detalles: [detalle()] },
+        // Visita de fidelización: 50% off, se cobra 5000 pero cuesta lo mismo.
+        { detalles: [detalle({ descuentoPorcentaje: 50, descuentoMotivo: 'FIDELIZACION' })] },
+      ]);
+
+      const r = await service.getRentabilidad('2026-11-01', '2026-11-30');
+
+      // Cobrado: 10000 + 10000 + 5000. Costo variable por turno: 1000 + 4000 × 0,5 h = 3000.
+      expect(r.dias).toBe(30);
+      expect(r.ingresosServicios).toBe(25000);
+      expect(r.costosVariables).toBe(9000);
+      expect(r.margenContribucion).toBe(16000);
+      expect(r.costosFijosPeriodo).toBe(300000);
+      expect(r.resultado).toBe(-284000);
+      expect(r.costoFidelizacion).toBe(5000);
+      expect(r.serviciosConFidelizacion).toBe(1);
+      expect(r.margenPromedioPorTurno).toBeCloseTo(5333.33, 2);
+      expect(r.turnosParaCubrirFijosMes).toBe(57);
+      expect(r.turnosFaltantesPeriodo).toBe(54);
+      expect(r.costosConfigurados).toBe(true);
+      expect(r.aviso).toBeNull();
+    });
+
+    it('does not divide by zero when there are no completed turnos', async () => {
+      prisma.turno.findMany = jest.fn().mockResolvedValue([]);
+
+      const r = await service.getRentabilidad('2026-11-01', '2026-11-15');
+
+      expect(r.turnosCompletados).toBe(0);
+      expect(r.margenPromedioPorTurno).toBeNull();
+      expect(r.turnosParaCubrirFijosMes).toBeNull();
+      expect(r.aviso).toMatch(/No hay turnos completados/);
+      expect(r.costosFijosPeriodo).toBe(150000);
+    });
+
+    it('warns when each turno leaves no margin', async () => {
+      prisma.turno.findMany = jest.fn().mockResolvedValue([
+        { detalles: [detalle({ precioReal: 2000 })] },
+      ]);
+
+      const r = await service.getRentabilidad('2026-11-01', '2026-11-30');
+
+      expect(r.margenPromedioPorTurno).toBe(-1000);
+      expect(r.turnosParaCubrirFijosMes).toBeNull();
+      expect(r.aviso).toMatch(/margen nulo o negativo/);
+    });
+
+    it('flags when no costs were loaded yet', async () => {
+      prisma.costosNegocio.findUnique.mockResolvedValue(null);
+      prisma.servicio.count = jest.fn().mockResolvedValue(0);
+      prisma.turno.findMany = jest.fn().mockResolvedValue([]);
+
+      const r = await service.getRentabilidad('2026-11-01', '2026-11-30');
+
+      expect(r.costosConfigurados).toBe(false);
+    });
+
+    it('saves the costs as the single row', async () => {
+      prisma.costosNegocio.upsert.mockResolvedValue({});
+      prisma.costosNegocio.findUnique.mockResolvedValue({ costosFijosMensuales: 1, costoHoraTrabajo: 2 });
+
+      const res = await service.updateCostos({ costosFijosMensuales: 1, costoHoraTrabajo: 2 });
+
+      expect(prisma.costosNegocio.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 1 }, create: { id: 1, costosFijosMensuales: 1, costoHoraTrabajo: 2 } }),
+      );
+      expect(res).toEqual({ costosFijosMensuales: 1, costoHoraTrabajo: 2 });
+    });
+  });
 });

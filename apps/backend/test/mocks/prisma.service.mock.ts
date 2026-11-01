@@ -106,6 +106,11 @@ export class PrismaServiceMock {
     update: jest.fn(),
   };
 
+  costosNegocio = {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+  };
+
   producto = {
     create: jest.fn(),
     findMany: jest.fn(),

@@ -4,8 +4,11 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  ClienteInactivo,
   ClienteReporte,
+  CostosNegocio,
   IngresosPorDia,
+  ReporteRentabilidad,
   IngresosPorFormaPago,
   ReporteResumen,
   ServicioReporte,
@@ -47,6 +50,26 @@ export class ReportesService {
     return this.http.get<IngresosPorFormaPago[]>(`${this.apiUrl}/formas-pago`, {
       params: this.buildParams(desde, hasta),
     });
+  }
+
+  getClientesInactivos(dias: number): Observable<ClienteInactivo[]> {
+    return this.http.get<ClienteInactivo[]>(`${this.apiUrl}/clientes-inactivos`, { params: { dias: String(dias) } });
+  }
+
+  getClientesSinVisitas(): Observable<ClienteInactivo[]> {
+    return this.http.get<ClienteInactivo[]>(`${this.apiUrl}/clientes-sin-visitas`);
+  }
+
+  getRentabilidad(desde?: string, hasta?: string): Observable<ReporteRentabilidad> {
+    return this.http.get<ReporteRentabilidad>(`${this.apiUrl}/rentabilidad`, { params: this.buildParams(desde, hasta) });
+  }
+
+  getCostos(): Observable<CostosNegocio> {
+    return this.http.get<CostosNegocio>(`${this.apiUrl}/costos`);
+  }
+
+  updateCostos(costos: CostosNegocio): Observable<CostosNegocio> {
+    return this.http.put<CostosNegocio>(`${this.apiUrl}/costos`, costos);
   }
 
   private buildParams(desde?: string, hasta?: string): Record<string, string> {

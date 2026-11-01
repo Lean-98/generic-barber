@@ -44,6 +44,59 @@ export interface ReporteResumen {
   turnosCancelados: number;
 }
 
+/** Cliente que dejó de venir (o que nunca completó un turno), para contactarlo. */
+export interface ClienteInactivo {
+  idPersona: number;
+  nombre: string;
+  apellido: string;
+  telefono: string | null;
+  mail: string | null;
+  /** Último turno COMPLETADO; null si nunca completó uno. */
+  ultimaVisita: Date | null;
+  diasSinVenir: number | null;
+  visitas: number;
+  /** Fecha de alta del cliente (útil para "nunca vinieron"). */
+  registradoEl: Date;
+}
+
+export interface CostosNegocioValores {
+  costosFijosMensuales: number;
+  costoHoraTrabajo: number;
+}
+
+export interface ReporteRentabilidad {
+  /** false si todavía no se cargó ningún costo: el resto de los números no dicen nada. */
+  costosConfigurados: boolean;
+  dias: number;
+  turnosCompletados: number;
+  /** Lo cobrado por servicios de turnos completados (ya con descuentos). */
+  ingresosServicios: number;
+  /** Insumos + horas de trabajo de esos turnos. */
+  costosVariables: number;
+  margenContribucion: number;
+  /** Costos fijos mensuales proporcionales a los días del período (mes de 30 días). */
+  costosFijosPeriodo: number;
+  resultado: number;
+  /** Lo que se dejó de cobrar por el programa de fidelización. */
+  costoFidelizacion: number;
+  serviciosConFidelizacion: number;
+  margenPromedioPorTurno: number | null;
+  turnosParaCubrirFijosMes: number | null;
+  turnosParaCubrirFijosPeriodo: number | null;
+  turnosFaltantesPeriodo: number | null;
+  /** Servicios vigentes sin costo de insumos cargado (para avisar que el cálculo puede estar incompleto). */
+  serviciosSinCosto: number;
+  /** Explicación cuando no se puede calcular el punto de equilibrio. */
+  aviso: string | null;
+}
+
+const DIAS_MES_REFERENCIA = 30;
+const LIMITE_CLIENTES_INACTIVOS = 300;
+const ESTADOS_TURNO_FUTURO = ['PENDIENTE', 'CONFIRMADO'];
+const MS_DIA = 24 * 60 * 60 * 1000;
+
+const redondear = (n: number) => Math.round(n * 100) / 100;
+
 @Injectable()
 export class ReportesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -213,5 +266,198 @@ export class ReportesService {
     }
 
     return Array.from(map.values()).sort((a, b) => b.monto - a.monto);
+  }
+
+  // ─── Clientes inactivos ───
+
+  /**
+   * Clientes cuyo último turno completado fue hace más de `dias` días. Se
+   * excluye a quien ya tiene un turno reservado a futuro (no hace falta
+   * escribirle), al personal (usuarios del panel) y a los marcados como
+   * empleados. Ordenados primero por los que más veces vinieron: son los
+   * que más vale la pena recuperar.
+   */
+  async getClientesInactivos(dias: number, ahora = new Date()): Promise<ClienteInactivo[]> {
+    const limite = new Date(ahora.getTime() - dias * MS_DIA);
+    const { visitas, conTurnoFuturo, personas } = await this.datosParaInactivos(ahora);
+
+    return personas
+      .filter((p) => {
+        const v = visitas.get(p.idPersona);
+        return v && v.ultima < limite && !conTurnoFuturo.has(p.idPersona);
+      })
+      .map((p) => {
+        const v = visitas.get(p.idPersona)!;
+        return this.aClienteInactivo(p, v.ultima, v.cantidad, ahora);
+      })
+      .sort((a, b) => b.visitas - a.visitas || b.ultimaVisita!.getTime() - a.ultimaVisita!.getTime())
+      .slice(0, LIMITE_CLIENTES_INACTIVOS);
+  }
+
+  /** Clientes registrados que nunca completaron un turno ni tienen uno reservado. Los más recientes primero. */
+  async getClientesSinVisitas(ahora = new Date()): Promise<ClienteInactivo[]> {
+    const { visitas, conTurnoFuturo, personas } = await this.datosParaInactivos(ahora);
+
+    return personas
+      .filter((p) => !visitas.has(p.idPersona) && !conTurnoFuturo.has(p.idPersona))
+      .map((p) => this.aClienteInactivo(p, null, 0, ahora))
+      .sort((a, b) => b.registradoEl.getTime() - a.registradoEl.getTime())
+      .slice(0, LIMITE_CLIENTES_INACTIVOS);
+  }
+
+  private async datosParaInactivos(ahora: Date) {
+    const [completados, futuros, personas] = await Promise.all([
+      this.prisma.turno.groupBy({
+        by: ['idPersona'],
+        where: { estado: 'COMPLETADO' },
+        _max: { fechaHoraInicio: true },
+        _count: { _all: true },
+      }),
+      this.prisma.turno.findMany({
+        where: { estado: { in: ESTADOS_TURNO_FUTURO }, fechaHoraInicio: { gte: ahora } },
+        select: { idPersona: true },
+        distinct: ['idPersona'],
+      }),
+      this.prisma.persona.findMany({
+        where: { aplicaDescuentoPersonal: false, usuarioWeb: { is: null } },
+        select: { idPersona: true, nombre: true, apellido: true, telefono: true, mail: true, createdAt: true },
+      }),
+    ]);
+
+    const visitas = new Map<number, { ultima: Date; cantidad: number }>();
+    for (const c of completados) {
+      if (c._max.fechaHoraInicio) {
+        visitas.set(c.idPersona, { ultima: c._max.fechaHoraInicio, cantidad: c._count._all });
+      }
+    }
+    const conTurnoFuturo = new Set(futuros.map((t) => t.idPersona));
+    return { visitas, conTurnoFuturo, personas };
+  }
+
+  private aClienteInactivo(
+    p: { idPersona: number; nombre: string; apellido: string; telefono: string | null; mail: string | null; createdAt: Date },
+    ultimaVisita: Date | null,
+    visitas: number,
+    ahora: Date,
+  ): ClienteInactivo {
+    return {
+      idPersona: p.idPersona,
+      nombre: p.nombre,
+      apellido: p.apellido,
+      telefono: p.telefono,
+      mail: p.mail,
+      ultimaVisita,
+      diasSinVenir: ultimaVisita ? Math.floor((ahora.getTime() - ultimaVisita.getTime()) / MS_DIA) : null,
+      visitas,
+      registradoEl: p.createdAt,
+    };
+  }
+
+  // ─── Rentabilidad ───
+
+  async getCostos(): Promise<CostosNegocioValores> {
+    const costos = await this.prisma.costosNegocio.findUnique({ where: { id: 1 } });
+    return {
+      costosFijosMensuales: Number(costos?.costosFijosMensuales ?? 0),
+      costoHoraTrabajo: Number(costos?.costoHoraTrabajo ?? 0),
+    };
+  }
+
+  async updateCostos(valores: CostosNegocioValores): Promise<CostosNegocioValores> {
+    await this.prisma.costosNegocio.upsert({
+      where: { id: 1 },
+      update: valores,
+      create: { id: 1, ...valores },
+    });
+    return this.getCostos();
+  }
+
+  /**
+   * Margen y punto de equilibrio del período, con el mismo modelo del informe
+   * de Turnero: costo de cada servicio = insumos + costo de la hora × duración.
+   * Los egresos de caja NO se restan acá para no contar dos veces lo mismo
+   * (alquiler o insumos cargados como egreso y también como costo).
+   */
+  async getRentabilidad(desde?: string, hasta?: string): Promise<ReporteRentabilidad> {
+    const { inicio, fin } = this.getRangoFechas(desde, hasta);
+    const dias = Math.max(1, Math.ceil((fin.getTime() - inicio.getTime()) / MS_DIA));
+
+    const [costos, turnos, serviciosSinCosto] = await Promise.all([
+      this.getCostos(),
+      this.prisma.turno.findMany({
+        where: { estado: 'COMPLETADO', fechaHoraInicio: { gte: inicio, lte: fin } },
+        include: { detalles: { include: { servicio: true } } },
+      }),
+      this.prisma.servicio.count({ where: { vigente: true, costoInsumos: 0 } }),
+    ]);
+
+    let ingresosServicios = 0;
+    let costosVariables = 0;
+    let costoFidelizacion = 0;
+    let serviciosConFidelizacion = 0;
+
+    for (const turno of turnos) {
+      for (const d of turno.detalles) {
+        const bruto = Number(d.precioReal) * d.cantidad;
+        const descuento = bruto * (Number(d.descuentoPorcentaje) / 100);
+        ingresosServicios += bruto - descuento;
+        costosVariables +=
+          (Number(d.servicio.costoInsumos) + costos.costoHoraTrabajo * (d.servicio.duracionMinutos / 60)) * d.cantidad;
+        if (d.descuentoMotivo === 'FIDELIZACION') {
+          costoFidelizacion += descuento;
+          serviciosConFidelizacion += d.cantidad;
+        }
+      }
+    }
+
+    const costosConfigurados =
+      costos.costosFijosMensuales > 0 ||
+      costos.costoHoraTrabajo > 0 ||
+      (await this.prisma.servicio.count({ where: { costoInsumos: { gt: 0 } } })) > 0;
+
+    const margenContribucion = ingresosServicios - costosVariables;
+    const costosFijosPeriodo = (costos.costosFijosMensuales * dias) / DIAS_MES_REFERENCIA;
+    const turnosCompletados = turnos.length;
+
+    // Punto de equilibrio: cuántos turnos hacen falta para que el margen que
+    // deja cada uno cubra los costos fijos. Sin turnos no hay promedio (sería
+    // dividir por cero) y con margen <= 0 no existe punto de equilibrio.
+    let margenPromedioPorTurno: number | null = null;
+    let turnosParaCubrirFijosMes: number | null = null;
+    let turnosParaCubrirFijosPeriodo: number | null = null;
+    let turnosFaltantesPeriodo: number | null = null;
+    let aviso: string | null = null;
+
+    if (turnosCompletados === 0) {
+      aviso = 'No hay turnos completados en este período, así que todavía no se puede calcular el punto de equilibrio.';
+    } else {
+      margenPromedioPorTurno = margenContribucion / turnosCompletados;
+      if (margenPromedioPorTurno <= 0) {
+        aviso = 'Con los costos cargados, cada turno deja un margen nulo o negativo: no hay cantidad de turnos que cubra los costos fijos. Revisá precios o costos.';
+      } else {
+        turnosParaCubrirFijosMes = Math.ceil(costos.costosFijosMensuales / margenPromedioPorTurno);
+        turnosParaCubrirFijosPeriodo = Math.ceil(costosFijosPeriodo / margenPromedioPorTurno);
+        turnosFaltantesPeriodo = Math.max(0, turnosParaCubrirFijosPeriodo - turnosCompletados);
+      }
+    }
+
+    return {
+      costosConfigurados,
+      dias,
+      turnosCompletados,
+      ingresosServicios: redondear(ingresosServicios),
+      costosVariables: redondear(costosVariables),
+      margenContribucion: redondear(margenContribucion),
+      costosFijosPeriodo: redondear(costosFijosPeriodo),
+      resultado: redondear(margenContribucion - costosFijosPeriodo),
+      costoFidelizacion: redondear(costoFidelizacion),
+      serviciosConFidelizacion,
+      margenPromedioPorTurno: margenPromedioPorTurno === null ? null : redondear(margenPromedioPorTurno),
+      turnosParaCubrirFijosMes,
+      turnosParaCubrirFijosPeriodo,
+      turnosFaltantesPeriodo,
+      serviciosSinCosto,
+      aviso,
+    };
   }
 }
