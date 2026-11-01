@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/modules/prisma/prisma.service';
 import { cleanDatabase } from './setup-e2e';
@@ -20,6 +21,7 @@ describe('TurnosController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -64,7 +66,8 @@ describe('TurnosController (e2e)', () => {
     it('should create a new turno and return 201', async () => {
       const payload = {
         idPersona: personaId,
-        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        // 2026-06-16 (martes) 12:00 UTC = 9:00 AR, dentro del horario de atención.
+        fechaHoraInicio: '2026-06-16T12:00:00.000Z',
         servicios: [{ idServicio: servicioId, cantidad: 1 }],
       };
 
@@ -75,7 +78,8 @@ describe('TurnosController (e2e)', () => {
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('idTurno');
-      expect(response.body.estado).toBe('PENDIENTE');
+      // El turno nace CONFIRMADO (ver create() en turnos.service.ts).
+      expect(response.body.estado).toBe('CONFIRMADO');
     });
 
     it('should return 401 without token', async () => {
@@ -83,7 +87,7 @@ describe('TurnosController (e2e)', () => {
         .post('/api/turnos')
         .send({
           idPersona: personaId,
-          fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+          fechaHoraInicio: '2026-06-16T12:00:00.000Z',
           servicios: [{ idServicio: servicioId }],
         });
 
@@ -96,8 +100,8 @@ describe('TurnosController (e2e)', () => {
       await prisma.turno.create({
         data: {
           idPersona: personaId,
-          fechaHoraInicio: new Date('2026-06-15T10:00:00Z'),
-          fechaHoraFin: new Date('2026-06-15T10:30:00Z'),
+          fechaHoraInicio: new Date('2026-06-16T12:00:00Z'),
+          fechaHoraFin: new Date('2026-06-16T12:30:00Z'),
           estado: 'PENDIENTE',
         },
       });
@@ -112,52 +116,47 @@ describe('TurnosController (e2e)', () => {
   });
 
   describe('Patrón State - transiciones', () => {
-    it('should confirmar -> iniciar -> finalizar -> pagar', async () => {
-      // 1. Crear turno
+    it('should iniciar -> finalizar -> pagar (el turno ya nace CONFIRMADO)', async () => {
+      // 1. Crear turno (nace CONFIRMADO: ver create() en turnos.service.ts,
+      // ya no hace falta un paso "confirmar" explícito).
       const createResponse = await request(app.getHttpServer())
         .post('/api/turnos')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           idPersona: personaId,
-          fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+          fechaHoraInicio: '2026-06-16T12:00:00.000Z',
           servicios: [{ idServicio: servicioId }],
         });
 
       const turnoId = createResponse.body.idTurno;
-      expect(createResponse.body.estado).toBe('PENDIENTE');
+      expect(createResponse.body.estado).toBe('CONFIRMADO');
 
-      // 2. Confirmar
-      const confirmar = await request(app.getHttpServer())
-        .post(`/api/turnos/${turnoId}/confirmar`)
-        .set('Authorization', `Bearer ${authToken}`);
-      expect(confirmar.body.estado).toBe('CONFIRMADO');
-
-      // 3. Iniciar
+      // 2. Iniciar
       const iniciar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/iniciar`)
         .set('Authorization', `Bearer ${authToken}`);
       expect(iniciar.body.estado).toBe('EN_PROCESO');
 
-      // 4. Finalizar
+      // 3. Finalizar
       const finalizar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/finalizar`)
         .set('Authorization', `Bearer ${authToken}`);
       expect(finalizar.body.estado).toBe('COMPLETADO');
 
-      // 5. Pagar
+      // 4. Pagar
       const pagar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/pagar`)
         .set('Authorization', `Bearer ${authToken}`);
       expect(pagar.body.estado).toBe('COMPLETADO');
     });
 
-    it('should cancelar a PENDIENTE turno', async () => {
+    it('should cancelar a CONFIRMADO turno', async () => {
       const createResponse = await request(app.getHttpServer())
         .post('/api/turnos')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           idPersona: personaId,
-          fechaHoraInicio: '2026-06-15T11:00:00.000Z',
+          fechaHoraInicio: '2026-06-16T13:00:00.000Z',
           servicios: [{ idServicio: servicioId }],
         });
 
@@ -175,13 +174,14 @@ describe('TurnosController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           idPersona: personaId,
-          fechaHoraInicio: '2026-06-15T12:00:00.000Z',
+          fechaHoraInicio: '2026-06-16T14:00:00.000Z',
           servicios: [{ idServicio: servicioId }],
         });
 
       const turnoId = createResponse.body.idTurno;
 
-      // Intentar pagar un PENDIENTE (debe fallar)
+      // Intentar pagar un turno recién creado, CONFIRMADO (debe fallar: hay
+      // que iniciar e finalizar primero).
       const pagar = await request(app.getHttpServer())
         .post(`/api/turnos/${turnoId}/pagar`)
         .set('Authorization', `Bearer ${authToken}`);
@@ -196,7 +196,7 @@ describe('TurnosController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           idPersona: personaId,
-          fechaHoraInicio: '2026-06-15T13:00:00.000Z',
+          fechaHoraInicio: '2026-06-16T15:00:00.000Z',
           servicios: [{ idServicio: servicioId, cantidad: 2 }],
         });
 

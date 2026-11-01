@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/modules/prisma/prisma.service';
 import { MailService } from '../src/modules/mail/mail.service';
 import { cleanDatabase } from './setup-e2e';
+import { crearDispositivoConfiable } from './helpers/auth.helper';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -16,10 +18,13 @@ import * as bcrypt from 'bcrypt';
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let mailServiceMock: { sendPasswordResetEmail: jest.Mock };
+  let mailServiceMock: { sendPasswordResetEmail: jest.Mock; sendTwoFactorCode: jest.Mock };
 
   beforeAll(async () => {
-    mailServiceMock = { sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined) };
+    mailServiceMock = {
+      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+      sendTwoFactorCode: jest.fn().mockResolvedValue(true),
+    };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -30,6 +35,7 @@ describe('AuthController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -45,6 +51,7 @@ describe('AuthController (e2e)', () => {
   beforeEach(async () => {
     await cleanDatabase(prisma);
     mailServiceMock.sendPasswordResetEmail.mockClear();
+    mailServiceMock.sendTwoFactorCode.mockClear();
   });
 
   afterAll(async () => {
@@ -68,8 +75,10 @@ describe('AuthController (e2e)', () => {
           idPersona: persona.idPersona,
         },
       });
+      const deviceToken = await crearDispositivoConfiable(prisma, 'admin');
       const login = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Cookie', `device_token=${deviceToken}`)
         .send({ login: 'admin', password: 'admin123' });
       return login.body.access_token;
     }
@@ -147,7 +156,7 @@ describe('AuthController (e2e)', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    it('should login with username and return JWT token', async () => {
+    it('should login with username and return JWT token when the device is trusted', async () => {
       // Arrange: crear usuario
       const persona = await prisma.persona.create({
         data: { nombre: 'Admin', apellido: 'Test' },
@@ -163,10 +172,12 @@ describe('AuthController (e2e)', () => {
           idPersona: persona.idPersona,
         },
       });
+      const deviceToken = await crearDispositivoConfiable(prisma, 'admin');
 
       // Act
       const response = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Cookie', `device_token=${deviceToken}`)
         .send({
           login: 'admin',
           password: 'admin123',
@@ -182,7 +193,7 @@ describe('AuthController (e2e)', () => {
       expect(response.body.user).not.toHaveProperty('apellido');
     });
 
-    it('should login with email and return JWT token', async () => {
+    it('should login with email and return JWT token when the device is trusted', async () => {
       // Arrange: crear usuario
       const persona = await prisma.persona.create({
         data: { nombre: 'Admin', apellido: 'Test' },
@@ -198,10 +209,12 @@ describe('AuthController (e2e)', () => {
           idPersona: persona.idPersona,
         },
       });
+      const deviceToken = await crearDispositivoConfiable(prisma, 'admin');
 
       // Act
       const response = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Cookie', `device_token=${deviceToken}`)
         .send({
           login: 'admin@test.com',
           password: 'admin123',
@@ -225,6 +238,47 @@ describe('AuthController (e2e)', () => {
       // Assert
       expect(response.status).toBe(401);
     });
+
+    it('should require 2FA when there is no trusted device, and complete login with the code sent by mail', async () => {
+      // Arrange: crear usuario, sin ningún dispositivo de confianza registrado
+      const persona = await prisma.persona.create({
+        data: { nombre: 'Admin', apellido: 'Test' },
+      });
+      const hashPass = await bcrypt.hash('admin123', 10);
+      await prisma.usuarioWeb.create({
+        data: {
+          usuario: 'admin',
+          email: 'admin@test.com',
+          hashPass,
+          rol: 'ADMIN',
+          idPersona: persona.idPersona,
+        },
+      });
+
+      // Act: login sin cookie de dispositivo
+      const loginResponse = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ login: 'admin', password: 'admin123' });
+
+      // Assert: queda pendiente de 2FA, no hay token todavía
+      expect(loginResponse.status).toBe(200);
+      expect(loginResponse.body.requiresTwoFactor).toBe(true);
+      expect(loginResponse.body).not.toHaveProperty('access_token');
+      expect(mailServiceMock.sendTwoFactorCode).toHaveBeenCalledTimes(1);
+
+      // El código nunca se expone por HTTP: se toma del mock del mail
+      const [, code] = mailServiceMock.sendTwoFactorCode.mock.calls[0];
+
+      // Act: completar el segundo paso con ese código
+      const verifyResponse = await request(app.getHttpServer())
+        .post('/api/auth/verify-2fa')
+        .send({ login: 'admin', code });
+
+      // Assert
+      expect(verifyResponse.status).toBe(200);
+      expect(verifyResponse.body).toHaveProperty('access_token');
+      expect(verifyResponse.body.user.usuario).toBe('admin');
+    });
   });
 
   describe('GET /api/auth/profile', () => {
@@ -245,8 +299,10 @@ describe('AuthController (e2e)', () => {
         },
       });
 
+      const deviceToken = await crearDispositivoConfiable(prisma, 'admin');
       const loginResponse = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Cookie', `device_token=${deviceToken}`)
         .send({ login: 'admin', password: 'admin123' });
 
       const token = loginResponse.body.access_token;
