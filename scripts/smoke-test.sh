@@ -7,9 +7,9 @@
 #
 #   1. Login de admin.
 #   2. Reserva pública de un cliente (dispara el mail de confirmación).
-#   3. Ciclo de vida completo de un turno con cobro real:
-#      confirmar -> iniciar -> finalizar -> pago en caja (crea el
-#      movimiento, no solo cambia el estado).
+#   3. Ciclo de vida completo de un turno con cobro real (nace CONFIRMADO):
+#      iniciar -> finalizar -> pago en caja (crea el movimiento, no solo
+#      cambia el estado).
 #   4. Recordatorio automático por email (cron de NotificationsService).
 #
 # Lo que NO cubre (a propósito, ver conversación): cancelación,
@@ -169,7 +169,9 @@ else
 fi
 
 # --- 3. Ciclo de vida completo + pago en caja ---
-step "3. Confirmar -> iniciar -> finalizar -> pagar"
+# El turno ya nace CONFIRMADO (ver create() en turnos.service.ts), así que
+# no hace falta un paso "confirmar" explícito acá.
+step "3. Iniciar -> finalizar -> pagar"
 if [ -n "$TURNO_PAGO" ]; then
   transicion() {
     local accion="$1" estado_esperado="$2"
@@ -184,7 +186,6 @@ if [ -n "$TURNO_PAGO" ]; then
       fail "$accion (HTTP $code): $body"
     fi
   }
-  transicion "confirmar" "CONFIRMADO"
   transicion "iniciar" "EN_PROCESO"
   transicion "finalizar" "COMPLETADO"
 
