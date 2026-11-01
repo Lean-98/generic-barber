@@ -10,6 +10,7 @@ import { Servicio } from '../../shared/models/servicio.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
+import { fechaHoraArAIso } from '../../shared/utils/fecha-ar.util';
 
 @Component({
   selector: 'app-turno-form',
@@ -356,7 +357,7 @@ export class TurnoFormComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    const fechaHora = `${this.fecha()}T${this.hora()}:00`;
+    const fechaHora = fechaHoraArAIso(this.fecha(), this.hora());
 
     this.turnosService.create({
       idPersona: this.clienteSeleccionado()!.idPersona,

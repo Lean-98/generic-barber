@@ -50,6 +50,22 @@ describe('TurnosService', () => {
     vigente: true,
   };
 
+  // Mismo horario real del negocio: domingo y lunes cerrado, martes a
+  // sábado 09:00-13:30 y 16:30-20:30 (horario partido).
+  const mockConfigConHorarios = {
+    horarios: [
+      { dia: 0, cerrado: true },
+      { dia: 1, cerrado: true },
+      { dia: 2, cerrado: false, abre: '09:00', cierra: '13:30', abre2: '16:30', cierra2: '20:30' },
+      { dia: 3, cerrado: false, abre: '09:00', cierra: '13:30', abre2: '16:30', cierra2: '20:30' },
+      { dia: 4, cerrado: false, abre: '09:00', cierra: '13:30', abre2: '16:30', cierra2: '20:30' },
+      { dia: 5, cerrado: false, abre: '09:00', cierra: '13:30', abre2: '16:30', cierra2: '20:30' },
+      { dia: 6, cerrado: false, abre: '09:00', cierra: '13:30', abre2: '16:30', cierra2: '20:30' },
+    ],
+  };
+  // 2026-06-16 es martes; 13:00Z = 10:00 hora AR (UTC-3), dentro de la franja 09:00-13:30.
+  const FECHA_DENTRO_DE_HORARIO = '2026-06-16T13:00:00.000Z';
+
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
 
@@ -80,6 +96,7 @@ describe('TurnosService', () => {
     }).compile();
 
     service = module.get<TurnosService>(TurnosService);
+    prismaMock.configuracionNegocio.findUnique.mockResolvedValue(mockConfigConHorarios);
   });
 
   afterEach(() => {
@@ -107,7 +124,7 @@ describe('TurnosService', () => {
 
       const dto: CreateTurnoDto = {
         idPersona: 1,
-        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
         servicios: [{ idServicio: 1, cantidad: 1 }],
       };
 
@@ -139,7 +156,7 @@ describe('TurnosService', () => {
 
       const dto: CreateTurnoDto = {
         idPersona: 1,
-        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
         servicios: [{ idServicio: 1, cantidad: 1 }],
         idFormaPagoPreferida: 1,
       };
@@ -181,18 +198,46 @@ describe('TurnosService', () => {
       await expect(service.create(dto)).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw if horario not available', async () => {
+    it('should throw if horario not available (se superpone con otro turno)', async () => {
       prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
       prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
       prismaMock.turno.findMany.mockResolvedValue([mockTurno]);
 
       const dto: CreateTurnoDto = {
         idPersona: 1,
-        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
         servicios: [{ idServicio: 1 }],
       };
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if the business is closed that day', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+
+      const dto: CreateTurnoDto = {
+        idPersona: 1,
+        fechaHoraInicio: '2026-06-15T13:00:00.000Z', // lunes 10:00 AR, día cerrado
+        servicios: [{ idServicio: 1 }],
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw if the turno falls in the midday gap of an open day', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+
+      const dto: CreateTurnoDto = {
+        idPersona: 1,
+        fechaHoraInicio: '2026-06-16T17:00:00.000Z', // martes 14:00 AR, entre las dos franjas
+        servicios: [{ idServicio: 1 }],
+      };
+
+      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
     });
   });
 
@@ -281,7 +326,7 @@ describe('TurnosService', () => {
 
       await service.reservarPublica({
         email: 'juan@example.com',
-        fechaHoraInicio: '2026-06-15T10:00:00.000Z',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
         servicios: [{ idServicio: 1, cantidad: 1 }],
         idFormaPagoPreferida: 1,
       });

@@ -62,12 +62,17 @@ ok()   { echo "  OK: $1"; PASSES+=("$1"); }
 fail() { echo "  FALLÓ: $1"; FAILURES+=("$1"); }
 step() { echo ""; echo "== $1 =="; }
 
+DEVICE_TOKEN_HASH=""
+
 cleanup() {
   step "Limpieza"
   psql_q "DELETE FROM turno_detalles WHERE \"idTurno\" IN (SELECT \"idTurno\" FROM turnos WHERE observacion LIKE 'SMOKE-TEST%');" > /dev/null
   psql_q "DELETE FROM pagos WHERE \"idTurno\" IN (SELECT \"idTurno\" FROM turnos WHERE observacion LIKE 'SMOKE-TEST%');" > /dev/null 2>&1
   psql_q "DELETE FROM movimientos_caja WHERE id_turno IN (SELECT \"idTurno\" FROM turnos WHERE observacion LIKE 'SMOKE-TEST%');" > /dev/null 2>&1
   psql_q "DELETE FROM turnos WHERE observacion LIKE 'SMOKE-TEST%';" > /dev/null
+  if [ -n "$DEVICE_TOKEN_HASH" ]; then
+    psql_q "DELETE FROM dispositivos_confiables WHERE token_hash = '$DEVICE_TOKEN_HASH';" > /dev/null
+  fi
   if [ -n "$CONFIG_ORIGINAL" ]; then
     psql_q "UPDATE configuracion_negocio SET recordatorio_horas_antes = $CONFIG_ORIGINAL WHERE id = 1;" > /dev/null
   fi
@@ -76,16 +81,35 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 1. Login ---
+# El login ahora puede pedir 2FA por correo (POST /auth/login devuelve
+# requiresTwoFactor: true y ningún access_token). Para no depender de leer
+# un mail real, el script se registra como "dispositivo de confianza" de
+# $ADMIN_LOGIN directo en la base (mismo mecanismo que usa POST
+# /auth/verify-2fa con recordarDispositivo:true), y manda ese token como
+# cookie device_token en el login: así el backend lo saltea y devuelve el
+# access_token en el mismo paso, igual que antes de que existiera el 2FA.
 step "1. Login de admin"
+
+USUARIO_ADMIN=$(psql_q "SELECT usuario FROM usuarios_web WHERE usuario = '$ADMIN_LOGIN' OR email = '$ADMIN_LOGIN';")
+if [ -z "$USUARIO_ADMIN" ]; then
+  echo "No existe ningún usuario con login/email '$ADMIN_LOGIN'." >&2
+  exit 1
+fi
+
+DEVICE_TOKEN=$(openssl rand -hex 32)
+DEVICE_TOKEN_HASH=$(printf '%s' "$DEVICE_TOKEN" | sha256sum | cut -d' ' -f1)
+psql_q "INSERT INTO dispositivos_confiables (usuario, token_hash, expira_en) VALUES ('$USUARIO_ADMIN', '$DEVICE_TOKEN_HASH', now() + interval '30 days');" > /dev/null
+
 LOGIN_RESP=$(curl -s -w '\n%{http_code}' -X POST "$API_URL/auth/login" \
   -H "Content-Type: application/json" \
+  -H "Cookie: device_token=$DEVICE_TOKEN" \
   -d "{\"login\":\"$ADMIN_LOGIN\",\"password\":\"$ADMIN_PASSWORD\"}")
 LOGIN_CODE=$(echo "$LOGIN_RESP" | tail -n1)
 LOGIN_BODY=$(echo "$LOGIN_RESP" | sed '$d')
 TOKEN=$(echo "$LOGIN_BODY" | jq -r '.access_token // empty')
 
 if [ "$LOGIN_CODE" == "200" ] && [ -n "$TOKEN" ]; then
-  ok "login devolvió 200 y un access_token"
+  ok "login devolvió 200 y un access_token (2FA saltado via dispositivo de confianza de prueba)"
 else
   fail "login (HTTP $LOGIN_CODE): $LOGIN_BODY"
   echo ""
@@ -94,10 +118,16 @@ else
 fi
 AUTH_HEADER="Authorization: Bearer $TOKEN"
 
-# --- idServicio vigente, reusado en los pasos 2 y 4 ---
+# --- idServicio e idFormaPago vigentes, reusados en los pasos 2 y 4 ---
 ID_SERVICIO=$(psql_q "SELECT \"idServicio\" FROM servicios WHERE vigente = true ORDER BY \"idServicio\" LIMIT 1;")
 if [ -z "$ID_SERVICIO" ]; then
   echo "No hay ningún servicio vigente en la base, no se puede seguir." >&2
+  exit 1
+fi
+
+ID_FORMA_PAGO_RESERVA=$(psql_q "SELECT \"idFormaPago\" FROM formas_pago WHERE vigente = true ORDER BY \"idFormaPago\" LIMIT 1;")
+if [ -z "$ID_FORMA_PAGO_RESERVA" ]; then
+  echo "No hay ninguna forma de pago vigente en la base, no se puede seguir." >&2
   exit 1
 fi
 
@@ -118,7 +148,7 @@ reservar() {
   fi
   resp=$(curl -s -w '\n%{http_code}' -X POST "$API_URL/turnos-publicos/reservar" \
     -H "Content-Type: application/json" \
-    -d "{\"nombre\":\"Smoke\",\"apellido\":\"Test\",\"email\":\"$EMAIL\",\"fechaHoraInicio\":\"$slot\",\"observacion\":\"$observacion\",\"servicios\":[{\"idServicio\":$ID_SERVICIO}]}")
+    -d "{\"nombre\":\"Smoke\",\"apellido\":\"Test\",\"email\":\"$EMAIL\",\"fechaHoraInicio\":\"$slot\",\"observacion\":\"$observacion\",\"servicios\":[{\"idServicio\":$ID_SERVICIO}],\"idFormaPagoPreferida\":$ID_FORMA_PAGO_RESERVA}")
   code=$(echo "$resp" | tail -n1)
   body=$(echo "$resp" | sed '$d')
   if [ "$code" != "201" ]; then

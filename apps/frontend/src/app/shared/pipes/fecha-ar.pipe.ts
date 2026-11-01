@@ -18,6 +18,8 @@ export type FechaArFormato =
   | 'diaNumero'   // 9
   | 'diaSemana';  // domingo 9
 
+const ZONA_AR = 'America/Argentina/Buenos_Aires';
+
 @Pipe({
   name: 'fechaAr',
   standalone: true,
@@ -26,22 +28,58 @@ export class FechaArPipe implements PipeTransform {
   /**
    * `soloFecha`: para valores que representan un día calendario sin hora
    * (ej. `CierreCaja.fecha`, `Persona.fechaNacimiento`, columnas `@db.Date`
-   * que Prisma siempre reconstruye en medianoche UTC). Con los getters
-   * locales, medianoche UTC cae a las 21:00 del día anterior en Argentina
-   * (UTC-3) y el pipe le resta un día al valor. Los getters UTC devuelven
-   * el día tal cual está guardado, sin aplicar conversión de huso horario.
+   * que Prisma siempre reconstruye en medianoche UTC) — se leen con los
+   * getters UTC tal cual están guardados, sin aplicar ninguna conversión de
+   * huso horario (si se usara la hora de Argentina, medianoche UTC caería
+   * a las 21:00 del día anterior y el pipe le restaría un día al valor).
+   *
+   * Para el resto (con hora real), se fuerza explícitamente el huso de
+   * Argentina con `Intl.DateTimeFormat` en vez de usar los getters locales
+   * del navegador (`getHours`, `getDate`, etc.): esos dependen del huso
+   * horario configurado en el dispositivo que ve la página, que no tiene
+   * por qué ser Argentina (el panel puede abrirse desde cualquier lado), y
+   * el negocio siempre opera en hora de Argentina sin importar quién mire.
    */
   transform(value: string | Date | null | undefined, formato: FechaArFormato = 'corta', soloFecha = false): string {
     const fecha = value instanceof Date ? value : value ? new Date(value) : null;
     if (!fecha || isNaN(fecha.getTime())) return '—';
 
-    const dia = soloFecha ? fecha.getUTCDate() : fecha.getDate();
-    const mes = soloFecha ? fecha.getUTCMonth() : fecha.getMonth();
-    const anio = soloFecha ? fecha.getUTCFullYear() : fecha.getFullYear();
-    const diaSemana = soloFecha ? fecha.getUTCDay() : fecha.getDay();
+    let dia: number;
+    let mes: number;
+    let anio: number;
+    let diaSemana: number;
+    let horaStr: string;
+
+    if (soloFecha) {
+      dia = fecha.getUTCDate();
+      mes = fecha.getUTCMonth();
+      anio = fecha.getUTCFullYear();
+      diaSemana = fecha.getUTCDay();
+      horaStr = '00:00';
+    } else {
+      const partes = new Intl.DateTimeFormat('en-US', {
+        timeZone: ZONA_AR,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(fecha);
+      const valor = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value ?? 0);
+
+      anio = valor('year');
+      mes = valor('month') - 1;
+      dia = valor('day');
+      // getUTCDay() sobre una fecha-calendario construida a partir de los
+      // componentes ya resueltos en hora de Argentina: evita mapear nombres
+      // de día de la semana que Intl devolvería en el locale pedido.
+      diaSemana = new Date(Date.UTC(anio, mes, dia)).getUTCDay();
+      horaStr = `${String(valor('hour') % 24).padStart(2, '0')}:${String(valor('minute')).padStart(2, '0')}`;
+    }
+
     const diaPad = String(dia).padStart(2, '0');
     const mesPad = String(mes + 1).padStart(2, '0');
-    const horaStr = `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
 
     switch (formato) {
       case 'corta':

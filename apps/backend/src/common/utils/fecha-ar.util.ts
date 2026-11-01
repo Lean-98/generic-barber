@@ -37,13 +37,19 @@ export function horaArAUtc(fecha: Date, horaLocal: number, minutoLocal = 0): Dat
 }
 
 /**
- * Fecha-calendario (medianoche UTC) del "hoy" de Argentina, calculada a
- * partir del instante real actual. Entre las 21:00 y las 23:59 hora
- * Argentina la fecha UTC ya rodó al día siguiente, así que no alcanza con
- * leer `new Date()` directamente: hay que restar el offset para obtener el
- * día calendario real en Argentina antes de usarlo con `inicioDiaAr`/`finDiaAr`.
+ * Fecha-calendario (medianoche UTC) del día de Argentina al que pertenece
+ * un instante cualquiera. Entre las 21:00 y las 23:59 hora Argentina la
+ * fecha UTC ya rodó al día siguiente, así que no alcanza con leer los
+ * componentes UTC del instante directamente: hay que restar el offset para
+ * obtener el día calendario real en Argentina antes de usarlo con
+ * `inicioDiaAr`/`finDiaAr`/`horaArAUtc`.
  */
+export function diaCalendarioAr(instante: Date): Date {
+  const enHoraAr = new Date(instante.getTime() - OFFSET_ARGENTINA_MS);
+  return new Date(Date.UTC(enHoraAr.getUTCFullYear(), enHoraAr.getUTCMonth(), enHoraAr.getUTCDate()));
+}
+
+/** Fecha-calendario de Argentina para "ahora" (ver `diaCalendarioAr`). */
 export function hoyAr(): Date {
-  const ahoraEnHoraAr = new Date(Date.now() - OFFSET_ARGENTINA_MS);
-  return new Date(Date.UTC(ahoraEnHoraAr.getUTCFullYear(), ahoraEnHoraAr.getUTCMonth(), ahoraEnHoraAr.getUTCDate()));
+  return diaCalendarioAr(new Date());
 }

@@ -6,7 +6,7 @@ import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { MailService } from '../mail/mail.service';
-import { horaArAUtc, inicioDiaAr, finDiaAr } from '../../common/utils/fecha-ar.util';
+import { horaArAUtc, inicioDiaAr, finDiaAr, diaCalendarioAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 
 interface HorarioDiaConfig {
@@ -88,6 +88,12 @@ export class TurnosService {
         throw new BadRequestException(`Servicio ${servicioDto.idServicio} no encontrado en la lista de servicios válidos`);
       }
     }
+
+    // 3.c. El turno tiene que entrar dentro del horario de atención real del
+    // negocio (día no cerrado, y dentro de alguna de sus franjas). Antes esto
+    // solo se usaba para sugerir slots en getDisponibilidad(); un turno podía
+    // crearse igual en un día cerrado o en el hueco entre franjas.
+    await this.verificarHorarioAtencion(fechaHoraInicio, fechaHoraFin);
 
     // 4, 5 y 6. Verificar disponibilidad y crear turno + detalles de forma atómica.
     // Sin esto, dos reservas concurrentes para el mismo horario (algo bastante
@@ -376,6 +382,48 @@ export class TurnosService {
     }
   }
 
+  /** Franjas horarias (abre/cierra) configuradas para un día; [] si no hay horarios cargados para ese día. */
+  private franjasDelDia(horarioDia: HorarioDiaConfig | undefined): { abre: string; cierra: string }[] {
+    if (!horarioDia || horarioDia.cerrado) return [];
+    const franjas: { abre: string; cierra: string }[] = [];
+    if (horarioDia.abre && horarioDia.cierra) franjas.push({ abre: horarioDia.abre, cierra: horarioDia.cierra });
+    if (horarioDia.abre2 && horarioDia.cierra2) franjas.push({ abre: horarioDia.abre2, cierra: horarioDia.cierra2 });
+    return franjas;
+  }
+
+  /**
+   * Valida que [fechaHoraInicio, fechaHoraFin) entre completo dentro de
+   * alguna franja de atención del día (configuracion_negocio.horarios), sin
+   * cruzar un día cerrado ni el hueco entre franjas (ej. horario partido).
+   * Es la misma fuente de horarios que usa getDisponibilidad() para sugerir
+   * slots; acá se usa para no dejar crear un turno fuera de esos horarios.
+   */
+  private async verificarHorarioAtencion(fechaHoraInicio: Date, fechaHoraFin: Date): Promise<void> {
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    const horarios = (config?.horarios as unknown as HorarioDiaConfig[] | null) ?? [];
+
+    const fechaCalendario = diaCalendarioAr(fechaHoraInicio);
+    const diaSemana = fechaCalendario.getUTCDay();
+    const horarioDia = horarios.find((h) => h.dia === diaSemana);
+    const franjas = this.franjasDelDia(horarioDia);
+
+    if (franjas.length === 0) {
+      throw new BadRequestException('El negocio está cerrado ese día');
+    }
+
+    const entraEnAlgunaFranja = franjas.some((franja) => {
+      const [horaAbre, minAbre] = franja.abre.split(':').map(Number);
+      const [horaCierra, minCierra] = franja.cierra.split(':').map(Number);
+      const inicioFranja = horaArAUtc(fechaCalendario, horaAbre, minAbre);
+      const finFranja = horaArAUtc(fechaCalendario, horaCierra, minCierra);
+      return fechaHoraInicio >= inicioFranja && fechaHoraFin <= finFranja;
+    });
+
+    if (!entraEnAlgunaFranja) {
+      throw new BadRequestException('El horario elegido está fuera de la atención del negocio');
+    }
+  }
+
   async calcularTotal(id: number): Promise<number> {
     const turno = await this.findOne(id);
     return turno.detalles.reduce((total, detalle: any) => {
@@ -452,13 +500,7 @@ export class TurnosService {
     const diaSemana = fecha.getUTCDay();
     const horarioDia = horarios.find((h) => h.dia === diaSemana);
 
-    if (!horarioDia || horarioDia.cerrado) {
-      return { slots: [], duracionTotal };
-    }
-
-    const franjas: { abre: string; cierra: string }[] = [];
-    if (horarioDia.abre && horarioDia.cierra) franjas.push({ abre: horarioDia.abre, cierra: horarioDia.cierra });
-    if (horarioDia.abre2 && horarioDia.cierra2) franjas.push({ abre: horarioDia.abre2, cierra: horarioDia.cierra2 });
+    const franjas = this.franjasDelDia(horarioDia);
     if (franjas.length === 0) {
       return { slots: [], duracionTotal };
     }
