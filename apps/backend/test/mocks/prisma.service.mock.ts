@@ -26,6 +26,7 @@ export class PrismaServiceMock {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     delete: jest.fn(),
     groupBy: jest.fn(),
     count: jest.fn(),

@@ -6,6 +6,8 @@ import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { MailService } from '../mail/mail.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
+import { ConfigService } from '@nestjs/config';
+import { generarTokenCancelacion } from './cancelacion-token.util';
 
 /**
  * Test Unitario: TurnosService
@@ -66,6 +68,8 @@ describe('TurnosService', () => {
   // 2026-06-16 es martes; 13:00Z = 10:00 hora AR (UTC-3), dentro de la franja 09:00-13:30.
   const FECHA_DENTRO_DE_HORARIO = '2026-06-16T13:00:00.000Z';
 
+  const SECRETO = 'secreto-test';
+
   beforeEach(async () => {
     prismaMock = new PrismaServiceMock();
 
@@ -90,7 +94,12 @@ describe('TurnosService', () => {
           useValue: {
             sendTurnoConfirmacion: jest.fn().mockResolvedValue(undefined),
             sendTurnoRecordatorio: jest.fn().mockResolvedValue(undefined),
+            sendAvisoCancelacion: jest.fn().mockResolvedValue(true),
           },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: (k: string) => ({ FRONTEND_URL: 'https://barber.test', JWT_SECRET: SECRETO } as Record<string, string>)[k] },
         },
       ],
     }).compile();
@@ -266,6 +275,18 @@ describe('TurnosService', () => {
       expect(result.estado).toBe('CANCELADO');
     });
 
+    it('should record that the cancellation came from the panel', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno });
+      prismaMock.turno.update.mockResolvedValue({ ...mockTurno, estado: 'CANCELADO' });
+
+      await service.cancelar(1);
+
+      expect(prismaMock.turno.update).toHaveBeenCalledWith({
+        where: { idTurno: 1 },
+        data: expect.objectContaining({ estado: 'CANCELADO', canceladoPor: 'PANEL', canceladoEn: expect.any(Date) }),
+      });
+    });
+
     it('should throw if cancelar COMPLETADO', async () => {
       prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, estado: 'COMPLETADO' });
 
@@ -366,4 +387,120 @@ describe('TurnosService', () => {
       expect(result).toBe(125.0); // 25 + (50*2)
     });
   });
+
+  describe('Cancelación por el cliente (link del mail)', () => {
+    const enUnaHora = () => new Date(Date.now() + 60 * 60 * 1000);
+    const turnoCliente = (extra: Record<string, unknown> = {}) => ({
+      ...mockTurno,
+      estado: 'CONFIRMADO',
+      fechaHoraInicio: enUnaHora(),
+      googleEventId: 'evt-1',
+      persona: { nombre: 'Juan', apellido: 'Pérez', telefono: '2954123456' },
+      detalles: [{ servicio: { nombre: 'Corte' } }],
+      ...extra,
+    });
+    const token = () => generarTokenCancelacion(1, SECRETO);
+
+    let mail: { sendAvisoCancelacion: jest.Mock; sendTurnoConfirmacion: jest.Mock };
+    let calendar: { deleteEvent: jest.Mock };
+    beforeEach(() => {
+      mail = (service as any).mailService;
+      calendar = (service as any).googleCalendarService;
+    });
+
+    it('should cancel even with less than an hour left, free the slot and notify the barber', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente());
+      prismaMock.turno.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ email: 'barber@test.com', nombre: 'Authentic' });
+
+      await service.cancelarPorCliente(token());
+
+      expect(prismaMock.turno.updateMany).toHaveBeenCalledWith({
+        where: { idTurno: 1, estado: { in: ['PENDIENTE', 'CONFIRMADO'] } },
+        data: expect.objectContaining({ estado: 'CANCELADO', canceladoPor: 'CLIENTE', canceladoEn: expect.any(Date) }),
+      });
+      expect(calendar.deleteEvent).toHaveBeenCalledWith('evt-1');
+      expect(mail.sendAvisoCancelacion).toHaveBeenCalledWith(
+        ['barber@test.com'],
+        expect.objectContaining({ nombreCliente: 'Juan Pérez', telefonoCliente: '2954123456', servicios: ['Corte'] }),
+      );
+    });
+
+    it('should fall back to the panel users when the business has no contact email', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente());
+      prismaMock.turno.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ email: null });
+      prismaMock.usuarioWeb.findMany.mockResolvedValue([{ email: 'admin@test.com' }, { email: 'pelu@test.com' }]);
+
+      await service.cancelarPorCliente(token());
+
+      expect(mail.sendAvisoCancelacion).toHaveBeenCalledWith(['admin@test.com', 'pelu@test.com'], expect.anything());
+    });
+
+    it('should be idempotent: an already cancelled turno is not cancelled or notified again', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente({ estado: 'CANCELADO' }));
+
+      const result = await service.cancelarPorCliente(token());
+
+      expect(result.estado).toBe('CANCELADO');
+      expect(prismaMock.turno.updateMany).not.toHaveBeenCalled();
+      expect(mail.sendAvisoCancelacion).not.toHaveBeenCalled();
+    });
+
+    it('should not notify twice if another request cancelled it first (race)', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente());
+      prismaMock.turno.updateMany.mockResolvedValue({ count: 0 });
+
+      await service.cancelarPorCliente(token());
+
+      expect(mail.sendAvisoCancelacion).not.toHaveBeenCalled();
+      expect(calendar.deleteEvent).not.toHaveBeenCalled();
+    });
+
+    it('should reject a turno that already started', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente({ fechaHoraInicio: new Date(Date.now() - 60_000) }));
+
+      await expect(service.cancelarPorCliente(token())).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should reject a turno in EN_PROCESO', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente({ estado: 'EN_PROCESO' }));
+
+      await expect(service.cancelarPorCliente(token())).rejects.toThrow(BadRequestException);
+    });
+
+    it('should return 404 for a tampered token without touching the database', async () => {
+      const [id, firma] = token().split('.');
+      await expect(service.cancelarPorCliente(`2.${firma}`)).rejects.toThrow(NotFoundException);
+      await expect(service.cancelarPorCliente(`${id}.x${firma.slice(1)}`)).rejects.toThrow(NotFoundException);
+      await expect(service.cancelarPorCliente('basura')).rejects.toThrow(NotFoundException);
+      expect(prismaMock.turno.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should still cancel if the barber notice fails', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente());
+      prismaMock.turno.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ email: 'barber@test.com' });
+      mail.sendAvisoCancelacion.mockRejectedValue(new Error('resend caído'));
+
+      await expect(service.cancelarPorCliente(token())).resolves.toBeDefined();
+      expect(prismaMock.turno.updateMany).toHaveBeenCalled();
+    });
+
+    it('should report whether the turno can still be cancelled, without exposing contact data', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoCliente());
+
+      const info = await service.getTurnoParaCancelar(token());
+
+      expect(info).toEqual({
+        nombreCliente: 'Juan',
+        fechaHoraInicio: expect.any(Date),
+        servicios: ['Corte'],
+        estado: 'CONFIRMADO',
+        puedeCancelar: true,
+      });
+    });
+  });
+
 });

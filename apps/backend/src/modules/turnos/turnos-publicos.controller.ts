@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Query, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { TurnosService } from './turnos.service';
 import { ReservaPublicaDto, DisponibilidadQueryDto } from './dto/reserva-publica.dto';
+import { CancelacionPublicaDto } from './dto/cancelacion-publica.dto';
 
 @ApiTags('Turnos Públicos')
 @Controller('turnos-publicos')
@@ -50,5 +51,25 @@ export class TurnosPublicosController {
   @ApiResponse({ status: 400, description: 'Datos inválidos o horario no disponible' })
   async reservar(@Body() dto: ReservaPublicaDto) {
     return this.turnosService.reservarPublica(dto);
+  }
+
+  @Get('cancelacion')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Ver el turno al que apunta un link de cancelación (página pública)' })
+  @ApiResponse({ status: 200, description: 'Datos del turno y si todavía se puede cancelar' })
+  @ApiResponse({ status: 404, description: 'Link inválido' })
+  async getCancelacion(@Query() query: CancelacionPublicaDto) {
+    return this.turnosService.getTurnoParaCancelar(query.token);
+  }
+
+  @Post('cancelar')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Cancelar un turno desde el link del mail (cliente)' })
+  @ApiResponse({ status: 200, description: 'Turno cancelado (o ya estaba cancelado)' })
+  @ApiResponse({ status: 400, description: 'El turno ya no se puede cancelar' })
+  @ApiResponse({ status: 404, description: 'Link inválido' })
+  async cancelar(@Body() dto: CancelacionPublicaDto) {
+    return this.turnosService.cancelarPorCliente(dto.token);
   }
 }

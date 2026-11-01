@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Turno } from '@prisma/client';
 import { CreateTurnoDto } from './dto/create-turno.dto';
@@ -8,6 +9,7 @@ import { GoogleCalendarService } from '../google-calendar/google-calendar.servic
 import { MailService } from '../mail/mail.service';
 import { horaArAUtc, inicioDiaAr, finDiaAr, diaCalendarioAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
+import { urlCancelacion, verificarTokenCancelacion } from './cancelacion-token.util';
 
 interface HorarioDiaConfig {
   dia: number;
@@ -21,13 +23,29 @@ interface HorarioDiaConfig {
 const CONFIG_ID = 1;
 const DESCUENTO_MOTIVO_FIDELIZACION = 'FIDELIZACION';
 const DESCUENTO_MOTIVO_EMPLEADO = 'EMPLEADO';
+/** Estados desde los que el cliente todavía puede cancelar con el link del mail. */
+const ESTADOS_CANCELABLES_POR_CLIENTE = ['PENDIENTE', 'CONFIRMADO'];
+
+export type OrigenCancelacion = 'CLIENTE' | 'PANEL';
+
+/** Lo que ve el cliente en la página pública de cancelación (nada de datos sensibles). */
+export interface TurnoParaCancelar {
+  nombreCliente: string;
+  fechaHoraInicio: Date;
+  servicios: string[];
+  estado: string;
+  puedeCancelar: boolean;
+}
 
 @Injectable()
 export class TurnosService {
+  private readonly logger = new Logger(TurnosService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(data: CreateTurnoDto): Promise<Turno> {
@@ -176,6 +194,7 @@ export class TurnosService {
           nombreNegocio: config?.nombre,
           logoUrl: config?.logoUrl,
           colorPrimario: config?.colorPrimario,
+          cancelarUrl: this.urlCancelacionDe(turno.idTurno),
         });
       } catch {
         // Silencioso
@@ -270,24 +289,134 @@ export class TurnosService {
     return this.cambiarEstado(id, 'CONFIRMADO', (estado) => estado.confirmar());
   }
 
-  async cancelar(id: number): Promise<Turno> {
+  async cancelar(id: number, origen: OrigenCancelacion = 'PANEL'): Promise<Turno> {
     const turno = await this.findOne(id);
     const estado = getTurnoState(turno.estado);
     estado.cancelar();
 
-    // Si tiene un evento en Google Calendar, eliminarlo
-    if (turno.googleEventId) {
-      try {
-        await this.googleCalendarService.deleteEvent(turno.googleEventId);
-      } catch {
-        // Silencioso
-      }
-    }
+    await this.borrarEventoCalendar(turno.googleEventId);
 
     return this.prisma.turno.update({
       where: { idTurno: id },
-      data: { estado: 'CANCELADO', googleEventId: null },
+      data: { estado: 'CANCELADO', googleEventId: null, canceladoEn: new Date(), canceladoPor: origen },
     });
+  }
+
+  // ─── Cancelación por el cliente (link del mail) ───
+
+  /**
+   * Link "Cancelar turno" para los mails al cliente. null si falta
+   * FRONTEND_URL o JWT_SECRET: en ese caso el mail sale sin el botón, igual
+   * que antes, en vez de mandar un link roto.
+   */
+  urlCancelacionDe(idTurno: number): string | null {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const secreto = this.configService.get<string>('JWT_SECRET');
+    if (!frontendUrl || !secreto) return null;
+    return urlCancelacion(frontendUrl, idTurno, secreto);
+  }
+
+  /** Datos para la página pública de cancelación. Token inválido o turno inexistente → mismo 404, sin dar pistas. */
+  async getTurnoParaCancelar(token: string): Promise<TurnoParaCancelar> {
+    const turno = await this.turnoDesdeToken(token);
+    return {
+      nombreCliente: turno.persona.nombre,
+      fechaHoraInicio: turno.fechaHoraInicio,
+      servicios: turno.detalles.map((d: any) => d.servicio.nombre),
+      estado: turno.estado,
+      puedeCancelar: this.puedeCancelarCliente(turno),
+    };
+  }
+
+  /**
+   * Cancela el turno desde el link del mail. Siempre se permite mientras el
+   * turno no haya empezado (sin límite de horas): el horario queda libre y al
+   * barbero le llega un aviso. Si el turno ya estaba cancelado, responde OK
+   * sin hacer nada (doble clic, o el cliente vuelve a abrir el link).
+   */
+  async cancelarPorCliente(token: string): Promise<TurnoParaCancelar> {
+    const turno = await this.turnoDesdeToken(token);
+
+    if (turno.estado !== 'CANCELADO') {
+      if (!this.puedeCancelarCliente(turno)) {
+        throw new BadRequestException('Este turno ya no se puede cancelar desde la web. Escribinos por WhatsApp.');
+      }
+
+      // Update condicionado al estado: si en el medio el cron lo pasó a
+      // EN_PROCESO, o entró otro clic al mismo tiempo, no se pisa nada y no
+      // se manda un segundo aviso al barbero.
+      const canceladoEn = new Date();
+      const { count } = await this.prisma.turno.updateMany({
+        where: { idTurno: turno.idTurno, estado: { in: ESTADOS_CANCELABLES_POR_CLIENTE } },
+        data: { estado: 'CANCELADO', googleEventId: null, canceladoEn, canceladoPor: 'CLIENTE' },
+      });
+
+      if (count === 1) {
+        await this.borrarEventoCalendar(turno.googleEventId);
+        await this.avisarCancelacionAlBarbero(turno, canceladoEn);
+      }
+    }
+
+    return this.getTurnoParaCancelar(token);
+  }
+
+  private async turnoDesdeToken(token: string) {
+    const secreto = this.configService.get<string>('JWT_SECRET');
+    const idTurno = secreto ? verificarTokenCancelacion(token, secreto) : null;
+    const turno = idTurno
+      ? await this.prisma.turno.findUnique({
+          where: { idTurno },
+          include: { persona: true, detalles: { include: { servicio: true } } },
+        })
+      : null;
+    if (!turno) {
+      throw new NotFoundException('El link de cancelación no es válido');
+    }
+    return turno;
+  }
+
+  private puedeCancelarCliente(turno: { estado: string; fechaHoraInicio: Date }): boolean {
+    return ESTADOS_CANCELABLES_POR_CLIENTE.includes(turno.estado) && turno.fechaHoraInicio.getTime() > Date.now();
+  }
+
+  /**
+   * Destinatarios: el email de contacto del negocio (Configuración → Marca).
+   * Si no está cargado, los usuarios del panel. Best-effort: si falla, la
+   * cancelación ya quedó hecha y solo se loguea.
+   */
+  private async avisarCancelacionAlBarbero(
+    turno: { idTurno: number; fechaHoraInicio: Date; persona: { nombre: string; apellido: string; telefono: string | null }; detalles: any[] },
+    canceladoEn: Date,
+  ): Promise<void> {
+    try {
+      const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+      let destinatarios = config?.email ? [config.email] : [];
+      if (destinatarios.length === 0) {
+        const usuarios = await this.prisma.usuarioWeb.findMany({ select: { email: true } });
+        destinatarios = usuarios.map((u) => u.email).filter(Boolean);
+      }
+
+      await this.mailService.sendAvisoCancelacion(destinatarios, {
+        nombreCliente: `${turno.persona.nombre} ${turno.persona.apellido}`.trim(),
+        telefonoCliente: turno.persona.telefono,
+        fechaHoraInicio: turno.fechaHoraInicio,
+        canceladoEn,
+        servicios: turno.detalles.map((d: any) => d.servicio.nombre),
+        nombreNegocio: config?.nombre,
+        colorPrimario: config?.colorPrimario,
+      });
+    } catch (err) {
+      this.logger.error(`Fallo al avisar la cancelación del turno ${turno.idTurno}: ${err}`);
+    }
+  }
+
+  private async borrarEventoCalendar(googleEventId: string | null): Promise<void> {
+    if (!googleEventId) return;
+    try {
+      await this.googleCalendarService.deleteEvent(googleEventId);
+    } catch {
+      // Silencioso: no falla si Google Calendar no está conectado
+    }
   }
 
   async iniciarAtencion(id: number): Promise<Turno> {

@@ -3,6 +3,8 @@ import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { MailService } from '../mail/mail.service';
+import { ConfigService } from '@nestjs/config';
+import { verificarTokenCancelacion } from '../turnos/cancelacion-token.util';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -25,6 +27,10 @@ describe('NotificationsService', () => {
         NotificationsService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: MailService, useValue: mailMock },
+        {
+          provide: ConfigService,
+          useValue: { get: (k: string) => ({ FRONTEND_URL: 'https://barber.test', JWT_SECRET: 'secreto-test' } as Record<string, string>)[k] },
+        },
       ],
     }).compile();
 
@@ -94,5 +100,18 @@ describe('NotificationsService', () => {
     await service.enviarRecordatorios();
 
     expect(prismaMock.turno.update).not.toHaveBeenCalled();
+  });
+
+  it('should include a signed cancel link for the turno in the reminder', async () => {
+    prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ recordatorioHorasAntes: 24 });
+    prismaMock.turno.findMany.mockResolvedValue([mockTurno]);
+    prismaMock.turno.update.mockResolvedValue({});
+
+    await service.enviarRecordatorios();
+
+    const { cancelarUrl } = mailMock.sendTurnoRecordatorio.mock.calls[0][1];
+    expect(cancelarUrl).toMatch(/^https:\/\/barber\.test\/cancelar-turno\?token=/);
+    const token = new URL(cancelarUrl).searchParams.get('token');
+    expect(verificarTokenCancelacion(token, 'secreto-test')).toBe(1);
   });
 });

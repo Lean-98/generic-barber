@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { urlCancelacion } from '../turnos/cancelacion-token.util';
 
 const CONFIG_ID = 1;
 
@@ -12,6 +14,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -40,6 +43,9 @@ export class NotificationsService {
       },
     });
 
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const secreto = this.configService.get<string>('JWT_SECRET');
+
     for (const turno of turnos) {
       if (!turno.persona.mail) continue;
 
@@ -53,6 +59,7 @@ export class NotificationsService {
           nombreNegocio: config?.nombre,
           logoUrl: config?.logoUrl,
           colorPrimario: config?.colorPrimario,
+          cancelarUrl: frontendUrl && secreto ? urlCancelacion(frontendUrl, turno.idTurno, secreto) : null,
         });
 
         if (!enviado) continue;

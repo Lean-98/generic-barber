@@ -29,6 +29,15 @@ export interface FormaPagoPublica {
   nombre: string;
 }
 
+/** Lo que muestra la página pública "Cancelar turno" (link que llega por mail). */
+export interface TurnoParaCancelar {
+  nombreCliente: string;
+  fechaHoraInicio: string;
+  servicios: string[];
+  estado: string;
+  puedeCancelar: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -54,5 +63,13 @@ export class ReservasPublicasService {
 
   findFormasPago(): Observable<FormaPagoPublica[]> {
     return this.http.get<FormaPagoPublica[]>(`${this.apiUrl}/turnos-publicos/formas-pago`);
+  }
+
+  getTurnoParaCancelar(token: string): Observable<TurnoParaCancelar> {
+    return this.http.get<TurnoParaCancelar>(`${this.apiUrl}/turnos-publicos/cancelacion`, { params: { token } });
+  }
+
+  cancelarTurno(token: string): Observable<TurnoParaCancelar> {
+    return this.http.post<TurnoParaCancelar>(`${this.apiUrl}/turnos-publicos/cancelar`, { token });
   }
 }

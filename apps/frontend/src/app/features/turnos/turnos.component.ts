@@ -105,6 +105,11 @@ interface TurnoVisual {
                         <span class="badge gap-1" [class]="getEstadoClasses(turno.estado)">
                           {{ turno.estado }}
                         </span>
+                        @if (turno.estado === 'CANCELADO' && turno.canceladoPor === 'CLIENTE') {
+                          <div class="mt-1 text-xs text-base-content/60" [title]="'Cancelado el ' + (turno.canceladoEn | fechaAr:'cortaHora')">
+                            por el cliente
+                          </div>
+                        }
                       </td>
                       <td class="text-right">
                         <div class="flex flex-wrap items-center justify-end gap-1">

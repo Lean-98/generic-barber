@@ -9,6 +9,9 @@ export interface Turno {
   googleEventId?: string;
   /** Forma de pago que el cliente eligió al reservar online (sugerencia, no el pago real). */
   idFormaPagoPreferida?: number;
+  /** Cuándo y desde dónde se canceló: 'CLIENTE' (link del mail) o 'PANEL'. */
+  canceladoEn?: string | null;
+  canceladoPor?: 'CLIENTE' | 'PANEL' | null;
   persona?: {
     nombre: string;
     apellido: string;

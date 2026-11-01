@@ -16,7 +16,63 @@ export interface TurnoMailData {
   logoUrl?: string | null;
   /** Hex del color primario del negocio (personalizable desde el panel). Si no es un hex válido, se usa el dorado por default. */
   colorPrimario?: string | null;
+  /** Link firmado para que el cliente cancele el turno él mismo (ver cancelacion-token.util.ts). */
+  cancelarUrl?: string | null;
 }
+
+/** Datos del aviso que recibe el barbero cuando un cliente cancela desde el link del mail. */
+export interface AvisoCancelacionData {
+  nombreCliente: string;
+  telefonoCliente?: string | null;
+  fechaHoraInicio: Date;
+  canceladoEn: Date;
+  servicios: string[];
+  nombreNegocio?: string | null;
+  colorPrimario?: string | null;
+}
+
+/** Los datos del cliente vienen del formulario público: se escapan antes de meterlos en el HTML. */
+function escapeHtml(texto: string): string {
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** "2 h 15 min", "40 min", "3 días y 2 h". */
+function formatearAnticipacion(ms: number): string {
+  const totalMin = Math.max(0, Math.floor(ms / 60000));
+  const dias = Math.floor(totalMin / 1440);
+  const horas = Math.floor((totalMin % 1440) / 60);
+  const min = totalMin % 60;
+  if (dias > 0) return horas > 0 ? `${dias} ${dias === 1 ? 'día' : 'días'} y ${horas} h` : `${dias} ${dias === 1 ? 'día' : 'días'}`;
+  if (horas > 0) return min > 0 ? `${horas} h ${min} min` : `${horas} h`;
+  return `${min} min`;
+}
+
+/**
+ * Link de WhatsApp a partir del teléfono que cargó el cliente. Si ya trae
+ * código de país (54...) se usa tal cual; si son 10 dígitos (área + número,
+ * formato habitual en Argentina) se arma como celular argentino (549...).
+ * En cualquier otro caso no se arma link y solo se muestra el número.
+ */
+function whatsappDeTelefono(telefono: string): string | null {
+  const digitos = telefono.replace(/\D/g, '');
+  if (digitos.startsWith('54') && digitos.length >= 12) return `https://wa.me/${digitos}`;
+  if (digitos.length === 10) return `https://wa.me/549${digitos}`;
+  return null;
+}
+
+const FECHA_TURNO_OPCIONES: Intl.DateTimeFormatOptions = {
+  timeZone: 'America/Argentina/Buenos_Aires',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+};
 
 /** Paleta y tipografía del tema "barber" (ver apps/frontend/tailwind.config.js), para que el mail se vea igual que el sitio. */
 const MARCA = {
@@ -149,7 +205,73 @@ export class MailService {
     });
   }
 
-  private colorPrimario(data: TurnoMailData): string {
+  /**
+   * Aviso al barbero cuando un cliente cancela desde el link del mail, para que
+   * sepa que el horario quedó libre y pueda ofrecerlo. Devuelve si se mandó;
+   * nunca tira excepción (la cancelación ya está hecha, esto es best-effort).
+   */
+  async sendAvisoCancelacion(to: string[], data: AvisoCancelacionData): Promise<boolean> {
+    if (to.length === 0) return false;
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY no configurada: no se envió el aviso de cancelación a ${to.join(', ')}`);
+      return false;
+    }
+
+    const color = this.colorPrimario(data);
+    const nombreNegocio = escapeHtml(data.nombreNegocio || 'Tu negocio');
+    const cliente = escapeHtml(data.nombreCliente);
+    const fecha = data.fechaHoraInicio.toLocaleString('es-AR', FECHA_TURNO_OPCIONES);
+    const anticipacion = formatearAnticipacion(data.fechaHoraInicio.getTime() - data.canceladoEn.getTime());
+    const telefono = data.telefonoCliente ? escapeHtml(data.telefonoCliente) : null;
+    const whatsapp = data.telefonoCliente ? whatsappDeTelefono(data.telefonoCliente) : null;
+
+    const fila = (label: string, valor: string) => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid ${MARCA.base300};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${MARCA.textoSuave};width:120px;vertical-align:top;">${label}</td>
+        <td style="padding:12px 0;border-bottom:1px solid ${MARCA.base300};font-size:15px;color:${MARCA.neutral};vertical-align:top;">${valor}</td>
+      </tr>`;
+
+    const subject = `Turno cancelado: ${data.nombreCliente} · ${fecha}`;
+    const html = `
+      <!doctype html>
+      <html lang="es">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+      <body style="margin:0;padding:0;">
+      <div style="background-color:${MARCA.base200};padding:32px 16px;font-family:${MARCA.fontSans};">
+        <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;border-collapse:collapse;">
+          <tr>
+            <td style="background-color:${MARCA.base100};border:1px solid ${MARCA.base300};border-radius:12px;padding:32px;">
+              <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">Turno cancelado por el cliente</p>
+              <h1 style="font-family:${MARCA.fontDisplay};font-size:22px;font-weight:600;color:${MARCA.neutral};margin:10px 0 6px;">${cliente} canceló su turno</h1>
+              <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0 0 20px;line-height:1.5;">El horario ya quedó libre para que otro cliente lo reserve desde la web.</p>
+              <table role="presentation" width="100%" style="border-collapse:collapse;border-top:1px solid ${MARCA.base300};">
+                ${fila('Turno', fecha)}
+                ${fila('Servicios', escapeHtml(data.servicios.join(', ')))}
+                ${fila('Anticipación', `Canceló ${anticipacion} antes`)}
+                ${telefono ? fila('Teléfono', telefono) : ''}
+              </table>
+              ${whatsapp ? `
+              <div style="padding:24px 0 0;text-align:center;">
+                <a href="${whatsapp}" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:8px;">Escribirle por WhatsApp</a>
+              </div>` : ''}
+              <p style="margin:24px 0 0;font-size:11px;color:${MARCA.textoSuave};text-align:center;">${nombreNegocio} · Powered by ${POWERED_BY_NAME}</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+      </body>
+      </html>
+    `;
+
+    const { error } = await this.resend.emails.send({ from: this.from, to, subject, html });
+    if (error) {
+      this.logger.error(`Fallo al enviar aviso de cancelación a ${to.join(', ')}: ${JSON.stringify(error)}`);
+      return false;
+    }
+    return true;
+  }
+
+  private colorPrimario(data: { colorPrimario?: string | null }): string {
     return data.colorPrimario && /^#[0-9a-fA-F]{6}$/.test(data.colorPrimario)
       ? data.colorPrimario
       : MARCA.primarioDefault;
@@ -166,14 +288,7 @@ export class MailService {
       return false;
     }
 
-    const fecha = data.fechaHoraInicio.toLocaleString('es-AR', {
-      timeZone: 'America/Argentina/Buenos_Aires',
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const fecha = data.fechaHoraInicio.toLocaleString('es-AR', FECHA_TURNO_OPCIONES);
 
     const nombreNegocio = data.nombreNegocio || 'Tu turno';
     const color = this.colorPrimario(data);
@@ -226,7 +341,13 @@ export class MailService {
 
               ${data.whatsappUrl ? `
               <div style="padding:24px 32px 4px;text-align:center;">
-                <a href="${data.whatsappUrl}" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:8px;">¿Modificar o cancelar? Escribinos por WhatsApp</a>
+                <a href="${data.whatsappUrl}" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:8px;">${data.cancelarUrl ? '¿Querés cambiar el horario? Escribinos por WhatsApp' : '¿Modificar o cancelar? Escribinos por WhatsApp'}</a>
+              </div>` : ''}
+
+              ${data.cancelarUrl ? `
+              <div style="padding:16px 32px 4px;text-align:center;">
+                <p style="margin:0 0 8px;font-size:13px;color:${MARCA.textoCuerpo};">¿No vas a poder venir? Avisanos así liberamos el horario.</p>
+                <a href="${data.cancelarUrl}" style="display:inline-block;color:${MARCA.neutral};text-decoration:none;font-weight:700;font-size:14px;padding:10px 22px;border:1px solid ${MARCA.base300};border-radius:8px;background-color:#ffffff;">Cancelar turno</a>
               </div>` : ''}
 
               ${data.politicaReservas ? `

@@ -55,8 +55,13 @@ model Turno {
   // de pago sugerida al cobrar. Nullable porque el alta manual de un turno
   // desde el panel no la pide.
   idFormaPagoPreferida Int? @map("id_forma_pago_preferida")
+  /// Quién y cuándo canceló el turno ("CLIENTE" desde el link del mail, o
+  /// "PANEL" desde la administración). Con canceladoEn vs. fechaHoraInicio se
+  /// puede calcular más adelante cuánta anticipación tuvo cada cancelación.
+  canceladoEn  DateTime? @map("cancelado_en")
+  canceladoPor String?   @map("cancelado_por")
 
-  persona              Persona        @relation(fields: [idPersona], references: [idPersona])
+  persona             Persona        @relation(fields: [idPersona], references: [idPersona])
   detalles             TurnoDetalle[]
   pagos                Pago[]
   movimientos          MovimientoCaja[]

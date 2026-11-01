@@ -173,4 +173,66 @@ describe('MailService', () => {
     await expect(service.sendTurnoRecordatorio('user@test.com', turnoData)).resolves.toBe(false);
     expect(sendMock).not.toHaveBeenCalled();
   });
+
+  it('should include the cancel button only when a cancel link is passed', async () => {
+    sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+    const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+    await service.sendTurnoConfirmacion('user@test.com', { ...turnoData, cancelarUrl: 'https://x/cancelar-turno?token=1.abc' });
+    await service.sendTurnoConfirmacion('user@test.com', turnoData);
+
+    expect(sendMock.mock.calls[0][0].html).toContain('https://x/cancelar-turno?token=1.abc');
+    expect(sendMock.mock.calls[0][0].html).toContain('Cancelar turno');
+    expect(sendMock.mock.calls[1][0].html).not.toContain('Cancelar turno');
+  });
+
+  describe('sendAvisoCancelacion', () => {
+    const aviso = {
+      nombreCliente: 'Juan <b>Pérez</b>',
+      telefonoCliente: '(2954) 12-3456',
+      fechaHoraInicio: new Date('2026-06-16T13:00:00.000Z'),
+      canceladoEn: new Date('2026-06-16T10:45:00.000Z'),
+      servicios: ['Corte', 'Barba'],
+    };
+
+    it('should send to every recipient with the advance notice and a WhatsApp link', async () => {
+      sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+      const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+      await expect(service.sendAvisoCancelacion(['a@test.com', 'b@test.com'], aviso)).resolves.toBe(true);
+
+      const enviado = sendMock.mock.calls[0][0];
+      expect(enviado.to).toEqual(['a@test.com', 'b@test.com']);
+      expect(enviado.html).toContain('Canceló 2 h 15 min antes');
+      expect(enviado.html).toContain('https://wa.me/5492954123456');
+      expect(enviado.html).toContain('Corte, Barba');
+    });
+
+    it('should escape client-provided names in the HTML', async () => {
+      sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+      const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+      await service.sendAvisoCancelacion(['a@test.com'], aviso);
+
+      expect(sendMock.mock.calls[0][0].html).toContain('Juan &lt;b&gt;Pérez&lt;/b&gt;');
+      expect(sendMock.mock.calls[0][0].html).not.toContain('<b>Pérez</b>');
+    });
+
+    it('should skip the WhatsApp button when the phone cannot be turned into a link', async () => {
+      sendMock.mockResolvedValue({ data: { id: '1' }, error: null });
+      const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+      await service.sendAvisoCancelacion(['a@test.com'], { ...aviso, telefonoCliente: '4123456' });
+
+      expect(sendMock.mock.calls[0][0].html).not.toContain('wa.me');
+      expect(sendMock.mock.calls[0][0].html).toContain('4123456');
+    });
+
+    it('should not send when there are no recipients', async () => {
+      const service = await buildService({ RESEND_API_KEY: 're_test', MAIL_FROM: 'test@test.com' });
+
+      await expect(service.sendAvisoCancelacion([], aviso)).resolves.toBe(false);
+      expect(sendMock).not.toHaveBeenCalled();
+    });
+  });
 });

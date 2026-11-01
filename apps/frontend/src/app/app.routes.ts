@@ -28,6 +28,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reservas/reservar.component').then((m) => m.ReservarComponent),
   },
   {
+    path: 'cancelar-turno',
+    loadComponent: () => import('./features/reservas/cancelar-turno.component').then((m) => m.CancelarTurnoComponent),
+  },
+  {
     path: 'tienda',
     loadComponent: () => import('./features/landing/tienda.component').then((m) => m.TiendaComponent),
   },
