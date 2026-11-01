@@ -18,6 +18,8 @@ export class ProductosService {
         urlImagen: data.urlImagen,
         idCategoria: data.idCategoria,
         vigente: data.vigente ?? true,
+        stock: data.stock ?? null,
+        stockMinimo: data.stockMinimo ?? null,
       },
     });
   }
@@ -65,6 +67,8 @@ export class ProductosService {
         urlImagen: data.urlImagen,
         idCategoria: data.idCategoria,
         vigente: data.vigente,
+        stock: data.stock,
+        stockMinimo: data.stockMinimo,
       },
     });
   }
@@ -76,5 +80,18 @@ export class ProductosService {
       where: { idProducto: id },
       data: { vigente: false },
     });
+  }
+
+  /**
+   * Productos vigentes que controlan stock y están agotados o en el mínimo
+   * (stock <= stockMinimo). Para el aviso del dashboard. Los que no tienen
+   * stock cargado (null) no se controlan y nunca aparecen acá.
+   */
+  async findStockBajo(): Promise<Producto[]> {
+    const productos = await this.prisma.producto.findMany({
+      where: { vigente: true, stock: { not: null } },
+      orderBy: [{ stock: 'asc' }, { nombre: 'asc' }],
+    });
+    return productos.filter((p) => p.stock === 0 || (p.stockMinimo != null && p.stock! <= p.stockMinimo));
   }
 }

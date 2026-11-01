@@ -32,6 +32,10 @@ export class ProductosService {
     return this.http.put<Producto>(`${this.apiUrl}/productos/${id}`, data);
   }
 
+  findStockBajo(): Observable<Producto[]> {
+    return this.http.get<Producto[]>(`${this.apiUrl}/productos/stock-bajo`);
+  }
+
   remove(id: number): Observable<Producto> {
     return this.http.delete<Producto>(`${this.apiUrl}/productos/${id}`);
   }

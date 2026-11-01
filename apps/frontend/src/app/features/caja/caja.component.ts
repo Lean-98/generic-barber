@@ -5,10 +5,13 @@ import { TurnosService } from '../../shared/services/turnos.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { FormaPago, MovimientoCaja, TotalesCaja, CierreCaja, Pago } from '../../shared/models/caja.model';
 import { Turno } from '../../shared/models/turno.model';
+import { Producto } from '../../shared/models/producto.model';
+import { ProductosService } from '../../shared/services/productos.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
 
 @Component({
   selector: 'app-caja',
@@ -61,6 +64,7 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
       <div class="tabs tabs-boxed">
         <button class="tab" [class.tab-active]="tabActivo() === 'movimientos'" (click)="tabActivo.set('movimientos')">Movimientos</button>
         <button class="tab" [class.tab-active]="tabActivo() === 'pago'" (click)="tabActivo.set('pago')">Registrar Pago</button>
+        <button class="tab" [class.tab-active]="tabActivo() === 'venta'" (click)="tabActivo.set('venta')">Vender Producto</button>
         <button class="tab" [class.tab-active]="tabActivo() === 'egreso'" (click)="tabActivo.set('egreso')">Registrar Egreso</button>
         <button class="tab" [class.tab-active]="tabActivo() === 'cierre'" (click)="tabActivo.set('cierre')">Cierre de Caja</button>
       </div>
@@ -185,6 +189,59 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
                 Registrar Pago
               </button>
 
+              @if (mensaje()) {
+                <div class="alert" [class.alert-success]="exito()" [class.alert-error]="!exito()">
+                  <app-icon [name]="exito() ? 'check-circle' : 'alert-circle'" [size]="18" />
+                  <span>{{ mensaje() }}</span>
+                </div>
+              }
+            </form>
+          </div>
+        </div>
+      }
+
+      <!-- Venta de producto -->
+      @if (tabActivo() === 'venta') {
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title text-lg mb-1">Vender producto</h2>
+            <p class="mb-4 text-sm text-base-content/60">Registra el ingreso en la caja y descuenta el stock del producto.</p>
+            <form (ngSubmit)="procesarVenta()" class="space-y-4 max-w-2xl">
+              <div class="form-control">
+                <label class="label"><span class="label-text">Producto</span></label>
+                <select class="select select-bordered w-full" [ngModel]="ventaProductoId()" (ngModelChange)="ventaProductoId.set($event)" name="ventaProductoId" required>
+                  <option [ngValue]="null">Seleccionar</option>
+                  @for (p of productosVenta(); track p.idProducto) {
+                    <option [ngValue]="p.idProducto" [disabled]="p.stock === 0">
+                      {{ p.nombre }} — {{ p.precio | pesos }}{{ p.stock === null || p.stock === undefined ? '' : (p.stock === 0 ? ' (sin stock)' : ' (quedan ' + p.stock + ')') }}
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Cantidad</span></label>
+                  <input type="number" min="1" [attr.max]="productoVenta()?.stock ?? null" class="input input-bordered w-full" [ngModel]="ventaCantidad()" (ngModelChange)="ventaCantidad.set($event)" name="ventaCantidad" required />
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Forma de pago</span></label>
+                  <select class="select select-bordered w-full" [ngModel]="ventaFormaPagoId()" (ngModelChange)="ventaFormaPagoId.set($event)" name="ventaFormaPagoId" required>
+                    <option [ngValue]="null">Seleccionar</option>
+                    @for (fp of formasPago(); track fp.idFormaPago) {
+                      <option [ngValue]="fp.idFormaPago">{{ fp.nombre }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @if (productoVenta()) {
+                <div class="flex items-baseline justify-between rounded-lg bg-base-200 px-4 py-3">
+                  <span class="text-sm text-base-content/70">Total a cobrar</span>
+                  <span class="font-display tabular-nums text-xl font-medium">{{ totalVenta() | pesos }}</span>
+                </div>
+              }
+              <button type="submit" class="btn btn-primary" [class.btn-loading]="guardando()" [disabled]="!ventaProductoId() || !ventaFormaPagoId() || !(ventaCantidad() >= 1) || guardando()">
+                Registrar venta
+              </button>
               @if (mensaje()) {
                 <div class="alert" [class.alert-success]="exito()" [class.alert-error]="!exito()">
                   <app-icon [name]="exito() ? 'check-circle' : 'alert-circle'" [size]="18" />
@@ -359,13 +416,14 @@ export class CajaComponent implements OnInit, OnDestroy {
   private readonly cajaService = inject(CajaService);
   private readonly turnosService = inject(TurnosService);
   private readonly authService = inject(AuthService);
+  private readonly productosService = inject(ProductosService);
   private mensajeTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   // Fecha
   fecha = signal(fechaLocal());
 
   // Tabs
-  tabActivo = signal<'movimientos' | 'pago' | 'egreso' | 'cierre'>('movimientos');
+  tabActivo = signal<'movimientos' | 'pago' | 'venta' | 'egreso' | 'cierre'>('movimientos');
 
   // Datos
   formasPago = signal<FormaPago[]>([]);
@@ -386,6 +444,14 @@ export class CajaComponent implements OnInit, OnDestroy {
   pagoFormaPagoId = signal<number | null>(null);
   pagoMonto = signal<number | null>(null);
   pagoComprobante = signal('');
+
+  // Form Venta de producto
+  productosVenta = signal<Producto[]>([]);
+  ventaProductoId = signal<number | null>(null);
+  ventaCantidad = signal(1);
+  ventaFormaPagoId = signal<number | null>(null);
+  productoVenta = computed(() => this.productosVenta().find((p) => p.idProducto === this.ventaProductoId()) ?? null);
+  totalVenta = computed(() => Number(this.productoVenta()?.precio ?? 0) * (Number(this.ventaCantidad()) || 0));
 
   // Form Egreso
   egresoConcepto = signal('');
@@ -444,6 +510,32 @@ export class CajaComponent implements OnInit, OnDestroy {
     });
     this.cajaService.findHistorialCierres().subscribe((h) => this.historialCierres.set(h));
     this.turnosService.findAll(undefined, undefined, 1, 200).subscribe((res) => this.turnos.set(res.data));
+    this.productosService.findAll(true, undefined, 1, 200).subscribe((res) => this.productosVenta.set(res.data));
+  }
+
+  procesarVenta(): void {
+    const idProducto = this.ventaProductoId();
+    const idFormaPago = this.ventaFormaPagoId();
+    const cantidad = Math.trunc(Number(this.ventaCantidad()));
+    if (!idProducto || !idFormaPago || !(cantidad >= 1)) return;
+
+    this.guardando.set(true);
+    this.mensaje.set('');
+    this.cajaService.venderProducto({ idProducto, cantidad, idFormaPago }).subscribe({
+      next: (res) => {
+        this.guardando.set(false);
+        const restante = res.stockRestante === null ? '' : ` Quedan ${res.stockRestante} en stock.`;
+        this.mostrarMensaje(`Venta registrada.${restante}`, true);
+        this.ventaProductoId.set(null);
+        this.ventaCantidad.set(1);
+        this.ventaFormaPagoId.set(null);
+        this.cargarDatos();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarMensaje(mensajeDeErrorHttp(err, 'Error al registrar la venta'), false);
+      },
+    });
   }
 
   totalTurno(turno: Turno): number {

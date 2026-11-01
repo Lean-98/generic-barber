@@ -180,10 +180,15 @@ model MovimientoCaja {
   idFormaPago  Int      @map("id_forma_pago")
   idUsuario    String   @map("id_usuario")
   idTurno      Int?     @map("id_turno")
+  /// Venta de un producto desde la caja: qué se vendió y cuántas unidades
+  /// (se descuentan del stock del producto).
+  idProducto       Int? @map("id_producto")
+  cantidadProducto Int? @map("cantidad_producto")
 
   formaPago FormaPago  @relation(fields: [idFormaPago], references: [idFormaPago])
   usuario   UsuarioWeb @relation(fields: [idUsuario], references: [usuario])
   turno     Turno?     @relation(fields: [idTurno], references: [idTurno])
+  producto  Producto?  @relation(fields: [idProducto], references: [idProducto])
 
   @@map("movimientos_caja")
 }
@@ -297,10 +302,15 @@ model Producto {
   urlImagen   String?
   idCategoria Int?     @map("id_categoria")
   vigente     Boolean  @default(true)
+  /// null = no se controla stock de este producto. Con stockMinimo cargado,
+  /// el dashboard avisa cuando stock <= stockMinimo.
+  stock       Int?
+  stockMinimo Int?     @map("stock_minimo")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  categoria Categoria? @relation(fields: [idCategoria], references: [idCategoria], onDelete: SetNull)
+  categoria   Categoria? @relation(fields: [idCategoria], references: [idCategoria], onDelete: SetNull)
+  movimientos MovimientoCaja[]
 
   @@map("productos")
 }

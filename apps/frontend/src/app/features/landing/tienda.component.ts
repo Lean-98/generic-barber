@@ -78,7 +78,12 @@ import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
                     <p class="mt-1 line-clamp-2 text-sm text-base-content/60">{{ producto.descripcion }}</p>
                   }
                   <div class="mt-4 flex items-center justify-between gap-3">
-                    <span class="font-display text-lg font-semibold text-primary">{{ producto.precio | pesos }}</span>
+                    <span class="font-display text-lg font-semibold text-primary">
+                      {{ producto.precio | pesos }}
+                      @if (producto.stock === 0) {
+                        <span class="badge badge-ghost badge-sm ml-1 align-middle font-sans font-normal">Sin stock</span>
+                      }
+                    </span>
                     @if (config().whatsappUrl; as url) {
                       <a [href]="whatsappHref(url, producto)" target="_blank" rel="noopener" class="btn btn-primary btn-sm gap-2">
                         <app-icon name="whatsapp" [size]="16" />

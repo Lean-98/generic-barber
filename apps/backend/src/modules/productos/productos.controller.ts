@@ -43,6 +43,16 @@ export class ProductosController {
     return this.productosService.findAll(vigente, idCategoria, page, limit);
   }
 
+  // Va antes de ':id' para que "stock-bajo" no se interprete como un id.
+  @Get('stock-bajo')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Productos agotados o en el stock mínimo (aviso del dashboard)' })
+  @ApiResponse({ status: 200, description: 'Lista de productos con stock bajo' })
+  async findStockBajo(): Promise<Producto[]> {
+    return this.productosService.findStockBajo();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un producto por ID' })
   @ApiResponse({ status: 200, description: 'Producto encontrado' })

@@ -9,6 +9,9 @@ export interface Producto {
   idCategoria?: number;
   categoria?: Categoria;
   vigente: boolean;
+  /** null = no se controla stock de este producto. */
+  stock?: number | null;
+  stockMinimo?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,6 +23,8 @@ export interface CreateProductoRequest {
   urlImagen?: string;
   idCategoria?: number;
   vigente?: boolean;
+  stock?: number | null;
+  stockMinimo?: number | null;
 }
 
 export interface UpdateProductoRequest {
@@ -29,4 +34,6 @@ export interface UpdateProductoRequest {
   urlImagen?: string;
   idCategoria?: number;
   vigente?: boolean;
+  stock?: number | null;
+  stockMinimo?: number | null;
 }

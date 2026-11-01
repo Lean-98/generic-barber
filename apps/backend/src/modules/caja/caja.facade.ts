@@ -4,6 +4,7 @@ import { PagosService } from './pagos.service';
 import { MovimientosService } from './movimientos.service';
 import { TurnosService } from '../turnos/turnos.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
+import { VentaProductoDto } from './dto/venta-producto.dto';
 import { MovimientoTipo } from '../../common/enums/movimiento-tipo.enum';
 import { Pago } from '@prisma/client';
 
@@ -92,6 +93,69 @@ export class CajaFacade {
       concepto,
       idFormaPago,
       idUsuario,
+    });
+  }
+
+  /**
+   * Venta de un producto en el local: crea el ingreso en caja y, si el
+   * producto controla stock, descuenta las unidades. Todo en una transacción:
+   * o se registra la venta con su stock, o no se registra nada.
+   *
+   * El descuento es condicional (stock >= cantidad) para que dos ventas
+   * simultáneas de la última unidad no dejen el stock en negativo.
+   */
+  async venderProducto(
+    dto: VentaProductoDto,
+    idUsuario: string,
+  ): Promise<{ movimiento: any; stockRestante: number | null }> {
+    return this.prisma.$transaction(async (tx) => {
+      const producto = await tx.producto.findUnique({ where: { idProducto: dto.idProducto } });
+      if (!producto) {
+        throw new NotFoundException(`Producto ${dto.idProducto} no encontrado`);
+      }
+      if (!producto.vigente) {
+        throw new BadRequestException(`"${producto.nombre}" no está vigente`);
+      }
+
+      const formaPago = await tx.formaPago.findUnique({ where: { idFormaPago: dto.idFormaPago } });
+      if (!formaPago || !formaPago.vigente) {
+        throw new BadRequestException('La forma de pago no existe o no está vigente');
+      }
+
+      let stockRestante: number | null = null;
+      if (producto.stock !== null) {
+        const { count } = await tx.producto.updateMany({
+          where: { idProducto: producto.idProducto, stock: { gte: dto.cantidad } },
+          data: { stock: { decrement: dto.cantidad } },
+        });
+        if (count === 0) {
+          const actual = await tx.producto.findUnique({ where: { idProducto: producto.idProducto } });
+          throw new BadRequestException(
+            `No hay stock suficiente de "${producto.nombre}": quedan ${actual?.stock ?? 0} y se quieren vender ${dto.cantidad}`,
+          );
+        }
+        stockRestante = producto.stock - dto.cantidad;
+      }
+
+      const monto = Math.round(Number(producto.precio) * dto.cantidad * 100) / 100;
+      if (monto <= 0) {
+        throw new BadRequestException(`"${producto.nombre}" no tiene precio cargado`);
+      }
+
+      const movimiento = await this.movimientosService.create(
+        {
+          tipo: MovimientoTipo.INGRESO,
+          monto,
+          concepto: `Venta: ${producto.nombre} x${dto.cantidad} - ${formaPago.nombre}`,
+          idFormaPago: dto.idFormaPago,
+          idUsuario,
+          idProducto: producto.idProducto,
+          cantidadProducto: dto.cantidad,
+        },
+        tx,
+      );
+
+      return { movimiento, stockRestante };
     });
   }
 }

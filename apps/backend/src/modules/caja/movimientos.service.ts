@@ -9,7 +9,7 @@ export class MovimientosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    data: CreateMovimientoDto,
+    data: CreateMovimientoDto & { idProducto?: number; cantidadProducto?: number },
     client: PrismaService | Prisma.TransactionClient = this.prisma,
   ): Promise<MovimientoCaja> {
     return client.movimientoCaja.create({
@@ -21,6 +21,8 @@ export class MovimientosService {
         idFormaPago: data.idFormaPago,
         idUsuario: data.idUsuario!,
         idTurno: data.idTurno || null,
+        idProducto: data.idProducto ?? null,
+        cantidadProducto: data.cantidadProducto ?? null,
       },
     });
   }

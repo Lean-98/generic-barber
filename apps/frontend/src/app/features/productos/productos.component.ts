@@ -8,6 +8,14 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { ImageUploadComponent } from '../../shared/ui/image-upload.component';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { PaginationComponent } from '../../shared/ui/pagination.component';
+import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
+
+/** Input numérico vacío → null ("no se controla"); si no, entero. */
+function enteroONull(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === '') return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
 
 const LIMITE_PAGINA = 20;
 
@@ -62,6 +70,7 @@ const LIMITE_PAGINA = 20;
                   <th>Producto</th>
                   <th>Categoría</th>
                   <th>Precio</th>
+                  <th>Stock</th>
                   <th>Estado</th>
                   <th class="text-right">Acciones</th>
                 </tr>
@@ -90,6 +99,17 @@ const LIMITE_PAGINA = 20;
                       }
                     </td>
                     <td class="tabular-nums font-medium">{{ producto.precio | pesos }}</td>
+                    <td class="tabular-nums">
+                      @if (producto.stock === null || producto.stock === undefined) {
+                        <span class="text-sm text-base-content/50" title="No se controla stock">—</span>
+                      } @else if (producto.stock === 0) {
+                        <span class="badge badge-error badge-sm">Sin stock</span>
+                      } @else if (producto.stockMinimo != null && producto.stock <= producto.stockMinimo) {
+                        <span class="badge badge-warning badge-sm">{{ producto.stock }} · bajo</span>
+                      } @else {
+                        {{ producto.stock }}
+                      }
+                    </td>
                     <td>
                       @if (producto.vigente) {
                         <span class="badge badge-success badge-sm">Vigente</span>
@@ -116,7 +136,7 @@ const LIMITE_PAGINA = 20;
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="text-center py-12 text-base-content/60">
+                    <td colspan="6" class="text-center py-12 text-base-content/60">
                       <div class="flex flex-col items-center gap-3">
                         <app-icon name="shopping-bag" [size]="40" />
                         <div>
@@ -163,10 +183,26 @@ const LIMITE_PAGINA = 20;
             <label class="label"><span class="label-text">Precio</span></label>
             <input type="number" class="input input-bordered w-full" [(ngModel)]="nuevoPrecio" name="precio" placeholder="Precio" required />
           </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Stock (opcional)</span></label>
+              <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="nuevoStock" name="stock" placeholder="Vacío = no controlar" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Avisar con</span></label>
+              <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="nuevoStockMinimo" name="stockMinimo" placeholder="Ej: 3 unidades o menos" />
+            </div>
+          </div>
           <div class="form-control">
             <label class="label"><span class="label-text">Descripción</span></label>
             <textarea class="textarea textarea-bordered w-full" [(ngModel)]="nuevaDescripcion" name="descripcion"></textarea>
           </div>
+          @if (errorForm()) {
+            <div class="alert alert-error mt-4 py-2.5 text-sm">
+              <app-icon name="alert-circle" [size]="18" />
+              <span>{{ errorForm() }}</span>
+            </div>
+          }
           <div class="modal-action">
             <button type="button" class="btn btn-ghost" (click)="cerrarCrear()">Cancelar</button>
             <button type="submit" class="btn btn-primary gap-2" [class.btn-loading]="creando()" [disabled]="creando() || !nuevoNombre || !nuevoPrecio">
@@ -210,6 +246,17 @@ const LIMITE_PAGINA = 20;
               <label class="label"><span class="label-text">Precio</span></label>
               <input type="number" class="input input-bordered w-full" [(ngModel)]="p.precio" name="editPrecio" required />
             </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="form-control">
+                <label class="label"><span class="label-text">Stock</span></label>
+                <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="p.stock" name="editStock" placeholder="Vacío = no controlar" />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Avisar con</span></label>
+                <input type="number" min="0" class="input input-bordered w-full" [(ngModel)]="p.stockMinimo" name="editStockMinimo" placeholder="Ej: 3 unidades o menos" />
+              </div>
+            </div>
+            <p class="text-xs text-base-content/60">Las ventas que registres en Caja → Vender producto descuentan el stock solas. Para reponer, cargá acá la cantidad nueva.</p>
             <div class="form-control">
               <label class="label"><span class="label-text">Descripción</span></label>
               <textarea class="textarea textarea-bordered w-full" [(ngModel)]="p.descripcion" name="editDescripcion"></textarea>
@@ -220,6 +267,12 @@ const LIMITE_PAGINA = 20;
                 <input type="checkbox" class="toggle toggle-primary" [(ngModel)]="p.vigente" name="editVigente" />
               </label>
             </div>
+            @if (errorForm()) {
+              <div class="alert alert-error mt-4 py-2.5 text-sm">
+                <app-icon name="alert-circle" [size]="18" />
+                <span>{{ errorForm() }}</span>
+              </div>
+            }
             <div class="modal-action">
               <button type="button" class="btn btn-ghost" (click)="cerrarEditar()">Cancelar</button>
               <button type="submit" class="btn btn-primary" [class.btn-loading]="guardando()" [disabled]="guardando()">Guardar</button>
@@ -308,12 +361,15 @@ export class ProductosComponent implements OnInit {
   guardando = signal(false);
   eliminando = signal(false);
   creando = signal(false);
+  errorForm = signal('');
 
   nuevoNombre = '';
   nuevaCategoria: number | undefined = undefined;
   nuevoPrecio = '';
   nuevaDescripcion = '';
   nuevaUrlImagen = '';
+  nuevoStock: number | string | null = '';
+  nuevoStockMinimo: number | string | null = '';
   nuevaCategoriaNombre = '';
 
   ngOnInit(): void {
@@ -357,6 +413,9 @@ export class ProductosComponent implements OnInit {
     this.nuevoPrecio = '';
     this.nuevaDescripcion = '';
     this.nuevaUrlImagen = '';
+    this.nuevoStock = '';
+    this.nuevoStockMinimo = '';
+    this.errorForm.set('');
     this.crearModalRef.nativeElement.showModal();
   }
 
@@ -373,6 +432,8 @@ export class ProductosComponent implements OnInit {
       precio: Number(this.nuevoPrecio),
       descripcion: this.nuevaDescripcion || undefined,
       urlImagen: this.nuevaUrlImagen || undefined,
+      stock: enteroONull(this.nuevoStock),
+      stockMinimo: enteroONull(this.nuevoStockMinimo),
     };
 
     this.creando.set(true);
@@ -382,14 +443,16 @@ export class ProductosComponent implements OnInit {
         this.cerrarCrear();
         this.loadProductos();
       },
-      error: () => {
+      error: (err) => {
         this.creando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }
 
   editar(producto: Producto): void {
     this.productoEditando.set({ ...producto });
+    this.errorForm.set('');
     this.editarModalRef.nativeElement.showModal();
   }
 
@@ -410,6 +473,9 @@ export class ProductosComponent implements OnInit {
       precio: Number(p.precio),
       urlImagen: p.urlImagen || undefined,
       vigente: p.vigente,
+      // null explícito = dejar de controlar stock.
+      stock: enteroONull(p.stock),
+      stockMinimo: enteroONull(p.stockMinimo),
     };
 
     this.productosService.update(p.idProducto, data).subscribe({
@@ -418,8 +484,9 @@ export class ProductosComponent implements OnInit {
         this.cerrarEditar();
         this.loadProductos();
       },
-      error: () => {
+      error: (err) => {
         this.guardando.set(false);
+        this.errorForm.set(mensajeDeErrorHttp(err, 'No se pudo guardar. Revisá los datos.'));
       },
     });
   }

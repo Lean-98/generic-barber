@@ -52,6 +52,11 @@ export class CajaService {
     return this.http.post<MovimientoCaja>(`${this.apiUrl}/movimientos`, data);
   }
 
+  // Venta de productos (ingreso + descuento de stock)
+  venderProducto(data: { idProducto: number; cantidad: number; idFormaPago: number }): Observable<{ movimiento: MovimientoCaja; stockRestante: number | null }> {
+    return this.http.post<{ movimiento: MovimientoCaja; stockRestante: number | null }>(`${this.apiUrl}/ventas-producto`, data);
+  }
+
   // Cierre
   iniciarCierre(fecha: string): Observable<CierreCaja> {
     return this.http.post<CierreCaja>(`${this.apiUrl}/cierre/iniciar?fecha=${fecha}`, {});

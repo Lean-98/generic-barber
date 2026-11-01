@@ -17,6 +17,7 @@ import { CajaService } from './caja.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
 import { ConfirmarCierreDto } from './dto/confirmar-cierre.dto';
+import { VentaProductoDto } from './dto/venta-producto.dto';
 import { hoyAr } from '../../common/utils/fecha-ar.util';
 
 @ApiTags('Caja')
@@ -49,6 +50,18 @@ export class CajaController {
   @ApiOperation({ summary: 'Listar pagos de un turno' })
   async findPagosByTurno(@Param('idTurno', ParseIntPipe) idTurno: number) {
     return this.cajaService.pagos.findByTurno(idTurno);
+  }
+
+  // Venta de productos
+  @Post('ventas-producto')
+  @ApiOperation({ summary: 'Registrar la venta de un producto (ingreso en caja + descuento de stock)' })
+  @ApiResponse({ status: 201, description: 'Venta registrada' })
+  @ApiResponse({ status: 400, description: 'Sin stock suficiente, producto no vigente o forma de pago inválida' })
+  async venderProducto(
+    @Body() dto: VentaProductoDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.cajaService.facade.venderProducto(dto, user.usuario);
   }
 
   // Movimientos

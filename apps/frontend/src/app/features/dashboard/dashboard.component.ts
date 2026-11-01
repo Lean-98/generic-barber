@@ -6,6 +6,8 @@ import { ServiciosService } from '../../shared/services/servicios.service';
 import { Turno, TurnoDetalle } from '../../shared/models/turno.model';
 import { Persona } from '../../shared/models/persona.model';
 import { Servicio } from '../../shared/models/servicio.model';
+import { Producto } from '../../shared/models/producto.model';
+import { ProductosService } from '../../shared/services/productos.service';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
@@ -28,6 +30,24 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
           Nuevo Turno
         </a>
       </div>
+
+      <!-- Aviso de stock bajo (solo productos que controlan stock) -->
+      @if (stockBajo().length > 0) {
+        <div class="alert alert-warning items-start">
+          <app-icon name="shopping-bag" [size]="20" />
+          <div class="flex-1">
+            <div class="font-medium">
+              {{ stockBajo().length === 1 ? 'Hay 1 producto' : 'Hay ' + stockBajo().length + ' productos' }} con poco stock
+            </div>
+            <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              @for (p of stockBajo(); track p.idProducto) {
+                <span>{{ p.nombre }}: <strong>{{ p.stock === 0 ? 'sin stock' : p.stock }}</strong></span>
+              }
+            </div>
+          </div>
+          <a routerLink="/productos" class="btn btn-sm">Ver productos</a>
+        </div>
+      }
 
       <!-- Stats -->
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -283,6 +303,9 @@ export class DashboardComponent implements OnInit {
   private readonly turnosService = inject(TurnosService);
   private readonly personasService = inject(PersonasService);
   private readonly serviciosService = inject(ServiciosService);
+  private readonly productosService = inject(ProductosService);
+
+  stockBajo = signal<Producto[]>([]);
 
   turnos = signal<Turno[]>([]);
   turnosHoy = signal<Turno[]>([]);
@@ -329,6 +352,10 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.productosService.findStockBajo().subscribe({
+      next: (productos) => this.stockBajo.set(productos),
+      error: () => this.stockBajo.set([]),
+    });
     this.turnosService.findAll(undefined, undefined, 1, 200).subscribe((res) => {
       this.turnos.set(res.data);
       const hoy = fechaLocal();

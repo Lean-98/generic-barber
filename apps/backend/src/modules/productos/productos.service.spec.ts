@@ -18,6 +18,8 @@ describe('ProductosService', () => {
     urlImagen: 'https://example.com/cera.jpg',
     idCategoria: 1,
     vigente: true,
+    stock: null,
+    stockMinimo: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -55,6 +57,9 @@ describe('ProductosService', () => {
           urlImagen: dto.urlImagen,
           idCategoria: dto.idCategoria,
           vigente: true,
+          // Sin stock cargado = no se controla stock.
+          stock: null,
+          stockMinimo: null,
         },
       });
       expect(result.nombre).toBe('Cera moldeadora');
@@ -99,6 +104,25 @@ describe('ProductosService', () => {
         data: { vigente: false },
       });
       expect(result.vigente).toBe(false);
+    });
+  });
+
+  describe('findStockBajo', () => {
+    it('should return out-of-stock products and those at or below their minimum', async () => {
+      prismaMock.producto.findMany.mockResolvedValue([
+        { ...mockProducto, idProducto: 1, stock: 0, stockMinimo: null },
+        { ...mockProducto, idProducto: 2, stock: 2, stockMinimo: 3 },
+        { ...mockProducto, idProducto: 3, stock: 3, stockMinimo: 3 },
+        { ...mockProducto, idProducto: 4, stock: 10, stockMinimo: 3 },
+        { ...mockProducto, idProducto: 5, stock: 1, stockMinimo: null },
+      ]);
+
+      const res = await service.findStockBajo();
+
+      expect(res.map((p) => p.idProducto)).toEqual([1, 2, 3]);
+      expect(prismaMock.producto.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { vigente: true, stock: { not: null } } }),
+      );
     });
   });
 });
