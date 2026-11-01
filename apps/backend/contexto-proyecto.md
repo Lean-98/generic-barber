@@ -1,181 +1,114 @@
 # Contexto del Proyecto - Sistema de Gestión de Peluquería
 
+> Resumen técnico para trabajar en el código. El documento completo (requisitos, diagramas,
+> patrones y decisiones) está en
+> [`diagramas-arquitectura-software/contexto-proyecto.md`](../../diagramas-arquitectura-software/contexto-proyecto.md),
+> y el detalle de cada tabla en [`docs/diccionario-datos.md`](../../docs/diccionario-datos.md).
+> Actualizado el 2026-11-01.
+
 ## Stack Tecnológico
 - **Backend**: NestJS + Prisma + PostgreSQL + Docker
 - **Frontend**: Angular 20 Standalone + Signals + Zoneless + Tailwind CSS v3 + DaisyUI
-- **Patrones**: SOLID, DRY, KISS, Inmutabilidad, Builder, Adapter, Facade, State, Strategy, Observer/Mediator
+- **Integraciones**: Resend (mails), Google Calendar, Cloudinary (imágenes)
+- **Patrones implementados**: State (turnos), Facade (caja), Strategy (cierre de caja). Principios: SOLID, DRY, KISS.
 
-## Módulos Implementados (Backend)
-- **Auth**: JWT (login por usuario/email, register, profile). Ver notas de seguridad abajo.
-- **Personas**: CRUD completo, búsqueda por nombre/apellido/email/teléfono/instagram, historial de turnos por cliente
-- **Servicios**: CRUD con soft delete (eliminación lógica), categorías, historial de precios/duración/vigencia
-- **Turnos**: CRUD + Patrón State (PENDIENTE → CONFIRMADO → EN_PROCESO → COMPLETADO → CANCELADO)
-- **Turnos Públicos**: Endpoints sin JWT para que clientes pidan turnos (`/api/turnos-publicos/disponibilidad` y `/api/turnos-publicos/reservar`)
-- **Caja**: Pagos, Movimientos, Cierre de Caja con Strategy + Facade, endpoint de formas de pago
-- **Reportes**: Resumen, ingresos por día, turnos por estado, top servicios, top clientes, ingresos por forma de pago
-- **Google Calendar**: Integración completa para sincronizar turnos. Ver detalles abajo.
+## Módulos (Backend)
+- **Auth**: JWT con login por usuario o email, verificación en dos pasos por mail y "recordar este dispositivo" por 30 días. `OptionalJwtAuthGuard` para endpoints públicos que muestran datos extra con sesión.
+- **Personas**: CRUD, búsqueda por nombre/apellido/email/teléfono (el teléfono se encuentra aunque se escriba con espacios o guiones), historial de turnos. El teléfono se guarda normalizado (`@IsTelefono`).
+- **Servicios / Categorías de servicios**: CRUD con baja lógica, historial de precio/duración/vigencia, duración de 5 a 180 minutos, costo de insumos interno.
+- **Turnos**: patrón State. Nacen `CONFIRMADO`; `TurnosCronService` los pasa a `EN_PROCESO` y `COMPLETADO` por reloj. Cancelar y "No vino" son manuales (no-show también desde `EN_PROCESO` y desde `COMPLETADO` sin pagos).
+- **Turnos públicos**: disponibilidad, reserva, y cancelación por el cliente con token firmado (`cancelacion-token.util.ts`), con aviso por mail al barbero.
+- **Caja**: pagos de turnos, venta de productos con descuento de stock, egresos y cierre de caja (Facade + Strategy).
+- **Productos / Categorías / Cursos**: catálogo de la web; productos con stock opcional y aviso de stock bajo.
+- **Reportes**: resumen, ingresos por día, turnos por estado, top servicios y clientes, formas de pago, **rentabilidad** y **clientes para recontactar**. Los costos internos viven en `costos_negocio` (`GET`/`PUT /reportes/costos`).
+- **Configuración**: marca, horarios de atención, contenido de la landing, fidelización, descuento de personal y recordatorios. Es pública (`GET /configuracion/branding`), por eso no guarda nada interno.
+- **Notifications**: cron de recordatorios por mail (con link para cancelar).
+- **Mail**: confirmación, recordatorio, aviso de cancelación al barbero, código 2FA, recuperación de contraseña.
+- **Google Calendar**: sincroniza turnos (crear, editar, borrar al cancelar o marcar "No vino").
+- **Cloudinary**: subida de imágenes desde el panel.
 
 ## Frontend Angular
 
-### Estructura del Proyecto
+### Estructura
 ```
-peluqueria-frontend/
-├── src/app/
-  │   ├── core/
-  │   │   ├── interceptors/     # auth.interceptor.ts (JWT)
-  │   │   ├── guards/             # auth.guard.ts (authGuard, publicGuard)
-  │   │   └── layout.component.ts # Sidebar lateral en desktop + navbar móvil
-│   ├── features/
-│   │   ├── auth/
-│   │   │   └── login.component.ts
-│   │   ├── dashboard/
-│   │   │   └── dashboard.component.ts
-│   │   ├── turnos/
-│   │   │   ├── turnos.component.ts
-│   │   │   └── turno-form.component.ts
-│   │   ├── servicios/
-│   │   │   └── servicios.component.ts
-  │   │   ├── personas/
-  │   │   │   └── personas.component.ts
-  │   │   ├── caja/
-  │   │   │   └── caja.component.ts
-  │   │   ├── reportes/
-  │   │   │   └── reportes.component.ts
-  │   │   └── reservas/
-│   │       └── reservar.component.ts
-  │   ├── shared/
-  │   │   ├── models/             # auth.model.ts, persona.model.ts, servicio.model.ts, turno.model.ts, caja.model.ts, reportes.model.ts
-  │   │   ├── services/           # auth.service.ts, personas.service.ts, servicios.service.ts, turnos.service.ts, reservas-publicas.service.ts, caja.service.ts, reportes.service.ts
-  │   │   └── ui/                 # icon.component.ts (iconos SVG inline)
-│   ├── app.ts                  # Root component (standalone)
-│   ├── app.config.ts           # Zoneless + Router + HTTP Client
-│   └── app.routes.ts           # Rutas con lazy loading + guards
+apps/frontend/src/app/
+├── core/          # layout (sidebar/navbar), guards, interceptors, BrandingService
+├── features/
+│   ├── auth/          # login, forgot-password, reset-password
+│   ├── dashboard/
+│   ├── turnos/        # agenda y alta de turnos
+│   ├── personas/
+│   ├── caja/
+│   ├── servicios/ productos/ cursos/
+│   ├── reportes/
+│   ├── config/        # marca y Google Calendar
+│   ├── reservas/      # reservar y cancelar-turno (públicas)
+│   └── landing/       # landing, tienda, cursos-info, nosotros, club (públicas)
+└── shared/        # models, services, pipes (fechaAr, pesos), ui (icon, image-upload), utils
 ```
 
-### Características del Frontend
-- **Angular Standalone**: Sin NgModules, todo basado en `standalone: true`
-- **Zoneless**: `provideZonelessChangeDetection()` - sin Zone.js
-- **Signals**: Uso de `signal()` para estado reactivo (AuthService, componentes)
-- **Tailwind CSS v3**: Configurado con variables CSS propias (colores `primary`, `secondary`, `destructive`, etc.) + DaisyUI plugin
-- **DaisyUI**: Componentes CSS listos para usar (`btn`, `input`, `card`, `badge`, `alert`, `divider`, `stats`, `table`, `navbar`, etc.)
-- **Modo oscuro**: Toggle en sidebar/navbar con `data-theme="dark"` de DaisyUI, persistido en `localStorage`. Body y main usan `bg-base-200`/`bg-base-100` y `text-base-content` para correcto contraste en ambos temas.
-- **Iconos SVG**: Componente `app-icon` con iconos SVG inline propios (sin dependencias externas)
-- **Lazy Loading**: Todas las páginas cargan bajo demanda
-- **HTTP Client**: Con interceptor JWT automático
-- **Guards**: `authGuard` (protege rutas privadas) y `publicGuard` (redirige a dashboard si ya está logueado)
-- **Responsive**: Navbar colapsable en móvil, tablas scrollables y grids adaptativos
+### Características
+- **Standalone + Zoneless + Signals**: sin NgModules ni Zone.js.
+- **Tailwind + DaisyUI**: tema propio con colores de marca configurables desde el panel.
+- **Lazy loading** en todas las páginas; `authGuard` y `publicGuard`.
+- **Fechas**: el pipe `fechaAr` muestra siempre en hora de Argentina, sin importar el huso del dispositivo.
+- **Errores**: `mensajeDeErrorHttp()` muestra los mensajes de validación del backend en los formularios.
 
-### Páginas Implementadas
+### Páginas
 | Página | Ruta | Descripción |
 |--------|------|-------------|
-| Login | `/login` | Formulario de inicio de sesión (admin/peluquero) |
-| Dashboard | `/dashboard` | Resumen administrativo: stats del día, próximos turnos, últimos clientes, servicios más solicitados y servicios activos |
-| Turnos | `/turnos` | Lista de turnos con acciones de transición de estado + vista calendario semanal (Lun-Dom, 9:00-18:00) |
-| Nuevo Turno | `/turnos/nuevo` | Formulario completo para crear turnos (admin); acepta query params `fecha` y `hora` |
-| Reservar Turno | `/reservar` | Página pública para que clientes pidan turnos |
-| Servicios | `/servicios` | CRUD completo: alta, edición, categorías, toggle vigente, historial de precios/duración |
-| Personas | `/personas` | CRUD completo: alta, búsqueda/filtro, detalle, edición, historial de turnos, eliminación |
-| Caja | `/caja` | Resumen del día, movimientos, registrar pago, registrar egreso, cierre de caja e historial |
-| Reportes | `/reportes` | Estadísticas: resumen, ingresos por día, turnos por estado, top servicios/clientes, formas de pago |
-| **Reservar Turno** | **`/reservar`** | **Página pública para que clientes pidan turnos: seleccionan servicios, fecha y hora disponible** |
-
-### Componentes UI (DaisyUI)
-- `navbar`, `menu`, `stats`, `table`, `card`, `alert`, `badge`, `btn`, `form-control`, `input`, `select`, `textarea`, `divider`, `avatar`
-- Estados de turnos con colores semánticos: `badge-warning` (PENDIENTE), `badge-info` (CONFIRMADO), `badge-primary` (EN_PROCESO), `badge-success` (COMPLETADO), `badge-error` (CANCELADO/NO_SHOW)
-- Iconos SVG inline: `calendar`, `users`, `scissors`, `plus`, `arrow-left/right`, `check`, `x`, `log-out`, `user`, `search`, `trash`, `credit-card`, `clock`, `menu`, `alert-circle`, `check-circle`, `loader`, `edit`, `wallet`, `trending-up`, `trending-down`, `layout-grid`, `bar-chart`, `sun`, `moon`
-- Modales nativos HTML5 `<dialog>` para detalle, edición, historial y confirmaciones
-- Loading states: `btn-loading`, spinner animado en botones
-- Empty states: mensajes e iconos cuando no hay datos
-- Responsive: navbar colapsable, tablas con `overflow-x-auto`, grids adaptativos
-
-### Servicios (Shared)
-- `AuthService`: Login, register, logout, `currentUser` signal, `isAuthenticated` signal
-- `PersonasService`: findAll, findOne, create, update, remove, search, findTurnos
-- `ServiciosService`: findAll (con filtros vigente/categoría), findOne, findCategorias, create, update, remove
-- `TurnosService`: findAll, create, confirmar, cancelar, iniciarAtencion, finalizar, registrarPago, noShow
-- `CajaService`: findFormasPago, procesarPago, findPagosByTurno, findMovimientos, findTotales, createMovimiento, iniciarCierre, confirmarCierre, findCierre, findHistorialCierres
-- `ReportesService`: getResumen, getIngresosPorDia, getTurnosPorEstado, getServicios, getClientes, getFormasPago
-- `ReservasPublicasService`: `getDisponibilidad(fecha, serviciosIds)`, `reservar(data)` — endpoints públicos sin JWT
-
-## Patrones de Diseño Aplicados (Backend)
-- **State**: Turnos (transiciones de estado encapsuladas)
-- **Strategy**: Cierre de Caja (cálculo de totales por forma de pago)
-- **Facade**: CajaFacade (coordina pago + movimiento + actualización de turno)
-- **Builder**: DTOs con readonly
-- **Inmutabilidad**: Angular Signals y DTOs readonly
+| Landing y secciones | `/`, `/tienda`, `/cursos-info`, `/nosotros`, `/club` | Sitio público configurable |
+| Reservar | `/reservar` | Reserva online: servicios, fecha, horario disponible y datos (forma de pago preferida obligatoria) |
+| Cancelar turno | `/cancelar-turno?token=…` | El cliente cancela desde el link del mail |
+| Login | `/login`, `/forgot-password`, `/reset-password` | Acceso con 2FA por mail |
+| Dashboard | `/dashboard` | Resumen del día y aviso de stock bajo |
+| Turnos | `/turnos`, `/turnos/nuevo` | Lista y calendario semanal; cancelar y "No vino" |
+| Clientes | `/personas` | ABM, búsqueda e historial |
+| Caja | `/caja` | Movimientos, registrar pago, vender producto, egresos, cierre e historial |
+| Catálogo | `/servicios`, `/productos`, `/cursos` | Costo de insumos por servicio, stock por producto |
+| Reportes | `/reportes` | Resumen, rentabilidad (con modal de costos) y clientes para recontactar |
+| Configuración | `/configuracion/marca`, `/configuracion/google-calendar` | Marca, horarios, descuentos, notificaciones, calendario |
 
 ## Estado Actual
-- **Backend Tests**: 68 unitarios + 37 E2E = 105 tests pasando
-- **Frontend**: Compila exitosamente, build size ~347KB total
-- **Swagger UI**: Disponible en `/api/docs`
-- **Seed**: Datos realistas de demo (15 clientes, 10 servicios, ~140 turnos en 30 días, pagos, egresos, cierres de caja). Ejecutar con `npx prisma db seed`
+- **Backend**: 216 tests unitarios (Jest) + 7 suites e2e (`npm run test:e2e`, necesitan la base levantada).
+- **Swagger UI**: `/api/docs`.
+- **Seed**: datos de demo con `npx prisma db seed`.
 
 ## Decisiones Clave
-- **Prisma sobre TypeORM**: Mejor DX, migraciones confiables, type safety end-to-end
-- **Un único profesional**: No multi-tenancy
-- **JWT**: Protege todos los endpoints excepto auth/login y auth/register
-- **Eliminación lógica**: Servicios (vigente=false) con historial de cambios; hard delete en Personas
-- **Historial de servicios**: Cada cambio de precio, duración o vigencia genera un registro en `ServicioHistorial`
-- **DaisyUI**: Plugin de Tailwind CSS con componentes listos (button, input, card, badge, alert, divider)
-- **Tailwind CSS v3**: Variables CSS propias configuradas manualmente para colores base
-- **Angular CDK**: Eliminado; no se usan overlays ni componentes del CDK actualmente
+- **Prisma sobre TypeORM**: mejor DX, migraciones confiables, type safety de punta a punta.
+- **Un único profesional por instancia**: no hay multi-tenancy; cada negocio corre su propio stack.
+- **Turnos que avanzan solos**: el dueño atiende y no puede ir tocando la pantalla entre clientes.
+- **Cancelación del cliente sin límite de horas**: un cliente bloqueado suele no avisar y no ir; es mejor liberar el horario y avisar al barbero.
+- **Costos en tabla aparte**: `configuracion_negocio` es pública; `costos_negocio` no.
+- **Validación en dos capas**: DTOs con `class-validator` y restricciones `CHECK` en la base.
+- **Baja lógica** en servicios y productos (`vigente = false`); hard delete en personas.
+- **Integraciones best effort**: si Google Calendar o el mail fallan, la operación principal se completa igual.
 
-## Notas de Seguridad (Auth)
-- **Login por usuario o email**: El campo `login` acepta tanto nombre de usuario como email.
-- **Respuesta de login mínima**: Solo devuelve `access_token` + `user` con `{ usuario, email, rol }`.
-- **Respuesta de register mínima**: Solo devuelve `{ usuario, email, rol }`. No expone el objeto `persona`.
-- **Profile reducido**: El endpoint `/api/auth/profile` devuelve solo `{ usuario, email, rol }`.
-- **Interface `UserPublic`**: Define explícitamente qué datos son públicos.
+## Notas de Seguridad
+- **Login por usuario o email**, con código de 6 dígitos por mail (hasheado, vence en 10 minutos).
+- **Respuestas mínimas** de login, register y profile: solo `{ usuario, email, rol }` (`UserPublic`).
+- **Rate limiting** global y más estricto en endpoints públicos sensibles (reservar, cancelar, login, recuperar contraseña).
+- **Link de cancelación**: HMAC del id del turno con una clave derivada de `JWT_SECRET`; no se guarda nada en la base y deja de servir cuando el turno ya no se puede cancelar.
+- **Mails**: los datos que carga el cliente se escapan antes de meterlos en el HTML.
+- **Datos internos**: `GET /servicios` es público pero oculta `costoInsumos` sin sesión.
 
-## Reserva Pública (Clientes)
+## Reserva y cancelación públicas
+- `GET /api/turnos-publicos/disponibilidad?fecha=YYYY-MM-DD&servicios=1,2`: slots cada 30 minutos dentro de los horarios configurados en Marca (con franjas partidas por día).
+- `POST /api/turnos-publicos/reservar`: busca o crea la persona por email y crea el turno `CONFIRMADO`, validando horario de atención y superposición en una transacción serializable.
+- `GET /api/turnos-publicos/cancelacion?token=…` y `POST /api/turnos-publicos/cancelar`: ver y cancelar el turno desde el link del mail.
 
-### Endpoints Públicos (sin JWT)
-- `GET /api/turnos-publicos/disponibilidad?fecha=YYYY-MM-DD&servicios=1,2`: Devuelve slots disponibles (hora de inicio en ISO) para una fecha y servicios específicos. Horario de trabajo: 09:00 a 18:00, intervalos de 30 min.
-- `POST /api/turnos-publicos/reservar`: Crea un turno desde el sitio público. Busca o crea la persona por email, luego crea el turno con estado PENDIENTE.
+## Google Calendar
+- **Variables**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_ID`.
+- **OAuth2** con acceso offline; tokens cifrados en `GoogleCalendarConfig` (clave derivada de `JWT_SECRET`).
+- **Endpoints**: `GET /api/google-calendar/status`, `GET /api/google-calendar/auth-url`, `POST /api/google-calendar/connect?code={code}`, `DELETE /api/google-calendar/disconnect`.
+- **Sincronización**: crear y editar turno actualizan el evento; cancelar y "No vino" lo borran.
 
-### Frontend: Página `/reservar`
-Flujo en 4 pasos:
-1. **Servicios**: El cliente selecciona uno o más servicios con cantidad. Muestra duración total y precio estimado.
-2. **Fecha**: Calendario semanal con navegación anterior/siguiente. Solo permite seleccionar días desde hoy en adelante.
-3. **Horario**: Grid de slots disponibles devueltos por el backend. Cada slot tiene en cuenta la duración total de los servicios seleccionados.
-4. **Datos**: Formulario con nombre, apellido, email, teléfono y notas. Al confirmar, envía al backend y muestra mensaje de éxito.
-
-### Google Calendar
-- Cuando un cliente reserva un turno público, el backend sincroniza automáticamente con Google Calendar (si está conectado).
-- El cliente no necesita hacer nada extra; el evento aparece en el calendario del peluquero.
-
-## Google Calendar Integration
-
-### Configuración
-- **Variables de entorno**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_CALENDAR_ID`
-- **OAuth2**: Flujo estándar con `offline` access type.
-- **Modelo `GoogleCalendarConfig`**: Guarda tokens en base de datos.
-- **Modelo `Turno`**: Campo `googleEventId`.
-
-### Endpoints
-- `GET /api/google-calendar/status`
-- `GET /api/google-calendar/auth-url`
-- `POST /api/google-calendar/connect?code={code}`
-- `DELETE /api/google-calendar/disconnect`
-
-### Sincronización Automática
-- **Crear**: Crea evento en Google Calendar
-- **Editar**: Actualiza evento
-- **Cancelar/No-show**: Elimina evento y limpia `googleEventId`
-- **Eliminar**: Elimina evento antes de borrar turno
-
-## Próximos Pasos
-1. Notificaciones por email/SMS
-2. Configuración de Google Calendar en frontend
-3. Mejoras de UX (calendario semanal, recordatorios automáticos)
+## Pendientes conocidos
+- Refresh tokens en la autenticación (hoy hay un solo JWT, de 1 día en producción).
 
 ## Notas Técnicas
-- **Backend**: `PrismaServiceMock` en `test/mocks/prisma.service.mock.ts`
-- **Backend**: `cleanDatabase` en `test/setup-e2e.ts`
-- **Backend**: `getAuthToken` en `test/helpers/auth.helper.ts`
-- **Backend**: `Decimal` en Prisma se serializa como string; usar `Number()` en tests
-- **Frontend**: `app.config.ts` usa `provideZonelessChangeDetection()`
-- **Frontend**: `app.config.ts` usa `provideHttpClient(withInterceptors([authInterceptor]))`
-- **Frontend**: `app.routes.ts` usa lazy loading para todas las páginas
-- **Frontend**: `AuthService` usa `signal()` para `currentUser` e `isAuthenticated`
-- **Frontend**: `tailwind.config.js` usa `darkMode: ['class']` y el plugin `daisyui` con tema `light`
+- `PrismaServiceMock` en `test/mocks/prisma.service.mock.ts`; `cleanDatabase` en `test/setup-e2e.ts`; `getAuthToken` en `test/helpers/auth.helper.ts`.
+- `Decimal` de Prisma se serializa como string: usar `Number()`.
+- `Persona.ultimoCorte` no se actualiza en ningún lado; la última visita se calcula con los turnos `COMPLETADO`.
+- El `Dockerfile` corre `prisma migrate deploy` al arrancar: antes de desplegar en una base con datos, correr `scripts/verificar-checks.sql`.
+- `npm run docs:diccionario` regenera `docs/diccionario-datos.md` desde el schema.

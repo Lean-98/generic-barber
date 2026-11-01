@@ -1,63 +1,111 @@
-# CONTEXTO COMPLETO – Sistema de Gestión para Peluquería
+# CONTEXTO COMPLETO – Authentic Barber (Sistema de Gestión para Peluquería)
+
+## Versión 2.1 (actualizado a partir del código real, 2026-11-01)
+
+> **Novedades de la v2.1**: el cliente puede cancelar su turno desde el mail (con aviso al
+> barbero), validación de teléfono y de duración de servicios, restricciones `CHECK` en la
+> base, reportes de clientes para recontactar y de rentabilidad, stock de productos con
+> venta desde la caja, y el botón "No vino" (el botón "Pagar" de la lista de turnos se sacó
+> porque no registraba plata). Cada punto está detallado en la sección que corresponde.
+
+> Este documento reemplaza la v1.0, que era el diseño inicial escrito **antes** de
+> implementar el sistema. Después de esa primera versión se construyeron módulos enteros
+> que no estaban previstos (branding/configuración del negocio, catálogo de productos,
+> cursos, 2FA, integración con Cloudinary) y la estrategia del ciclo de vida del turno
+> cambió por completo (ver sección 6). Las imágenes `.png` de esta carpeta
+> (`DiagramaDeEstados-Turno.png`, `DiagramaDeSecuencia-*.png`, etc.) son del diseño
+> original y **no reflejan el sistema actual** — quedan como referencia histórica. La
+> fuente de verdad hoy son los diagramas Mermaid de este documento y de
+> `diagrama-er.md` / `diagrama-clases.md` / `diagramas-procesos.md`, que se pueden
+> visualizar directamente en GitHub o en cualquier editor con soporte Mermaid.
+
+---
 
 ## 1. Descripción del Proyecto
 
-Sistema de gestión integral para una peluquería con un único profesional. El sistema debe permitir gestionar la agenda de turnos, el catálogo de servicios, los pagos, los movimientos de caja diarios y el cierre de caja. No hay múltiples profesionales, por lo que el modelo no incluye gestión de staff.
+Sistema de gestión integral para una peluquería con un único profesional (el dueño atiende
+él mismo). Cubre la agenda de turnos (con reserva pública self-service), el catálogo de
+servicios y productos, los cursos que ofrece el negocio, los pagos, los movimientos de
+caja diarios, el cierre de caja, la configuración/branding del sitio público, y la
+integración con Google Calendar y con un programa de fidelización.
+
+El producto (marca comercial **SkillRdy**) se desarrolla y se licencia/renta a distintos
+negocios de peluquería como clientes — cada cliente corre su propia instancia
+(Docker Compose: base de datos + backend + frontend) en su propio servidor, no es
+multi-tenant sobre una sola base de datos. El despliegue de referencia de este documento
+(`Authentic Barber`) corre en un VPS fuera de Argentina, lo cual obligó a que toda la
+lógica de horario de atención, huso horario y validación de turnos sea explícita
+(UTC-3 fijo) y no dependa de la zona horaria del servidor — ver sección 6 y las notas de
+desarrollo (sección 10).
 
 ---
 
 ## 2. Requisitos Funcionales
 
-- **Gestión de Servicios**: ABM de servicios (corte, color, barba, etc.) con precio, duración e imagen.
-- **Gestión de Turnos**: Crear, editar, cancelar y finalizar turnos. Un turno puede incluir múltiples servicios.
-- **Gestión de Clientes**: Registro de personas (clientes) con datos de contacto, historial de cortes e Instagram.
-- **Pagos**: Registrar pagos por turno, soportando múltiples formas de pago (efectivo, tarjeta, transferencia, etc.) y pagos parciales/mixtos.
-- **Caja / Movimientos**: Registrar todos los ingresos y egresos del día. Los ingresos se generan automáticamente al cobrar un turno, pero también debe permitir registrar egresos (retiro de efectivo, compra de insumos, etc.).
-- **Cierre de Caja**: Arqueo diario comparando lo esperado vs lo real (conteo físico) por forma de pago.
-- **Usuarios y Roles**: Autenticación con roles (admin/peluquero). Por ahora solo hay un usuario, pero el modelo soporta extensión.
-- **Integración con Google Calendar**: Sincronizar los turnos del sistema con el calendario de Google del peluquero.
+- **Gestión de Servicios**: ABM de servicios (corte, color, barba, etc.) con precio, duración, imagen y categoría. Guarda un historial (`ServicioHistorial`) cada vez que cambia precio, duración o vigencia, para no alterar el cobro histórico.
+- **Gestión de Turnos**: Reserva pública self-service (con validación de disponibilidad y de horario de atención) y alta manual desde el panel. Ciclo de vida que avanza solo por reloj (ver sección 6); cancelar y marcar "No vino" quedan como las únicas excepciones manuales. "No vino" se puede marcar en turnos confirmados cuya hora ya pasó, en proceso, o completados sin pagos.
+- **Cancelación por el cliente**: los mails de confirmación y de recordatorio traen un link firmado para que el cliente cancele solo, sin límite de horas mientras el turno no haya empezado. El horario se libera al instante y al barbero le llega un mail con los datos del cliente, la anticipación y un botón de WhatsApp. El turno guarda cuándo y desde dónde se canceló (`canceladoEn`, `canceladoPor`).
+- **Gestión de Clientes**: Registro de personas con datos de contacto, historial de cortes e Instagram. Pueden marcarse para aplicar descuento de empleado. El teléfono se guarda normalizado (solo dígitos, sin el 0 inicial, entre 8 y 15) para que los links de WhatsApp y la búsqueda funcionen siempre.
+- **Pagos**: Registrar pagos por turno, con múltiples formas de pago y pagos parciales/mixtos. El cliente puede elegir una forma de pago **preferida** al reservar online (obligatoria en ese flujo), que solo sirve para precargar el cobro en caja — nunca es el pago real.
+- **Caja / Movimientos**: Registrar ingresos y egresos del día. Los ingresos se generan automáticamente al cobrar un turno (`CajaFacade.procesarPago`) o al vender un producto (`CajaFacade.venderProducto`, que además descuenta el stock); también se pueden registrar egresos sueltos (retiro de efectivo, compra de insumos).
+- **Cierre de Caja**: Proceso en dos pasos (iniciar con el total esperado por forma de pago vía Strategy, confirmar con el conteo físico real), comparando lo esperado vs lo real.
+- **Usuarios y Roles**: Autenticación con JWT + verificación en dos pasos por email (2FA), con opción de "recordar este dispositivo" por 30 días. Roles admin/peluquero (hoy solo hay un usuario, el modelo soporta extensión).
+- **Configuración / Branding**: Panel para configurar horarios de atención (con franjas partidas por día), colores, logo, redes sociales, galería, textos de la landing, y qué secciones mostrar públicamente (tienda, cursos, club, etc.).
+- **Programa de fidelización y descuento de empleado**: cada N visitas completadas de un servicio marcado para fidelización, la visita correspondiente se descuenta automáticamente; análogamente, una persona marcada como empleado puede tener un descuento activo.
+- **Catálogo de Productos y Cursos**: ABM de productos de tienda y de cursos informativos para la landing pública. Los productos tienen stock opcional: se venden en el local desde la caja, el dashboard avisa cuando quedan pocas unidades y la tienda muestra "Sin stock". Los cursos siguen sin integración de pago/inscripción.
+- **Reportes**: resumen del período (ingresos, egresos, turnos, formas de pago, servicios y clientes más frecuentes), **rentabilidad** (margen, resultado, punto de equilibrio en turnos por mes y costo de la fidelización, a partir del costo de insumos de cada servicio y de los gastos fijos y el costo por hora cargados en `CostosNegocio`) y **clientes para recontactar** (los que dejaron de venir hace más de N días y los que nunca vinieron, con un botón de WhatsApp con mensaje armado).
+- **Recordatorios automáticos**: email de recordatorio antes del turno (anticipación configurable), sin duplicar envíos.
+- **Integración con Google Calendar**: Sincroniza los turnos con el calendario de Google del negocio (OAuth2, una sola cuenta conectada, no por usuario).
+- **Integración con Cloudinary**: subida de imágenes (servicios, productos, cursos, branding) desde el panel.
+- **Integridad de datos**: validación en la API (DTOs) y restricciones `CHECK` en la base como segunda capa (estado del turno, montos, cantidades, porcentajes). Ver `diagrama-er.md`.
 
 ---
 
 ## 3. Diagrama Entidad-Relación (Base de Datos)
 
-### Entidades
+> Contenido idéntico al de `diagrama-er.md` — ver ese archivo para la descripción completa
+> de entidades y relaciones, y el detalle de qué cambió desde la v1.0.
 
-- **Servicios**: idServicio, nombre, descripcion, precio, duracionMinutos, urlImagen, vigente.
-- **Turno**: idTurno, idPersona, fechaHoraInicio, fechaHoraFin, estado, observacion, fechaCreacion.
-- **TurnoDetalle**: idTurnoDetalle, idTurno, idServicio, precioReal, cantidad (DEFAULT 1).
-- **Persona**: idPersona, nombre, apellido, mail, telefono, fechaNacimiento, instagram, ultimoCorte, usuario.
-- **UsuariosWeb**: usuario (PK), email, hashPass, idPersona, rol.
-- **FormaPago**: idFormaPago, nombre, requiereComprobante, vigente.
-- **Pago**: idPago, idTurno, idFormaPago, monto, comprobante, fechaHora.
-- **MovimientoCaja**: idMovimiento, fechaHora, tipo (INGRESO/EGRESO), monto, concepto, idFormaPago, idUsuario, idTurno (nullable).
-- **CierreCaja**: idCierre, fecha, horaInicio, horaFin, totalEfectivo, totalTarjeta, totalTransferencia, totalOtros, totalEsperado, totalReal, diferencia, idUsuarioCierra.
+### Entidades (resumen)
 
-### Relaciones
-
-- Persona (1) → Turno (N)
-- Turno (1) → TurnoDetalle (N)
-- Servicios (1) → TurnoDetalle (N)
-- Turno (1) → Pago (N)
-- FormaPago (1) → Pago (N)
-- Turno (1) → MovimientoCaja (0..1)
-- FormaPago (1) → MovimientoCaja (N)
-- UsuariosWeb (1) → MovimientoCaja (N)
-- UsuariosWeb (1) → Persona (1)
-- UsuariosWeb (1) → CierreCaja (N)
+- **CategoriaServicio** / **Servicio** / **ServicioHistorial**: catálogo de servicios y su historial de cambios.
+- **Turno** / **TurnoDetalle**: la agenda. `Turno.estado` default `CONFIRMADO`; `idFormaPagoPreferida` es la sugerencia de pago del cliente; `canceladoEn`/`canceladoPor` registran la cancelación.
+- **Persona** / **UsuarioWeb** / **DispositivoConfiable**: clientes, credenciales de acceso (con 2FA) y dispositivos de confianza.
+- **FormaPago** / **Pago** / **MovimientoCaja** / **CierreCaja**: pagos y caja.
+- **GoogleCalendarConfig** / **ConfiguracionNegocio** / **CostosNegocio**: filas de configuración única (`CostosNegocio` es interna y está separada porque `ConfiguracionNegocio` es pública).
+- **Categoria** / **Producto**: catálogo de tienda, con stock opcional. Las ventas en caja quedan en `MovimientoCaja.idProducto`.
+- **Curso**: catálogo informativo de cursos.
 
 ### Diagrama Mermaid
 
 ```mermaid
 erDiagram
-    Servicios {
+    CategoriaServicio {
+        INT idCategoria PK "IDENTITY"
+        VARCHAR nombre
+        BOOLEAN vigente
+    }
+
+    Servicio {
         INT idServicio PK "IDENTITY"
         VARCHAR nombre
         TEXT descripcion
+        INT idCategoria FK "NULL"
         DECIMAL precio
         INT duracionMinutos
         VARCHAR urlImagen
         BOOLEAN vigente
+        BOOLEAN cuentaParaFidelizacion
+        DECIMAL costoInsumos
+    }
+
+    ServicioHistorial {
+        INT idHistorial PK "IDENTITY"
+        INT idServicio FK
+        DECIMAL precio
+        INT duracionMinutos
+        BOOLEAN vigente
+        DATETIME fechaCambio
     }
 
     Turno {
@@ -65,9 +113,14 @@ erDiagram
         INT idPersona FK
         DATETIME fechaHoraInicio
         DATETIME fechaHoraFin
-        VARCHAR estado
+        VARCHAR estado "default CONFIRMADO"
         TEXT observacion
         DATETIME fechaCreacion
+        VARCHAR googleEventId "NULL"
+        DATETIME recordatorioEnviadoEn "NULL"
+        INT idFormaPagoPreferida FK "NULL"
+        DATETIME canceladoEn "NULL"
+        VARCHAR canceladoPor "NULL, CLIENTE|PANEL"
     }
 
     TurnoDetalle {
@@ -75,27 +128,36 @@ erDiagram
         INT idTurno FK
         INT idServicio FK
         DECIMAL precioReal
-        INT cantidad DEFAULT 1
+        INT cantidad "default 1"
+        DECIMAL descuentoPorcentaje "default 0"
+        VARCHAR descuentoMotivo "NULL"
     }
 
     Persona {
         INT idPersona PK "IDENTITY"
         VARCHAR nombre
         VARCHAR apellido
-        VARCHAR mail
+        VARCHAR mail "UNIQUE, NULL"
         VARCHAR telefono
-        DATE fechaNacimiento
-        VARCHAR instagram
-        DATETIME ultimoCorte
-        VARCHAR usuario FK
+        VARCHAR usuario FK "UNIQUE, NULL"
+        BOOLEAN aplicaDescuentoPersonal
     }
 
-    UsuariosWeb {
+    UsuarioWeb {
         VARCHAR usuario PK
-        VARCHAR email
+        VARCHAR email "UNIQUE"
         VARCHAR hashPass
-        INT idPersona FK
-        CHAR rol
+        INT idPersona FK "UNIQUE"
+        VARCHAR rol
+        VARCHAR twoFactorCodeHash "NULL"
+        DATETIME twoFactorCodeExpiresAt "NULL"
+    }
+
+    DispositivoConfiable {
+        INT id PK "IDENTITY"
+        VARCHAR usuario FK
+        VARCHAR tokenHash "UNIQUE, hash SHA-256"
+        DATETIME expiraEn
     }
 
     FormaPago {
@@ -110,182 +172,161 @@ erDiagram
         INT idTurno FK
         INT idFormaPago FK
         DECIMAL monto
-        VARCHAR comprobante
         DATETIME fechaHora
     }
 
     MovimientoCaja {
         INT idMovimiento PK "IDENTITY"
         DATETIME fechaHora
-        VARCHAR tipo
+        VARCHAR tipo "INGRESO|EGRESO"
         DECIMAL monto
-        VARCHAR concepto
         INT idFormaPago FK
-        INT idUsuario FK
+        VARCHAR idUsuario FK
         INT idTurno FK "NULL"
+        INT idProducto FK "NULL"
+        INT cantidadProducto "NULL"
     }
 
     CierreCaja {
         INT idCierre PK "IDENTITY"
         DATE fecha
-        DATETIME horaInicio
-        DATETIME horaFin
-        DECIMAL totalEfectivo
-        DECIMAL totalTarjeta
-        DECIMAL totalTransferencia
-        DECIMAL totalOtros
+        DATETIME horaFin "NULL hasta confirmar"
         DECIMAL totalEsperado
         DECIMAL totalReal
         DECIMAL diferencia
-        INT idUsuarioCierra FK
+        VARCHAR idUsuarioCierra FK
     }
 
+    ConfiguracionNegocio {
+        INT id PK "fila única, id=1"
+        JSON horarios "franjas por día 0-6"
+        BOOLEAN fidelizacionActiva
+        BOOLEAN descuentoEmpleadoActivo
+        INT recordatorioHorasAntes
+    }
+
+    CostosNegocio {
+        INT id PK "fila única, id=1"
+        DECIMAL costosFijosMensuales
+        DECIMAL costoHoraTrabajo
+    }
+
+    GoogleCalendarConfig {
+        INT id PK "fila única"
+        VARCHAR accessToken
+        VARCHAR refreshToken
+    }
+
+    Categoria {
+        INT idCategoria PK "IDENTITY"
+        VARCHAR nombre
+        BOOLEAN vigente
+    }
+
+    Producto {
+        INT idProducto PK "IDENTITY"
+        VARCHAR nombre
+        DECIMAL precio
+        INT idCategoria FK "NULL"
+        BOOLEAN vigente
+        INT stock "NULL = no se controla"
+        INT stockMinimo "NULL"
+    }
+
+    Curso {
+        INT idCurso PK "IDENTITY"
+        VARCHAR nombre
+        DECIMAL precio
+        BOOLEAN vigente
+    }
+
+    CategoriaServicio ||--o{ Servicio : "idCategoria"
+    Servicio ||--o{ ServicioHistorial : "idServicio"
+    Servicio ||--o{ TurnoDetalle : "idServicio"
     Persona ||--o{ Turno : "idPersona"
     Turno ||--o{ TurnoDetalle : "idTurno"
-    Servicios ||--o{ TurnoDetalle : "idServicio"
+    FormaPago ||--o{ Turno : "idFormaPagoPreferida"
     Turno ||--o{ Pago : "idTurno"
     FormaPago ||--o{ Pago : "idFormaPago"
-    Turno ||--o| MovimientoCaja : "idTurno"
+    Turno ||--o{ MovimientoCaja : "idTurno"
     FormaPago ||--o{ MovimientoCaja : "idFormaPago"
-    UsuariosWeb ||--o{ MovimientoCaja : "idUsuario"
-    UsuariosWeb ||--o{ Persona : "idPersona"
-    UsuariosWeb ||--o{ CierreCaja : "idUsuarioCierra"
+    UsuarioWeb ||--o{ MovimientoCaja : "idUsuario"
+    UsuarioWeb ||--o| Persona : "idPersona"
+    UsuarioWeb ||--o{ DispositivoConfiable : "usuario"
+    UsuarioWeb ||--o{ CierreCaja : "idUsuarioCierra"
+    Categoria ||--o{ Producto : "idCategoria"
+    Producto ||--o{ MovimientoCaja : "idProducto"
 ```
 
 ---
 
 ## 4. Diagrama de Clases (TypeScript)
 
-### Clases principales
-
-- **Servicios**: idServicio, nombre, descripcion, precio, duracionMinutos, urlImagen, vigente.
-- **Turno**: idTurno, idPersona, fechaHoraInicio, fechaHoraFin, estado (enum), observacion, fechaCreacion, persona, detalles, pagos, movimientos.
-- **TurnoDetalle**: idTurnoDetalle, idTurno, idServicio, precioReal, cantidad, turno, servicio.
-- **Persona**: idPersona, nombre, apellido, mail, telefono, fechaNacimiento, instagram, ultimoCorte, usuario, turnos, usuarioWeb.
-- **UsuariosWeb**: usuario, email, hashPass, idPersona, rol, persona, movimientos, cierres.
-- **FormaPago**: idFormaPago, nombre, requiereComprobante, vigente, pagos, movimientos.
-- **Pago**: idPago, idTurno, idFormaPago, monto, comprobante, fechaHora, turno, formaPago.
-- **MovimientoCaja**: idMovimiento, fechaHora, tipo (enum), monto, concepto, idFormaPago, idUsuario, idTurno, formaPago, usuario, turno.
-- **CierreCaja**: idCierre, fecha, horaInicio, horaFin, totalEfectivo, totalTarjeta, totalTransferencia, totalOtros, totalEsperado, totalReal, diferencia, idUsuarioCierra, usuarioCierra.
+> Contenido idéntico al de `diagrama-clases.md` — ver ese archivo para el diagrama completo
+> del modelo de dominio **y** el diagrama separado de las clases de los patrones de diseño
+> (State / Facade / Strategy).
 
 ### Enums
 
-- **TurnoEstado**: PENDIENTE, CONFIRMADO, EN_PROCESO, COMPLETADO, CANCELADO, NO_SHOW.
-- **MovimientoTipo**: INGRESO, EGRESO.
+- **TurnoEstado**: `PENDIENTE` (legado, ya no se usa para turnos nuevos), `CONFIRMADO`, `EN_PROCESO`, `COMPLETADO`, `CANCELADO`, `NO_SHOW`.
+- **MovimientoTipo**: `INGRESO`, `EGRESO`.
 
-### Diagrama Mermaid
+### Diagrama Mermaid (modelo de dominio, resumido — ver `diagrama-clases.md` para el completo)
 
 ```mermaid
 classDiagram
     direction LR
 
-    class Servicios {
-        +number idServicio
-        +string nombre
-        +string descripcion
-        +number precio
-        +number duracionMinutos
-        +string urlImagen
-        +boolean vigente
-    }
-
     class Turno {
         +number idTurno
-        +number idPersona
         +Date fechaHoraInicio
         +Date fechaHoraFin
         +TurnoEstado estado
-        +string observacion
-        +Date fechaCreacion
+        +string googleEventId
+        +Date recordatorioEnviadoEn
+        +number idFormaPagoPreferida
+        +Date canceladoEn
+        +string canceladoPor
         +Persona persona
         +TurnoDetalle[] detalles
         +Pago[] pagos
-        +MovimientoCaja[] movimientos
-    }
-
-    class TurnoDetalle {
-        +number idTurnoDetalle
-        +number idTurno
-        +number idServicio
-        +number precioReal
-        +number cantidad
-        +Turno turno
-        +Servicios servicio
+        +FormaPago formaPagoPreferida
     }
 
     class Persona {
         +number idPersona
         +string nombre
-        +string apellido
         +string mail
-        +string telefono
-        +Date fechaNacimiento
-        +string instagram
-        +Date ultimoCorte
-        +string usuario
+        +boolean aplicaDescuentoPersonal
         +Turno[] turnos
-        +UsuariosWeb usuarioWeb
+        +UsuarioWeb usuarioWeb
     }
 
-    class UsuariosWeb {
+    class UsuarioWeb {
         +string usuario
         +string email
-        +string hashPass
-        +number idPersona
-        +string rol
+        +string twoFactorCodeHash
         +Persona persona
-        +MovimientoCaja[] movimientos
-        +CierreCaja[] cierres
+        +DispositivoConfiable[] dispositivosConfiables
+    }
+
+    class DispositivoConfiable {
+        +string tokenHash
+        +Date expiraEn
     }
 
     class FormaPago {
         +number idFormaPago
         +string nombre
-        +boolean requiereComprobante
-        +boolean vigente
         +Pago[] pagos
-        +MovimientoCaja[] movimientos
+        +Turno[] turnosPreferencia
     }
 
     class Pago {
         +number idPago
-        +number idTurno
-        +number idFormaPago
         +number monto
-        +string comprobante
-        +Date fechaHora
         +Turno turno
         +FormaPago formaPago
-    }
-
-    class MovimientoCaja {
-        +number idMovimiento
-        +Date fechaHora
-        +MovimientoTipo tipo
-        +number monto
-        +string concepto
-        +number idFormaPago
-        +number idUsuario
-        +number idTurno
-        +FormaPago formaPago
-        +UsuariosWeb usuario
-        +Turno turno
-    }
-
-    class CierreCaja {
-        +number idCierre
-        +Date fecha
-        +Date horaInicio
-        +Date horaFin
-        +number totalEfectivo
-        +number totalTarjeta
-        +number totalTransferencia
-        +number totalOtros
-        +number totalEsperado
-        +number totalReal
-        +number diferencia
-        +number idUsuarioCierra
-        +UsuariosWeb usuarioCierra
     }
 
     class TurnoEstado {
@@ -298,315 +339,192 @@ classDiagram
         NO_SHOW
     }
 
-    class MovimientoTipo {
-        <<enumeration>>
-        INGRESO
-        EGRESO
-    }
-
-    Turno "1" --> "0..*" TurnoDetalle : detalles
-    TurnoDetalle "0..*" --> "1" Servicios : servicio
     Turno "1" --> "0..*" Pago : pagos
-    Pago "0..*" --> "1" FormaPago : formaPago
     Turno "1" --> "0..1" Persona : persona
-    Persona "1" --> "0..1" UsuariosWeb : usuarioWeb
-    UsuariosWeb "1" --> "0..*" MovimientoCaja : movimientos
-    FormaPago "1" --> "0..*" MovimientoCaja : movimientos
-    Turno "1" --> "0..*" MovimientoCaja : movimientos
-    UsuariosWeb "1" --> "0..*" CierreCaja : cierres
+    Turno "0..*" --> "0..1" FormaPago : formaPagoPreferida
+    Persona "1" --> "0..1" UsuarioWeb : usuarioWeb
+    UsuarioWeb "1" --> "0..*" DispositivoConfiable : dispositivosConfiables
+    Pago "0..*" --> "1" FormaPago : formaPago
     Turno ..> TurnoEstado : usa
-    MovimientoCaja ..> MovimientoTipo : usa
 ```
 
 ---
 
 ## 5. Diagramas de Secuencia
 
-### 5.1. Agendar Turno
+> Contenido idéntico al de `diagramas-procesos.md` sección 1 — ese archivo tiene los 11
+> diagramas completos (reserva pública, alta manual, cron de transiciones automáticas,
+> login 2FA, cobro en caja, cancelar turno, cierre de caja, recordatorio automático,
+> cancelación por el cliente, venta de productos y "No vino"). Acá solo el resumen de
+> cuáles son y qué reemplazan:
 
-**Flujo**: El cliente solicita un turno (por teléfono o presencial). El peluquero ingresa los datos en la interfaz. El sistema verifica disponibilidad, crea el turno y sus detalles de servicio.
-
-**Participantes**: Cliente (actor), Usuario/Peluquero (actor), Interfaz Web, Backend API, Base de Datos.
-
-```mermaid
-sequenceDiagram
-    actor Cliente
-    actor Usuario as Usuario (Peluquero)
-    participant UI as Interfaz Web
-    participant API as Backend (API)
-    participant DB as Base de Datos
-
-    Cliente->>Usuario: Solicita turno
-    Usuario->>UI: Ingresa datos: servicio, fecha/hora, cliente
-    UI->>API: POST /turnos (datos del turno)
-    API->>DB: Verificar disponibilidad horario
-    DB-->>API: Horario disponible
-    API->>DB: INSERT Turno + TurnoDetalle
-    DB-->>API: Turno creado (idTurno)
-    API-->>UI: Respuesta 201 (turno confirmado)
-    UI-->>Usuario: Muestra confirmación
-    Usuario-->>Cliente: Informa turno agendado
-```
-
-### 5.2. Cobrar en Caja
-
-**Flujo**: El peluquero selecciona un turno finalizado. El sistema muestra el total a pagar. El peluquero ingresa la forma de pago y el monto. El sistema registra el pago, genera un movimiento de caja (ingreso) y actualiza el estado del turno a PAGADO.
-
-**Participantes**: Usuario/Peluquero (actor), Interfaz Web, Backend API, Base de Datos.
-
-```mermaid
-sequenceDiagram
-    actor Usuario as Usuario (Peluquero)
-    participant UI as Interfaz Web
-    participant API as Backend (API)
-    participant DB as Base de Datos
-
-    Usuario->>UI: Selecciona turno finalizado
-    UI->>API: GET /turno/{id}
-    API->>DB: Obtener turno y detalles
-    DB-->>API: Datos del turno
-    API-->>UI: Muestra total a pagar
-    Usuario->>UI: Ingresa forma de pago y monto
-    UI->>API: POST /pagos (idTurno, formaPago, monto)
-    API->>DB: INSERT Pago
-    DB-->>API: Pago registrado
-    API->>DB: INSERT MovimientoCaja (ingreso)
-    DB-->>API: Movimiento registrado
-    API->>DB: UPDATE Turno estado = PAGADO
-    DB-->>API: Turno actualizado
-    API-->>UI: Respuesta 200 (pago exitoso)
-    UI-->>Usuario: Muestra comprobante / cierre
-```
-
-### 5.3. Cancelar Turno
-
-**Flujo**: El peluquero selecciona un turno y solicita cancelarlo. El sistema verifica que el turno no esté PAGADO o FINALIZADO. Si está PENDIENTE o CONFIRMADO, se actualiza el estado a CANCELADO.
-
-**Participantes**: Usuario/Peluquero (actor), Interfaz Web, Backend API, Base de Datos.
-
-```mermaid
-sequenceDiagram
-    actor Usuario as Usuario (Peluquero)
-    participant UI as Interfaz Web
-    participant API as Backend (API)
-    participant DB as Base de Datos
-
-    Usuario->>UI: Selecciona turno a cancelar
-    UI->>API: GET /turno/{id}
-    API->>DB: Consultar estado del turno
-    DB-->>API: Estado: PENDIENTE o CONFIRMADO
-    API-->>UI: Muestra datos y opción de cancelar
-    Usuario->>UI: Confirma cancelación
-    UI->>API: PUT /turno/{id}/cancelar
-    API->>DB: Verificar que no esté PAGADO o FINALIZADO
-    DB-->>API: Validación OK
-    API->>DB: UPDATE Turno estado = CANCELADO
-    DB-->>API: Turno cancelado
-    API-->>UI: Respuesta 200 (cancelación exitosa)
-    UI-->>Usuario: Muestra confirmación
-```
-
-### 5.4. Cierre de Caja Diario
-
-**Flujo**: El peluquero solicita el cierre del día. El sistema calcula los totales esperados por forma de pago sumando todos los movimientos del día. El peluquero ingresa el conteo físico real. El sistema calcula la diferencia y guarda el registro.
-
-**Participantes**: Usuario/Peluquero (actor), Interfaz Web, Backend API, Base de Datos.
-
-```mermaid
-sequenceDiagram
-    actor Usuario as Usuario (Peluquero)
-    participant UI as Interfaz Web
-    participant API as Backend (API)
-    participant DB as Base de Datos
-
-    Usuario->>UI: Solicita cierre de caja
-    UI->>API: POST /cierre-caja
-    API->>DB: Calcular totales por forma de pago del día
-    DB-->>API: Totales: efectivo, tarjeta, transferencia, otros
-    API->>API: Calcular totalEsperado vs totalReal
-    Usuario->>UI: Ingresa totalReal (conteo físico)
-    UI->>API: PUT /cierre-caja/{id} (totalReal)
-    API->>API: Calcular diferencia = totalReal - totalEsperado
-    API->>DB: INSERT/UPDATE CierreCaja
-    DB-->>API: Cierre registrado
-    API-->>UI: Respuesta 200 (resumen del cierre)
-    UI-->>Usuario: Muestra diferencia y reporte
-```
+| # | Diagrama | Reemplaza / es nuevo respecto a la v1.0 |
+|---|----------|------------------------------------------|
+| 1.1 | Reservar turno (sitio público) | Reemplaza "Agendar Turno" (antes era siempre por teléfono/presencial) |
+| 1.2 | Alta manual de turno (panel) | Nuevo — separado del flujo público |
+| 1.3 | Transición automática por reloj (cron) | **Nuevo** — el cambio de estrategia central de esta vuelta |
+| 1.4 | Login con 2FA | Nuevo |
+| 1.5 | Cobrar en caja | Actualizado — ya no pasa por un estado `PAGADO` separado |
+| 1.6 | Cancelar turno | Actualizado — estados y reglas reales |
+| 1.7 | Cierre de caja diario | Actualizado — proceso real en dos pasos con Strategy |
+| 1.8 | Recordatorio automático por email | Nuevo |
+| 1.9 | Cancelar turno desde el mail (cliente) | Nuevo en la v2.1 |
+| 1.10 | Vender un producto en caja | Nuevo en la v2.1 |
+| 1.11 | Marcar que el cliente no vino | Nuevo en la v2.1 |
 
 ---
 
 ## 6. Diagrama de Estados – Turno
 
-**Propósito**: Modelar el ciclo de vida completo de un turno desde su creación hasta su finalización.
+**Cambio de estrategia (lo más importante de esta actualización)**: antes el turno nacía
+`PENDIENTE` y necesitaba que alguien lo fuera confirmando, iniciando y finalizando a mano,
+paso por paso. El dueño atiende él mismo y encadena turnos sin margen para ir tocando la
+pantalla entre cliente y cliente, así que se cambió el enfoque: **el turno nace
+`CONFIRMADO` y el sistema lo avanza solo, por el reloj** (`TurnosCronService`, cada 5
+minutos) — `CONFIRMADO → EN_PROCESO` al llegar la hora de inicio, `EN_PROCESO →
+COMPLETADO` al llegar la hora de fin. El dueño solo interviene a mano para las
+excepciones reales: cancelar o marcar que el cliente no se presentó. Desde la v2.1 el
+cliente también puede cancelar desde el mail, y "No vino" se acepta desde `EN_PROCESO` y
+desde `COMPLETADO` si el turno no tiene pagos (sin eso no servía: para cuando el dueño se
+daba cuenta, el cron ya había movido el turno). Esto fue posible
+porque el chequeo de disponibilidad ya bloqueaba el horario desde que el turno entraba en
+*cualquier* estado que no fuera `CANCELADO`/`NO_SHOW` — el paso `PENDIENTE` no aportaba
+ninguna protección real que no diera ya el propio chequeo de solapamiento.
 
-**Estados**: PENDIENTE, CONFIRMADO, EN_ATENCION, FINALIZADO, PAGADO, CANCELADO, NO_SHOW.
+**Estados reales**: `CONFIRMADO`, `EN_PROCESO`, `COMPLETADO`, `CANCELADO`, `NO_SHOW` (más
+`PENDIENTE` como estado de transición única para turnos de antes de este cambio).
 
-**Reglas**:
-- PENDIENTE: Turno creado pero no confirmado. Se puede editar o cancelar.
-- CONFIRMADO: Cliente confirmado. Se bloquea el horario en la agenda.
-- EN_ATENCION: El cliente está siendo atendido. Se pueden agregar servicios extra.
-- FINALIZADO: Atención terminada. Esperando registro del pago.
-- PAGADO: Pago registrado y movimiento de caja generado.
-- CANCELADO: Turno cancelado. Libera el horario.
-- NO_SHOW: Cliente no asistió. No genera ingreso.
+> Contenido idéntico al de `diagramas-procesos.md` sección 2 — ver ese archivo para el
+> diagrama completo con las notas de cada estado.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDIENTE : crearTurno()
+    [*] --> CONFIRMADO : create() / reservarPublica()
 
-    PENDIENTE --> CONFIRMADO : confirmar()
-    PENDIENTE --> CANCELADO : cancelar()
+    CONFIRMADO --> EN_PROCESO : iniciarAtencion() [manual o automático]
+    CONFIRMADO --> CANCELADO : cancelar() [panel] o cancelarPorCliente() [mail]
+    CONFIRMADO --> NO_SHOW : marcarNoShow() [manual]
 
-    CONFIRMADO --> EN_ATENCION : iniciarAtencion()
-    CONFIRMADO --> CANCELADO : cancelar()
-    CONFIRMADO --> NO_SHOW : marcarNoShow()
+    EN_PROCESO --> COMPLETADO : finalizar() [manual o automático]
+    EN_PROCESO --> NO_SHOW : marcarNoShow() [manual]
+    COMPLETADO --> NO_SHOW : marcarNoShow() [manual, solo sin pagos]
 
-    EN_ATENCION --> FINALIZADO : finalizarServicio()
-
-    FINALIZADO --> PAGADO : registrarPago()
-    FINALIZADO --> PAGADO : cobrar()
-
-    PAGADO --> [*] : ciclo completo
-    CANCELADO --> [*] : ciclo terminado
-    NO_SHOW --> [*] : ciclo terminado
-
-    note right of PENDIENTE
-        Turno creado pero aún no confirmado.
-        Puede editarse o cancelarse sin costo.
-    end note
-
-    note right of CONFIRMADO
-        Cliente confirmado.
-        Se bloquea el horario en la agenda.
-    end note
-
-    note right of EN_ATENCION
-        El cliente está siendo atendido.
-        Se pueden agregar servicios extra.
-    end note
-
-    note right of FINALIZADO
-        Atención terminada.
-        Esperando registro del pago.
-    end note
-
-    note right of PAGADO
-        Pago registrado.
-        Movimiento de caja generado.
-    end note
+    COMPLETADO --> [*]
+    CANCELADO --> [*]
+    NO_SHOW --> [*]
 ```
 
 ---
 
 ## 7. Diagrama de Actividades – Flujo del Día
 
-**Propósito**: Visualizar el flujo de trabajo global en la peluquería durante una jornada completa.
-
-**Flujo**:
-1. Inicio del día.
-2. El cliente llega. Si tiene turno agendado, se busca en la agenda. Si no, se crea un turno walk-in.
-3. Se inicia la atención y se seleccionan los servicios realizados.
-4. Se finaliza la atención.
-5. Se decide si se cobra ahora o se deja como pendiente de pago.
-6. Si se cobra, se registra la forma de pago y se genera un movimiento de caja.
-7. Si hay más clientes, se repite el ciclo.
-8. Al final del día, se realiza el cierre de caja.
-9. Se verifica si los totales cuadran con el conteo físico.
-10. Si no cuadra, se registra la diferencia y observación.
-11. Se confirma el cierre y guarda.
-
-```mermaid
-flowchart TD
-    A([Inicio del día]) --> B{Cliente llega}
-    B -->|Sí| C{¿Tiene turno agendado?}
-    C -->|Sí| D[Buscar turno en agenda]
-    C -->|No| E[Crear turno walk-in]
-    D --> F[Iniciar atención]
-    E --> F
-
-    F --> G[Seleccionar servicios realizados]
-    G --> H[Finalizar atención]
-    H --> I{¿Cobrar ahora?}
-    I -->|Sí| J[Registrar forma de pago]
-    I -->|No| K[Dejar como pendiente de pago]
-    J --> L[Registrar movimiento en caja]
-    K --> M{¿Más clientes?}
-    L --> M
-
-    M -->|Sí| B
-    M -->|No| N[Realizar cierre de caja]
-    N --> O[Verificar totales vs efectivo real]
-    O --> P{¿Cuadra?}
-    P -->|Sí| Q[Confirmar cierre y guardar]
-    P -->|No| R[Registrar diferencia y observación]
-    R --> Q
-    Q --> S([Fin del día])
-```
+> Contenido idéntico al de `diagramas-procesos.md` sección 3 — ver ese archivo para el
+> diagrama completo. Resumen del cambio: antes todo el flujo asumía que el dueño agenda,
+> inicia y finaliza cada turno a mano; hoy la mayoría de los turnos llegan agendados desde
+> el sitio público y avanzan solos por el cron, y el dueño interviene sobre todo para
+> cobrar, para los walk-ins, para vender productos en el mostrador, y para las excepciones
+> (cancelar / "No vino"). Las cancelaciones del cliente llegan solas por mail.
 
 ---
 
-## 8. Patrones de Diseño Seleccionados
+## 8. Patrones de Diseño
 
 **Principios base**: SOLID, DRY, KISS. **Filosofía**: Menos es más.
 
-Se evaluó un catálogo completo de patrones (creacionales, estructurales, de comportamiento). Se descartaron todos los que el framework (Angular / NestJS) o el lenguaje (TypeScript) ya resuelven nativamente, o que añaden complejidad innecesaria para un sistema de un único profesional.
+Esta sección se corrigió a partir de una revisión del código real (no solo de lo que se
+había planeado). Hay tres patrones realmente implementados; dos que se habían documentado
+en la v1.0 **no llegaron a implementarse** como tales, y se explica por qué no hizo falta.
 
-**Patrones aplicados**:
+### Patrones realmente implementados
 
-| Patron | Aplicacion | Principio que cumple | Justificacion |
-|--------|------------|----------------------|---------------|
-| **Builder** | Creacion de `Turno` con multiples detalles y configuraciones | SRP | Evita constructores con 8+ parametros. Permite construir turnos complejos paso a paso. |
-| **Inmutabilidad con copia** | Angular Signals (`signal<Readonly<Turno>>`) y DTOs inmutables en NestJS | KISS / SRP | Obligatorio con Signals (zoneless). Evita side effects. El estado solo muta a traves de metodos controlados. |
-| **Adapter** | Google Calendar API (`GoogleCalendarAdapter`) y mappers del ORM | DIP / OCP | Convierte `Turno` al formato de Google Calendar. Si mañana cambia a Outlook, solo se toca el adapter. |
-| **Facade** | `CajaFacade` que expone un solo metodo `procesarPago(turnoId, formaPago)` | SRP / KISS | Por dentro coordina: registra Pago, crea MovimientoCaja, actualiza Turno a PAGADO, y dispara sincronizacion. El resto del sistema no necesita saber como funciona la caja por dentro. |
-| **State** | Ciclo de vida del `Turno` (PENDIENTE -> CONFIRMADO -> EN_ATENCION -> FINALIZADO -> PAGADO) | SRP / OCP | El diagrama de estados ya lo pide. Cada estado encapsula sus reglas de transicion (ej: solo cancelar si esta PENDIENTE o CONFIRMADO). |
-| **Strategy** | Calculo de totales de `CierreCaja` por forma de pago (`EfectivoStrategy`, `TarjetaStrategy`, `TransferenciaStrategy`) | OCP | Evita `if/else` en el cierre cada vez que se agrega una forma de pago. Permite agregar nuevas estrategias sin modificar codigo existente. |
-| **Strategy** | Calculo de precios de `Turno` (con/sin descuentos futuros) | OCP | Hoy no hay descuentos, pero mañana si. `PrecioCalculator` con estrategias evita refactorizar. |
-| **Observer / Mediator** | NestJS EventBus (`PagoCreadoEvent` -> `CajaListener`, `CalendarListener`) | DIP / SRP / DRY | Cuando se ejecuta `PagoCreadoEvent`, el modulo de Caja escucha y genera el MovimientoCaja, y el modulo de Google Calendar escucha y marca el evento como completado. El `TurnoService` no conoce a `CajaService` ni a `CalendarService`. |
+| Patrón | Dónde está en el código | Qué resuelve |
+|--------|--------------------------|---------------|
+| **State** | `turnos/estados/turno-states.ts` + `turno-state.factory.ts` (`ITurnoState`, 6 clases: `PendienteState`, `ConfirmadoState`, `EnProcesoState`, `CompletadoState`, `CanceladoState`, `NoShowState`) | El ciclo de vida del turno. Cada estado sabe qué transiciones acepta y lanza `BadRequestException` en las demás. Tanto el panel (acción manual) como `TurnosCronService` (acción automática) llaman siempre a los mismos métodos del servicio — nunca escriben `estado` directo — así que **ninguno de los dos caminos puede dejar un turno en un estado ilegal**. Dos excepciones documentadas en `diagrama-clases.md`: "No vino" desde `COMPLETADO` sin pagos (depende de los pagos, no solo del estado) y la cancelación por el cliente (update condicionado para no duplicar el aviso). |
+| **Facade** | `caja/caja.facade.ts` (`CajaFacade.procesarPago()` y `venderProducto()`) | `procesarPago()` coordina en una sola transacción: validar que el turno esté `COMPLETADO`, registrar el `Pago`, crear el `MovimientoCaja` (ingreso), y verificar si el turno quedó completamente pagado. `venderProducto()` hace lo mismo para una venta de mostrador: valida producto y forma de pago, descuenta el stock sin dejarlo negativo y crea el ingreso. El resto del sistema llama un solo método y no necesita saber cómo se arma cada operación por dentro. |
+| **Strategy** | `caja/strategies/cierre.strategy.ts` (`ICierreStrategy` + `EfectivoStrategy`, `TarjetaStrategy`, `TransferenciaStrategy`, `OtrosStrategy`, con `getCierreStrategy()` como factory) | El cierre de caja calcula el total esperado por forma de pago sin un `if/else` gigante: cada estrategia sabe sumar sus propios movimientos (ingresos menos egresos del día). Agregar una forma de pago nueva no obliga a tocar el cálculo existente — como mucho, cae en `OtrosStrategy` hasta que se decida agruparla aparte. |
 
-**Patrones descartados** (overkill para este proyecto):
+### Patrones documentados en la v1.0 que no se implementaron (y por qué no hizo falta)
 
-| Patron | Razon de descarte |
+| Patrón | Qué se había planeado | Por qué no se implementó así |
+|--------|------------------------|-------------------------------|
+| **Builder** | Construcción de `Turno` paso a paso para evitar constructores con muchos parámetros | El DTO de creación (`CreateTurnoDto`/`ReservaPublicaDto`) ya es un objeto plano con pocos campos obligatorios; no hay una construcción incremental real que un Builder resuelva mejor que un objeto literal. |
+| **Adapter** (como clase formal) | Un `GoogleCalendarAdapter` que convirtiera `Turno` al formato de Google Calendar | Existe `GoogleCalendarService`, que funcionalmente hace ese trabajo (envuelve el cliente OAuth2 de `googleapis` y expone `createEvent`/`updateEvent`/`deleteEvent`), pero es un service de NestJS inyectado directamente, no una clase Adapter con una interfaz intercambiable. Nunca hubo necesidad real de soportar un segundo calendario (Outlook, etc.), así que no se formalizó. |
+| **Observer / Mediator (event bus)** | `PagoCreadoEvent` disparando listeners en Caja y en Google Calendar, para que `TurnoService` no conozca a `CajaService` ni a `CalendarService` | Se evaluó, pero la comunicación entre módulos terminó siendo **inyección de dependencias directa** (`CajaFacade` inyecta `TurnosService`; `TurnosService` inyecta `GoogleCalendarService` y `MailService`). No hay `EventEmitter2`/`@OnEvent` en ningún lado del backend. Para el volumen de eventos real (un negocio, pocas decenas de turnos por día) el acoplamiento directo es más simple de seguir y debuggear que un event bus, y todavía no hay un caso real con múltiples listeners reaccionando al mismo evento que lo justifique. Si en el futuro se necesitara desacoplar más fuerte (por ejemplo, varios listeners reaccionando a un mismo pago), ahí sí valdría introducir `EventEmitter2`. |
+
+### Patrones descartados (overkill para este proyecto, sin cambios respecto a la v1.0)
+
+| Patrón | Razón de descarte |
 |--------|-------------------|
-| Abstract Factory | No hay familias de productos relacionados. Factory Method o Factory Function es suficiente. |
+| Abstract Factory | No hay familias de productos relacionados. Una función factory (como `getTurnoState`/`getCierreStrategy`) es suficiente. |
 | Prototype | JavaScript tiene spread operator y `structuredClone`. No se necesita clonar manualmente. |
-| Singleton | Angular y NestJS ya manejan sus servicios como singletons via DI. No implementar a mano. |
-| Bridge / Composite / Flyweight | No hay jerarquias de abstraccion complejas ni arboles de objetos masivos. |
-| Proxy | NestJS ya tiene Interceptors, Guards y Pipes. |
-| Chain of Responsibility | Para validaciones, usar `ValidationPipe` o un array de validadores. |
-| Command | No se necesita una cola de "deshacer" (undo) en la caja. |
-| Memento | Guardar snapshots se resuelve con el log de `MovimientoCaja` o historial de estados. |
-| Visitor | La estructura de objetos no es estable ni compleja. Agregar operaciones se hace con Strategy. |
-| Template Method | Strategy es mas flexible. Template Method fuerza a heredar; Strategy a componer (preferible en TS). |
+| Singleton | Angular y NestJS ya manejan sus servicios como singletons vía DI. No se implementa a mano. |
+| Bridge / Composite / Flyweight | No hay jerarquías de abstracción complejas ni árboles de objetos masivos. |
+| Proxy | NestJS ya tiene Interceptors, Guards (`JwtAuthGuard`) y Pipes (`ValidationPipe`, `ParseIntPipe`), y `@nestjs/throttler` para rate limiting. |
+| Chain of Responsibility | Las validaciones usan `ValidationPipe`/DTOs o validadores explícitos en el service. |
+| Command | No hay una cola de "deshacer" en la caja. |
+| Memento | El historial se resuelve con `MovimientoCaja`/`ServicioHistorial`, no con snapshots de objetos. |
+| Visitor | La estructura de objetos no es estable ni compleja. |
+| Template Method | Strategy es más flexible y se alinea mejor con composición (preferible en TS a herencia forzada). |
 
 ---
 
 ## 9. Stack Tecnológico
 
 ### Frontend
-- **Framework**: Angular (ultima version estable)
-- **Estado**: Signals (Zoneless)
-- **CSS**: Tailwind CSS
-- **Componentes**: Se debe investigar la libreria de componentes a utilizar (opciones: Angular Material, PrimeNG, NG-ZORRO, shadcn/ui angular, etc.)
+- **Framework**: Angular 20, **standalone components**, **Signals en modo zoneless** (`provideZonelessChangeDetection()`), sin `zone.js`.
+- **CSS**: Tailwind CSS 3 + **daisyUI 4** (se definió lo que en la v1.0 estaba pendiente de investigar).
+- **Routing**: lazy-loaded por feature (`turnos`, `caja`, `personas`, `servicios`, `productos`, `reportes`, `configuracion`, `reservas` público, `landing` público, etc.).
 
 ### Backend
-- **Framework**: NestJS
-- **Base de Datos**: PostgreSQL
-- **ORM**: **Prisma** (ver justificación en sección 9.1)
-- **Contenedores**: Docker (para la base de datos y eventualmente el backend)
-- **API**: RESTful
+- **Framework**: NestJS 10.
+- **Base de Datos**: PostgreSQL 16 (Docker, `postgres:16-alpine`).
+- **ORM**: Prisma 5.8 (ver justificación en sección 9.1, sin cambios respecto a la v1.0).
+- **Auth**: JWT (`@nestjs/jwt`) + `bcrypt` para contraseñas, + **verificación en dos pasos por email** con "recordar dispositivo" (`DispositivoConfiable`, tokens hasheados con SHA-256, cookie `httpOnly`).
+- **Rate limiting**: `@nestjs/throttler` — límite global (120/60s) más límites específicos por endpoint público sensible (ej. `POST /turnos-publicos/reservar` a 5/60s).
+- **Jobs programados**: `@nestjs/schedule` — `TurnosCronService` (`*/5 * * * *`, transiciones automáticas) y `NotificationsService` (`*/15 * * * *`, recordatorios).
+- **Mail transaccional**: Resend (`resend` SDK) — confirmación de turno, recordatorio (los dos con link para cancelar), aviso de cancelación al barbero, código 2FA, reset de contraseña. Los datos que carga el cliente se escapan antes de meterlos en el HTML. Plantillas HTML inline con un objeto de branding compartido (`MARCA`), no un motor de templates separado.
+- **Imágenes**: Cloudinary (`cloudinary` SDK) — subida server-side vía `multer` + `upload_stream` (no upload firmado desde el cliente).
+- **Contenedores**: Docker Compose (`db` + `backend` + `frontend`/nginx) por cada cliente que licencia el producto.
+- **API**: RESTful, documentada con Swagger (`@nestjs/swagger`).
+- **Validación**: `class-validator` en los DTOs (con `ValidationPipe` global, `whitelist` + `forbidNonWhitelisted`) más restricciones `CHECK` en PostgreSQL.
+- **Autenticación opcional**: `OptionalJwtAuthGuard` en endpoints públicos que muestran datos extra al panel (por ejemplo, `GET /servicios` solo devuelve `costoInsumos` con sesión).
 
 ### Integraciones
-- **Google Calendar**: Conectar los turnos del sistema con el calendario de Google del peluquero para sincronizacion bidireccional o unidireccional.
+- **Google Calendar**: OAuth2 vía `googleapis`, una sola cuenta conectada por negocio (no por usuario). `TurnosService` llama a `createEvent`/`updateEvent`/`deleteEvent` envueltos en try/catch silencioso — si Google Calendar no está conectado o falla, no rompe la creación/cancelación del turno.
+- **Cloudinary**: subida de imágenes para servicios, productos, cursos y branding.
+- **Resend**: envío de todos los emails transaccionales.
+
+### Huso horario (específico de este despliegue)
+
+El backend puede estar hosteado en un servidor fuera de Argentina mientras el negocio
+opera en hora de Argentina (UTC-3, sin horario de verano desde 2009). Esto se resolvió en
+varios puntos a la vez, no solo con una variable de entorno:
+
+- **Backend**: toda la lógica de horario de atención y de agenda usa aritmética UTC
+  explícita con el offset fijo (`fecha-ar.util.ts`), sin depender de la zona horaria
+  configurada en el proceso de Node.
+- **Frontend**: cuando se construye un instante a partir de un `<input type="date">` +
+  `<input type="time">` (alta manual de turno), se fija el offset `-03:00` explícito en el
+  string ISO en vez de mandar un string ambiguo — necesario porque `Date` interpreta un
+  string sin zona horaria como la hora local del entorno que lo lee (navegador o
+  servidor), no como hora de Argentina.
+- **Display**: el pipe `fechaAr` fuerza `America/Argentina/Buenos_Aires` con
+  `Intl.DateTimeFormat` en vez de usar los getters locales del navegador (`getHours`,
+  `getDate`, etc.), para que se vea igual sin importar desde qué dispositivo/huso horario
+  se abra el panel.
+- **Infraestructura**: `TZ=America/Argentina/Buenos_Aires` en los contenedores `db` y
+  `backend` del `docker-compose.prod.yml`, principalmente para que los logs del servidor
+  coincidan con la hora real del negocio.
 
 ### Consideraciones
-- El sistema es para un unico profesional, por lo que no se requiere multi-tenancy ni gestion de multiples profesionales por ahora.
-- La autenticacion debe ser simple pero extensible (JWT en NestJS).
-- El frontend debe ser responsive para usar desde tablet o celular en la peluqueria.
+- Cada instancia del sistema es para un único profesional — no hay multi-tenancy dentro de una misma base de datos; cada cliente que licencia el producto corre su propio stack.
+- El frontend es responsive (uso desde tablet o celular en el local).
 
 ---
 
 ## 9.1. Justificación de la Elección del ORM: Prisma
+
+*(Sin cambios respecto a la v1.0 — la decisión sigue vigente y el proyecto la confirma en producción.)*
 
 ### Contexto de la decisión
 
@@ -619,7 +537,7 @@ Se evaluaron dos opciones principales para el ORM: **Prisma** y **TypeORM**. Amb
 | **Integración NestJS** | Excelente (`@nestjs/prisma`) | Muy buena (nativa) |
 | **Tipado compartido con Angular** | **Perfecto** (genera interfaces automáticamente desde el schema) | Manual |
 | **Modelo relacional simple** | Ideal | Funciona |
-| **Patrón State (métodos en entidades)** | Requiere capa de Mapper | Nativo en la clase entity |
+| **Patrón State (métodos en entidades)** | Requiere lógica aparte (ver más abajo) | Nativo en la clase entity |
 | **Migrations** | **Automáticas y confiables** (`prisma migrate dev`) | Más manuales, menos confiables |
 | **Curva inicial** | Muy baja (schema declarativo) | Media (decoradores + configuración) |
 | **Docker / PostgreSQL** | Funciona igual | Funciona igual |
@@ -628,61 +546,73 @@ Se evaluaron dos opciones principales para el ORM: **Prisma** y **TypeORM**. Amb
 
 ### Ventajas de Prisma para este proyecto
 
-1. **TypeScript nativo**: El schema declarativo (`schema.prisma`) genera tipos automáticamente. Estos tipos pueden compartirse con el frontend (Angular) vía una librería compartida (`@peluqueria/shared-types`), eliminando errores de tipado entre capas.
-2. **Developer Experience**: Autocompletado perfecto en el IDE. Query engine ligero. `prisma migrate dev` es confiable y automático, ideal para iterar el modelo de datos en desarrollo.
-3. **Seguridad**: Construye queries seguras por defecto (sin SQL injection). Validación automática en el nivel de base de datos.
-4. **KISS**: El schema declarativo es más simple que decorar clases con `@Entity`, `@Column`, `@JoinColumn`. Se alinea con el principio de simplicidad del proyecto.
-5. **Eficiencia para un solo desarrollador**: Permite iterar el modelo de datos en minutos. El schema es la fuente de verdad única.
+1. **TypeScript nativo**: el schema declarativo (`schema.prisma`) genera tipos automáticamente.
+2. **Developer Experience**: autocompletado perfecto en el IDE, `prisma migrate dev` confiable para iterar el modelo.
+3. **Seguridad**: queries seguras por defecto (sin SQL injection).
+4. **KISS**: el schema declarativo es más simple que decorar clases con `@Entity`, `@Column`, `@JoinColumn`.
+5. **Eficiencia para un solo desarrollador**: permite iterar el modelo de datos en minutos.
 
-### Desventajas de Prisma y mitigación
+### Cómo se resolvió en la práctica la "desventaja" de los objetos planos
 
-- **Objetos planos**: Prisma devuelve objetos planos (DTOs), no entidades de dominio con comportamiento. Para aplicar el patrón **State** en el `Turno` (métodos como `cancelar()`, `iniciarAtencion()`), se requiere una capa de **Mapper**:
-
-```typescript
-// Prisma devuelve esto (plano)
-const prismaTurno = await prisma.turno.findUnique({...});
-
-// Mapper convierte a entidad de dominio con comportamiento
-const turno = TurnoMapper.toDomain(prismaTurno);
-turno.iniciarAtencion(); // Ahora tiene el método del patrón State
-```
-
-Esta capa de Mapper es una **buena práctica en DDD** (Domain-Driven Design) de todos modos, ya que mantiene el dominio limpio de la base de datos.
+La v1.0 proponía una capa de **Mapper** (`TurnoMapper.toDomain()`) para convertir el objeto
+plano de Prisma en una entidad de dominio con métodos (`turno.iniciarAtencion()`). En la
+implementación real **no se construyó ese Mapper**: el patrón State se arma al vuelo a
+partir del string `estado` que ya trae el `Turno` de Prisma —
+`getTurnoState(turno.estado)` devuelve el objeto de estado correcto, se le pide que valide
+la transición (`estado.iniciarAtencion()`, que lanza si no es válida), y si no lanzó nada
+se hace un `prisma.turno.update()` plano. Es una solución más liviana que la que proponía
+la v1.0: cumple el mismo propósito (las reglas de transición no quedan sueltas como
+`if/else` en el service) sin necesitar una capa de mapeo bidireccional completa.
 
 ### Desventajas de TypeORM (críticas para este proyecto)
 
-- **Mantenimiento irregular**: En los últimos 2-3 años la comunidad reportó PRs sin mergear, bugs sin resolver y releases espaciados.
-- **Migraciones menos confiables**: Comparado con Prisma, puede generar migraciones incompletas o destructivas. Requiere más revisión manual.
-- **Type safety más débil**: Los repositorios genéricos (`Repository<T>`) a veces no inferen tipos correctamente en queries complejas.
-- **Configuración inicial**: Requiere más boilerplate para configurar con NestJS.
+- **Mantenimiento irregular**: PRs sin mergear, bugs sin resolver, releases espaciados.
+- **Migraciones menos confiables**: puede generar migraciones incompletas o destructivas.
+- **Type safety más débil**: los repositorios genéricos a veces no infieren tipos correctamente.
+- **Configuración inicial**: requiere más boilerplate para configurar con NestJS.
 
 ### Conclusión
 
-> **Se elige Prisma**. Es moderno, rápido, type-safe y perfecto para la arquitectura actual (NestJS + Angular + PostgreSQL). Permite avanzar rápido sin sacrificar calidad, manteniendo la simplicidad que requiere un sistema de un único profesional.
-
-### ¿Cuándo se habría elegido TypeORM?
-
-Solo si el dominio se volviera extremadamente complejo (muchos comportamientos en entidades, lógica de negocio embebida en métodos de clase) y se quisiera que el ORM **sea** el modelo de dominio. Para una peluquería con un solo profesional, eso es **overkill**.
+> **Se elige Prisma.** La decisión se mantiene después de meses en producción: las
+> migraciones declarativas y el tipado generado automáticamente siguieron siendo el
+> principal motivo para no migrar a TypeORM, incluso con el crecimiento real del schema
+> (de 9 a 18 modelos).
 
 ---
 
 ## 10. Notas para el Desarrollo
 
-- **TurnoDetalle** guarda `precioReal` porque el precio de los servicios puede cambiar en el tiempo, pero el cobro historico debe permanecer intacto.
-- **MovimientoCaja** tiene `idTurno` nullable porque pueden existir movimientos sin turno asociado (ej: compra de insumos, retiro de efectivo).
-- **CierreCaja** debe poder recalcularse si hay errores, pero una vez confirmado debe quedar inmutable.
-- **Pagos**: Soportar pagos mixtos (ej: 50% efectivo, 50% tarjeta) para un mismo turno. Por eso Pago es 1:N con Turno.
-- **Google Calendar**: Se debe investigar la API de Google Calendar (v3) y OAuth2 para la autenticacion del peluquero.
-- **Prisma Mapper**: Se recomienda implementar una capa de mapeo entre los objetos planos de Prisma y las entidades de dominio (con comportamiento) para mantener la arquitectura limpia y facilitar el uso de patrones como State y Strategy.
+- **ServicioHistorial** se crea automáticamente cuando cambia precio, duración o vigencia de un servicio (`servicios.service.ts`), para que el cobro histórico no se altere si el precio sube después — es el mismo propósito que `TurnoDetalle.precioReal` ya cumplía para cada turno puntual.
+- **MovimientoCaja** tiene `idTurno` nullable porque pueden existir movimientos sin turno asociado (compra de insumos, retiro de efectivo).
+- **CierreCaja** queda con `horaFin = NULL` mientras está "iniciado" pero no confirmado; una vez confirmado, queda con los totales reales y la diferencia calculada.
+- **Pagos**: soportan pagos mixtos/parciales para un mismo turno (`Pago` es 1:N con `Turno`); `CajaFacade.procesarPago()` reporta si con ese pago el turno quedó completamente cubierto.
+- **Turno nace `CONFIRMADO`, no `PENDIENTE`**: el chequeo de disponibilidad (transacción Serializable) ya bloquea el horario desde la creación; el paso `PENDIENTE` no sumaba protección real. `TurnosCronService` avanza automáticamente `CONFIRMADO → EN_PROCESO → COMPLETADO` por reloj; `CANCELADO`/`NO_SHOW` son siempre manuales.
+- **Validación de horario de atención**: `create()`/`reservarPublica()` validan que el turno entre dentro de alguna franja de `configuracion_negocio.horarios` (no solo que no se solape con otro turno) — aplica tanto a la reserva pública como al alta manual del dueño, sin excepción.
+- **Forma de pago preferida**: obligatoria solo en la reserva pública; nunca es el pago real, solo precarga el cobro en caja (que sigue siendo totalmente editable).
+- **Huso horario fijo en UTC-3**, explícito en todo el stack (backend, frontend, infraestructura) — ver el apartado dedicado en la sección 9. Necesario porque el servidor puede estar hosteado fuera de Argentina.
+- **2FA con dispositivo de confianza**: el código de 6 dígitos se guarda hasheado (SHA-256) con expiración de 10 minutos; el token de "recordar este dispositivo" también se guarda hasheado, con expiración de 30 días, en una cookie `httpOnly`.
+- **Rate limiting por endpoint**: los endpoints públicos sensibles (reservar turno, login, reset de contraseña) tienen límites más estrictos que el resto, para no depender de un único límite global.
+- **Fidelización y descuento de empleado**: ambos se calculan en `TurnosService` al completar un turno (`aplicarDescuentoFidelizacion`), no en un módulo separado — son reglas de negocio acopladas al ciclo de vida del turno, no al catálogo.
+- **Google Calendar y Mail son siempre "best effort"**: ninguna falla de esas integraciones rompe la creación, cancelación o cobro de un turno (try/catch silencioso) — son conveniencias, no dependencias duras del flujo principal.
+- **Link de cancelación**: `<FRONTEND_URL>/cancelar-turno?token=<idTurno>.<HMAC>`, con la clave derivada de `JWT_SECRET` (`cancelacion-token.util.ts`). No se guarda nada en la base: el mail de confirmación y el de recordatorio llevan el mismo link, y deja de servir cuando el turno ya no se puede cancelar. Si falta `FRONTEND_URL` o `JWT_SECRET`, los mails salen sin el botón. Cambiar `JWT_SECRET` invalida los links ya enviados (y también obliga a revincular Google Calendar).
+- **Aviso de cancelación**: va al email de contacto de `ConfiguracionNegocio`; si está vacío, a todos los usuarios del panel.
+- **Teléfonos**: `@IsTelefono()` (`common/decorators/is-telefono.decorator.ts`) normaliza a solo dígitos y sin el 0 inicial, y exige entre 8 y 15. Con letras se rechaza en vez de descartarse. Se aplica en clientes, reserva pública y registro.
+- **`Persona.ultimoCorte` no se mantiene**: ningún código lo actualiza. El reporte de clientes inactivos calcula la última visita con el último turno `COMPLETADO`.
+- **Rentabilidad**: costo variable de cada servicio = `costoInsumos` + `costoHoraTrabajo` × duración. Los gastos fijos se prorratean por días (mes de 30). Sin turnos completados no se calcula el promedio (sería dividir por cero) y se muestra un aviso. Los egresos de caja no se restan, para no contar dos veces lo que también se carga como costo.
+- **Stock**: `Producto.stock = NULL` significa "no se controla". La venta descuenta con un `updateMany` condicionado a `stock >= cantidad`, así que nunca queda negativo aunque haya dos ventas a la vez.
+- **Migraciones con datos reales**: el contenedor del backend corre `prisma migrate deploy` al arrancar, así que `scripts/verificar-checks.sql` hay que correrlo contra la base de producción **antes** de desplegar la imagen nueva. Si alguna fila viola un `CHECK`, la migración falla y el backend no levanta.
 
 ---
 
-## 11. Archivos Generados en este Proyecto
+## 11. Archivos de este Proyecto
 
-1. `/home/leeo/diagrama-er.md` – Diagrama Entidad-Relacion.
-2. `/home/leeo/diagrama-clases.md` – Diagrama de Clases TypeScript.
-3. `/home/leeo/diagramas-procesos.md` – Diagramas de Secuencia, Estados y Actividades.
-4. `/home/leeo/contexto-proyecto.md` – Este documento (contexto completo).
+1. `diagrama-er.md` — Diagrama Entidad-Relación.
+2. `diagrama-clases.md` — Diagrama de Clases (modelo de dominio + patrones de diseño).
+3. `diagramas-procesos.md` — Diagramas de Secuencia, Estados y Actividades.
+4. `contexto-proyecto.md` — Este documento (contexto completo, consolidado).
+4.1. `../docs/diccionario-datos.md` — Diccionario de datos columna por columna, generado desde `schema.prisma` con `npm run docs:diccionario` (en `apps/backend`).
+4.2. `../docs/manual-panel.pdf` — Manual de uso del panel para el dueño.
+5. `DiagramaDe*.png` — Diagramas del diseño original (v1.0, pre-implementación). **Históricos, no actualizados**: no reflejan el sistema real. Se conservan como referencia de cómo arrancó el diseño, no como documentación vigente.
 
 ---
 
