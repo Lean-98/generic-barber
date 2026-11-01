@@ -24,6 +24,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "docs:diccionario": "ts-node scripts/generar-diccionario-datos.ts",
     "prisma:seed": "ts-node prisma/seed.ts",
     "db:seed": "npx prisma db seed",
     "db:up": "docker-compose up -d",

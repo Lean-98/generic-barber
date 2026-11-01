@@ -53,10 +53,10 @@ model Turno {
   fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
   googleEventId   String?  @map("google_event_id")
   recordatorioEnviadoEn DateTime? @map("recordatorio_enviado_en")
-  // Preferencia elegida por el cliente al reservar online; no es el pago real
-  // (eso sigue siendo explícito en caja), solo sirve para precargar la forma
-  // de pago sugerida al cobrar. Nullable porque el alta manual de un turno
-  // desde el panel no la pide.
+  /// Preferencia elegida por el cliente al reservar online; no es el pago real
+  /// (eso sigue siendo explícito en caja), solo sirve para precargar la forma
+  /// de pago sugerida al cobrar. Nullable porque el alta manual de un turno
+  /// desde el panel no la pide.
   idFormaPagoPreferida Int? @map("id_forma_pago_preferida")
   /// Quién y cuándo canceló el turno ("CLIENTE" desde el link del mail, o
   /// "PANEL" desde la administración). Con canceladoEn vs. fechaHoraInicio se
