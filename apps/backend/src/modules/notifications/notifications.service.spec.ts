@@ -62,6 +62,17 @@ describe('NotificationsService', () => {
     });
   });
 
+  it('should not send anything when the negocio turned reminders off', async () => {
+    prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ recordatorioActivo: false, recordatorioHorasAntes: 24 });
+    prismaMock.turno.findMany.mockResolvedValue([mockTurno]);
+
+    await service.enviarRecordatorios();
+
+    expect(prismaMock.turno.findMany).not.toHaveBeenCalled();
+    expect(mailMock.sendTurnoRecordatorio).not.toHaveBeenCalled();
+    expect(prismaMock.turno.update).not.toHaveBeenCalled();
+  });
+
   it('should skip turnos without an email on file', async () => {
     prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ recordatorioHorasAntes: 24 });
     prismaMock.turno.findMany.mockResolvedValue([{ ...mockTurno, persona: { nombre: 'Juan', mail: null } }]);

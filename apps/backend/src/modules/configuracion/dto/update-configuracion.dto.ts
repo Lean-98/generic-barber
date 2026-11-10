@@ -366,6 +366,11 @@ export class UpdateConfiguracionDto {
 
   // --- Recordatorio de turno por email ---
 
+  @ApiPropertyOptional({ description: 'Si se manda el recordatorio de turno por email', example: true })
+  @IsOptional()
+  @IsBoolean()
+  recordatorioActivo?: boolean;
+
   @ApiPropertyOptional({ description: 'Con cuántas horas de anticipación se manda el recordatorio de turno por email', example: 24 })
   @IsOptional()
   @IsInt()

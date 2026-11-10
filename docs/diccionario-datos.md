@@ -339,6 +339,7 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 | fidelizacionFechaInicio | fidelizacion_fecha_inicio | DateTime | No |  |  |
 | descuentoEmpleadoActivo | descuento_empleado_activo | Boolean | Sí | false |  |
 | descuentoEmpleadoPorcentaje | descuento_empleado_porcentaje | Decimal | No |  |  |
+| recordatorioActivo | recordatorio_activo | Boolean | Sí | true | Si está apagado, no se manda el recordatorio de turno por email. |
 | recordatorioHorasAntes | recordatorio_horas_antes | Int | Sí | 24 |  |
 | reservaAnticipacionMinutos | reserva_anticipacion_minutos | Int | Sí | 15 | Anticipación mínima para reservar online, en minutos: la página de reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto. No aplica a los turnos cargados desde el panel. |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |

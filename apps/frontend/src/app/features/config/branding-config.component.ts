@@ -590,22 +590,34 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
               <h2 class="card-title text-lg">Notificaciones</h2>
               <p class="text-sm text-base-content/60">Recordatorio automático por email antes de cada turno.</p>
 
-              <div class="form-control max-w-xs">
-                <label class="label"><span class="label-text">Horas de anticipación</span></label>
-                <input
-                  type="number"
-                  class="input input-bordered w-full"
-                  [(ngModel)]="recordatorioHorasAntes"
-                  name="recordatorioHorasAntes"
-                  min="1"
-                  max="168"
-                  placeholder="24"
-                />
+              <div class="space-y-3 rounded-lg border border-base-300 p-4">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="recordatorioActivo" name="recordatorioActivo" />
+                  <span class="label-text font-medium">Recordatorio por email</span>
+                </label>
+                @if (recordatorioActivo) {
+                  <div class="form-control max-w-xs pl-1">
+                    <label class="label"><span class="label-text">Horas de anticipación</span></label>
+                    <input
+                      type="number"
+                      class="input input-bordered w-full"
+                      [(ngModel)]="recordatorioHorasAntes"
+                      name="recordatorioHorasAntes"
+                      min="1"
+                      max="168"
+                      placeholder="24"
+                    />
+                  </div>
+                  <p class="pl-1 text-xs text-base-content/60">
+                    Se manda un recordatorio por email, con esta anticipación, a los clientes que tienen el mail cargado.
+                    Incluye el link para cancelar el turno.
+                  </p>
+                } @else {
+                  <p class="pl-1 text-xs text-base-content/60">
+                    Apagado: los clientes no reciben recordatorio. El mail de confirmación al reservar se sigue mandando.
+                  </p>
+                }
               </div>
-              <p class="text-xs text-base-content/60">
-                Se manda un recordatorio por email a los clientes que cargaron su mail, con esta anticipación. Solo aplica a
-                clientes con mail cargado.
-              </p>
             </div>
           </div>
 
@@ -696,6 +708,7 @@ export class BrandingConfigComponent implements OnInit {
   fidelizacionFechaInicio = '';
   descuentoEmpleadoActivo = false;
   descuentoEmpleadoPorcentaje: number | null = null;
+  recordatorioActivo = true;
   recordatorioHorasAntes: number | null = null;
   reservaAnticipacionMinutos: number | null = null;
   clubImagenUrl = '';
@@ -743,6 +756,7 @@ export class BrandingConfigComponent implements OnInit {
         this.fidelizacionFechaInicio = data.fidelizacionFechaInicio ? data.fidelizacionFechaInicio.slice(0, 10) : '';
         this.descuentoEmpleadoActivo = data.descuentoEmpleadoActivo;
         this.descuentoEmpleadoPorcentaje = data.descuentoEmpleadoPorcentaje;
+        this.recordatorioActivo = data.recordatorioActivo;
         this.recordatorioHorasAntes = data.recordatorioHorasAntes;
         this.reservaAnticipacionMinutos = data.reservaAnticipacionMinutos;
         this.clubImagenUrl = data.clubImagenUrl ?? '';
@@ -891,6 +905,7 @@ export class BrandingConfigComponent implements OnInit {
         fidelizacionFechaInicio: this.fidelizacionFechaInicio || undefined,
         descuentoEmpleadoActivo: this.descuentoEmpleadoActivo,
         descuentoEmpleadoPorcentaje: this.descuentoEmpleadoPorcentaje ?? undefined,
+        recordatorioActivo: this.recordatorioActivo,
         recordatorioHorasAntes: this.recordatorioHorasAntes ?? undefined,
         reservaAnticipacionMinutos: this.reservaAnticipacionMinutos ?? undefined,
       })

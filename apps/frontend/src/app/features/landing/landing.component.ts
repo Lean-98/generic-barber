@@ -447,6 +447,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     fidelizacionFechaInicio: null,
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
+    recordatorioActivo: true,
     recordatorioHorasAntes: 24,
     reservaAnticipacionMinutos: 15,
   });

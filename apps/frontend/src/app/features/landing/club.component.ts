@@ -147,6 +147,7 @@ export class ClubComponent implements OnInit {
     fidelizacionFechaInicio: null,
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
+    recordatorioActivo: true,
     recordatorioHorasAntes: 24,
     reservaAnticipacionMinutos: 15,
   });

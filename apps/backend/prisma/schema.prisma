@@ -266,6 +266,8 @@ model ConfiguracionNegocio {
   fidelizacionFechaInicio         DateTime? @db.Date @map("fidelizacion_fecha_inicio")
   descuentoEmpleadoActivo         Boolean  @default(false) @map("descuento_empleado_activo")
   descuentoEmpleadoPorcentaje     Decimal? @db.Decimal(5, 2) @map("descuento_empleado_porcentaje")
+  /// Si está apagado, no se manda el recordatorio de turno por email.
+  recordatorioActivo              Boolean  @default(true) @map("recordatorio_activo")
   recordatorioHorasAntes          Int      @default(24) @map("recordatorio_horas_antes")
   /// Anticipación mínima para reservar online, en minutos: la página de
   /// reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto.

@@ -22,7 +22,7 @@
 - **Productos / Categorías / Cursos**: catálogo de la web; productos con stock opcional y aviso de stock bajo.
 - **Reportes**: resumen, ingresos por día, turnos por estado, top servicios y clientes, formas de pago, **rentabilidad** y **clientes para recontactar**. Los costos internos viven en `costos_negocio` (`GET`/`PUT /reportes/costos`).
 - **Configuración**: marca, horarios de atención, contenido de la landing, fidelización, descuento de personal, recordatorios y anticipación mínima para reservar online. Es pública (`GET /configuracion/branding`), por eso no guarda nada interno.
-- **Notifications**: cron de recordatorios por mail (con link para cancelar).
+- **Notifications**: cron de recordatorios por mail (con link para cancelar); no manda nada si el negocio los apagó (`recordatorioActivo`).
 - **Mail**: confirmación, recordatorio, aviso de nueva reserva online y de cancelación al barbero, código 2FA, recuperación de contraseña.
 - **Google Calendar**: sincroniza turnos (crear, editar, borrar al cancelar o marcar "No vino").
 - **Cloudinary**: subida de imágenes desde el panel.
