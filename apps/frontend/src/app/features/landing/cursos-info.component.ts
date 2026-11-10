@@ -213,7 +213,9 @@ export class CursosInfoComponent implements OnInit {
     fidelizacionFechaInicio: null,
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
+    recordatorioActivo: true,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
   });
   cursos = signal<Curso[]>([]);
   cargando = signal(true);

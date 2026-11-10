@@ -366,10 +366,27 @@ export class UpdateConfiguracionDto {
 
   // --- Recordatorio de turno por email ---
 
+  @ApiPropertyOptional({ description: 'Si se manda el recordatorio de turno por email', example: true })
+  @IsOptional()
+  @IsBoolean()
+  recordatorioActivo?: boolean;
+
   @ApiPropertyOptional({ description: 'Con cuántas horas de anticipación se manda el recordatorio de turno por email', example: 24 })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(168)
   recordatorioHorasAntes?: number;
+
+  // --- Reserva online ---
+
+  @ApiPropertyOptional({
+    description: 'Anticipación mínima para reservar online, en minutos (0 a 1440). No aplica a los turnos cargados desde el panel.',
+    example: 15,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  reservaAnticipacionMinutos?: number;
 }

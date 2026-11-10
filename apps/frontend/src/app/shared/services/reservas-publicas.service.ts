@@ -13,6 +13,8 @@ export interface ReservaRequest {
   apellido?: string;
   email: string;
   telefono?: string;
+  /** AAAA-MM-DD, para el beneficio de cumpleaños. */
+  fechaNacimiento?: string;
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];
@@ -22,6 +24,8 @@ export interface ReservaRequest {
 export interface ClienteExistenteResponse {
   existe: boolean;
   nombre?: string;
+  /** Cliente existente sin cumpleaños cargado: se le pide solo ese dato. */
+  faltaFechaNacimiento?: boolean;
 }
 
 export interface FormaPagoPublica {

@@ -31,6 +31,23 @@ export interface AvisoCancelacionData {
   colorPrimario?: string | null;
 }
 
+export interface AvisoNuevaReservaData {
+  nombreCliente: string;
+  telefonoCliente?: string | null;
+  emailCliente?: string | null;
+  fechaHoraInicio: Date;
+  servicios: string[];
+  formaPago?: string | null;
+  observacion?: string | null;
+  /** dd/mm, si el cliente la cargó. */
+  cumpleanos?: string | null;
+  clienteNuevo: boolean;
+  /** Link a la agenda del panel; null si falta FRONTEND_URL. */
+  panelUrl?: string | null;
+  nombreNegocio?: string | null;
+  colorPrimario?: string | null;
+}
+
 /** Los datos del cliente vienen del formulario público: se escapan antes de meterlos en el HTML. */
 function escapeHtml(texto: string): string {
   return texto
@@ -266,6 +283,77 @@ export class MailService {
     const { error } = await this.resend.emails.send({ from: this.from, to, subject, html });
     if (error) {
       this.logger.error(`Fallo al enviar aviso de cancelación a ${to.join(', ')}: ${JSON.stringify(error)}`);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Aviso al negocio de un turno que el cliente sacó desde la web. Devuelve
+   * si se mandó; nunca tira excepción (el turno ya está creado, esto es
+   * best-effort).
+   */
+  async sendAvisoNuevaReserva(to: string[], data: AvisoNuevaReservaData): Promise<boolean> {
+    if (to.length === 0) return false;
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY no configurada: no se envió el aviso de nueva reserva a ${to.join(', ')}`);
+      return false;
+    }
+
+    const color = this.colorPrimario(data);
+    const nombreNegocio = escapeHtml(data.nombreNegocio || 'Tu negocio');
+    const cliente = escapeHtml(data.nombreCliente);
+    const fecha = data.fechaHoraInicio.toLocaleString('es-AR', FECHA_TURNO_OPCIONES);
+    const whatsapp = data.telefonoCliente ? whatsappDeTelefono(data.telefonoCliente) : null;
+
+    const fila = (label: string, valor: string) => `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid ${MARCA.base300};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${MARCA.textoSuave};width:120px;vertical-align:top;">${label}</td>
+        <td style="padding:12px 0;border-bottom:1px solid ${MARCA.base300};font-size:15px;color:${MARCA.neutral};vertical-align:top;">${valor}</td>
+      </tr>`;
+
+    const boton = (href: string, texto: string, fondo: string) =>
+      `<a href="${href}" style="display:inline-block;margin:4px;background-color:${fondo};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:8px;">${texto}</a>`;
+
+    const subject = `Nuevo turno: ${data.nombreCliente} · ${fecha}`;
+    const html = `
+      <!doctype html>
+      <html lang="es">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+      <body style="margin:0;padding:0;">
+      <div style="background-color:${MARCA.base200};padding:32px 16px;font-family:${MARCA.fontSans};">
+        <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;border-collapse:collapse;">
+          <tr>
+            <td style="background-color:${MARCA.base100};border:1px solid ${MARCA.base300};border-radius:12px;padding:32px;">
+              <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">Nuevo turno desde la web</p>
+              <h1 style="font-family:${MARCA.fontDisplay};font-size:22px;font-weight:600;color:${MARCA.neutral};margin:10px 0 6px;">${cliente} sacó un turno</h1>
+              <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0 0 20px;line-height:1.5;">${data.clienteNuevo ? 'Es un cliente nuevo: quedó cargado en Clientes.' : 'Ya era cliente.'} El turno ya figura confirmado en la agenda.</p>
+              <table role="presentation" width="100%" style="border-collapse:collapse;border-top:1px solid ${MARCA.base300};">
+                ${fila('Turno', fecha)}
+                ${fila('Servicios', escapeHtml(data.servicios.join(', ')))}
+                ${data.formaPago ? fila('Va a pagar con', escapeHtml(data.formaPago)) : ''}
+                ${data.telefonoCliente ? fila('Teléfono', escapeHtml(data.telefonoCliente)) : ''}
+                ${data.emailCliente ? fila('Email', escapeHtml(data.emailCliente)) : ''}
+                ${data.cumpleanos ? fila('Cumpleaños', escapeHtml(data.cumpleanos)) : ''}
+                ${data.observacion ? fila('Notas', escapeHtml(data.observacion)) : ''}
+              </table>
+              ${whatsapp || data.panelUrl ? `
+              <div style="padding:24px 0 0;text-align:center;">
+                ${data.panelUrl ? boton(data.panelUrl, 'Ver la agenda', color) : ''}
+                ${whatsapp ? boton(whatsapp, 'Escribirle por WhatsApp', '#25D366') : ''}
+              </div>` : ''}
+              <p style="margin:24px 0 0;font-size:11px;color:${MARCA.textoSuave};text-align:center;">${nombreNegocio} · Powered by ${POWERED_BY_NAME}</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+      </body>
+      </html>
+    `;
+
+    const { error } = await this.resend.emails.send({ from: this.from, to, subject, html });
+    if (error) {
+      this.logger.error(`Fallo al enviar aviso de nueva reserva a ${to.join(', ')}: ${JSON.stringify(error)}`);
       return false;
     }
     return true;

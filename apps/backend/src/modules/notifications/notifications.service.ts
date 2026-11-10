@@ -22,10 +22,12 @@ export class NotificationsService {
    * en el negocio (`recordatorioHorasAntes`). Un turno solo entra una vez:
    * `recordatorioEnviadoEn` se marca al mandarlo, así que corridas repetidas
    * del cron no lo duplican aunque el turno siga dentro de la ventana.
+   * Si el negocio apagó el recordatorio (`recordatorioActivo`), no manda nada.
    */
   @Cron('*/15 * * * *')
   async enviarRecordatorios(): Promise<void> {
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    if (config && config.recordatorioActivo === false) return;
     const horasAntes = config?.recordatorioHorasAntes ?? 24;
 
     const ahora = new Date();

@@ -339,7 +339,9 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 | fidelizacionFechaInicio | fidelizacion_fecha_inicio | DateTime | No |  |  |
 | descuentoEmpleadoActivo | descuento_empleado_activo | Boolean | Sí | false |  |
 | descuentoEmpleadoPorcentaje | descuento_empleado_porcentaje | Decimal | No |  |  |
+| recordatorioActivo | recordatorio_activo | Boolean | Sí | true | Si está apagado, no se manda el recordatorio de turno por email. |
 | recordatorioHorasAntes | recordatorio_horas_antes | Int | Sí | 24 |  |
+| reservaAnticipacionMinutos | reserva_anticipacion_minutos | Int | Sí | 15 | Anticipación mínima para reservar online, en minutos: la página de reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto. No aplica a los turnos cargados desde el panel. |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |
 
 **Restricciones CHECK:**
@@ -348,6 +350,7 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 - `configuracion_fidelizacion_descuento_check`: `"fidelizacion_descuento_porcentaje" IS NULL OR "fidelizacion_descuento_porcentaje" BETWEEN 0 AND 100`
 - `configuracion_descuento_empleado_check`: `"descuento_empleado_porcentaje" IS NULL OR "descuento_empleado_porcentaje" BETWEEN 0 AND 100`
 - `configuracion_recordatorio_horas_check`: `"recordatorio_horas_antes" > 0`
+- `configuracion_reserva_anticipacion_check`: `"reserva_anticipacion_minutos" BETWEEN 0 AND 1440`
 
 ---
 

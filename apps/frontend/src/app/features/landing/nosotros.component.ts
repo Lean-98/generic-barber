@@ -148,7 +148,9 @@ export class NosotrosComponent implements OnInit {
     fidelizacionFechaInicio: null,
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
+    recordatorioActivo: true,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();

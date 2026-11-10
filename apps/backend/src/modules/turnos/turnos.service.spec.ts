@@ -95,6 +95,7 @@ describe('TurnosService', () => {
             sendTurnoConfirmacion: jest.fn().mockResolvedValue(undefined),
             sendTurnoRecordatorio: jest.fn().mockResolvedValue(undefined),
             sendAvisoCancelacion: jest.fn().mockResolvedValue(true),
+            sendAvisoNuevaReserva: jest.fn().mockResolvedValue(true),
           },
         },
         {
@@ -331,6 +332,48 @@ describe('TurnosService', () => {
   });
 
   describe('reservarPublica', () => {
+    // FECHA_DENTRO_DE_HORARIO tiene que ser futura respecto de "ahora".
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should reject a horario that already started or starts in less than 15 minutes, before creating the persona', async () => {
+      // 12:50Z: el turno de las 13:00Z empieza en 10 minutos.
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T12:50:00.000Z').getTime());
+
+      await expect(
+        service.reservarPublica({
+          nombre: 'Juan',
+          apellido: 'Pérez',
+          email: 'nuevo@example.com',
+          fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+          servicios: [{ idServicio: 1 }],
+          idFormaPagoPreferida: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.persona.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a horario inside the anticipación configured by the negocio', async () => {
+      // 11:00Z: el turno de las 13:00Z empieza en 2 horas, pero el negocio pide 3.
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T11:00:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, reservaAnticipacionMinutos: 180 });
+
+      await expect(
+        service.reservarPublica({
+          email: 'juan@example.com',
+          fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+          servicios: [{ idServicio: 1 }],
+          idFormaPagoPreferida: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+    });
+
     it('should pass idFormaPagoPreferida through to the created turno', async () => {
       prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
       prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
@@ -357,6 +400,169 @@ describe('TurnosService', () => {
           data: expect.objectContaining({ idFormaPagoPreferida: 1, estado: 'CONFIRMADO' }),
         }),
       );
+    });
+  });
+
+  describe('reservarPublica: cumpleaños y aviso al negocio', () => {
+    const mockTurnoCreado = (persona: any) => ({
+      ...mockTurno,
+      idFormaPagoPreferida: 1,
+      observacion: 'Primera vez',
+      detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],
+      persona,
+      pagos: [],
+    });
+    const reserva = (extra: Record<string, unknown> = {}) =>
+      service.reservarPublica({
+        email: 'juan@example.com',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+        servicios: [{ idServicio: 1 }],
+        idFormaPagoPreferida: 1,
+        ...extra,
+      });
+    let mail: { sendAvisoNuevaReserva: jest.Mock };
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, email: 'barber@test.com', nombre: 'Authentic' });
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(mockFormaPago);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+      mail = (service as any).mailService;
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should save the cumpleaños of a new cliente', async () => {
+      const creada = { ...mockPersona, fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') };
+      // Primero no existe; create() la vuelve a buscar ya creada.
+      prismaMock.persona.findUnique.mockResolvedValueOnce(null).mockResolvedValue(creada);
+      prismaMock.persona.create.mockResolvedValue(creada);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(creada));
+
+      await reserva({ nombre: 'Juan', apellido: 'Pérez', fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') }),
+      });
+    });
+
+    it('should fill the cumpleaños of an existing cliente that did not have one', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ ...mockPersona, fechaNacimiento: null });
+      prismaMock.persona.update.mockResolvedValue({ ...mockPersona, fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') });
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+
+      await reserva({ fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.update).toHaveBeenCalledWith({
+        where: { idPersona: mockPersona.idPersona },
+        data: { fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') },
+      });
+    });
+
+    it('should not overwrite a cumpleaños already loaded', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ ...mockPersona, fechaNacimiento: new Date('1990-01-01T00:00:00.000Z') });
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+
+      await reserva({ fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['2027-01-01', '1995-02-30', '1899-12-31'])('should reject an invalid cumpleaños (%s)', async (fecha) => {
+      prismaMock.persona.findUnique.mockResolvedValue(null);
+
+      await expect(reserva({ nombre: 'Juan', apellido: 'Pérez', fechaNacimiento: fecha })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.persona.create).not.toHaveBeenCalled();
+    });
+
+    it('should notify the negocio with the turno, the cliente and the forma de pago', async () => {
+      const persona = { ...mockPersona, nombre: 'Juan', apellido: 'Pérez', telefono: '3511234567', mail: 'juan@example.com', fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') };
+      prismaMock.persona.findUnique.mockResolvedValue(persona);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(persona));
+
+      await reserva();
+
+      expect(mail.sendAvisoNuevaReserva).toHaveBeenCalledWith(
+        ['barber@test.com'],
+        expect.objectContaining({
+          nombreCliente: 'Juan Pérez',
+          telefonoCliente: '3511234567',
+          servicios: ['Corte'],
+          formaPago: 'Efectivo',
+          observacion: 'Primera vez',
+          cumpleanos: '12/03',
+          clienteNuevo: false,
+          panelUrl: 'https://barber.test/turnos',
+        }),
+      );
+    });
+
+    it('should still return the turno if the aviso fails', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+      mail.sendAvisoNuevaReserva.mockRejectedValueOnce(new Error('resend caído'));
+
+      await expect(reserva()).resolves.toHaveProperty('idTurno');
+    });
+  });
+
+  describe('buscarClientePorEmail', () => {
+    it('should say when an existing cliente has no cumpleaños loaded', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ nombre: 'Juan', fechaNacimiento: null });
+      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({ existe: true, nombre: 'Juan', faltaFechaNacimiento: true });
+    });
+
+    it('should not expose data for an unknown email', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(null);
+      await expect(service.buscarClientePorEmail('nadie@example.com')).resolves.toEqual({ existe: false });
+    });
+  });
+
+  describe('getDisponibilidad', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should not offer horarios that already passed or start in less than 15 minutes', async () => {
+      // 14:10Z = 11:10 hora AR: el primer horario posible es 11:30 (11:25 + grilla de 30 min).
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T14:10:00.000Z').getTime());
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T14:30:00.000Z');
+      expect(slots).toHaveLength(12); // 11:30-13:00 (4) + 16:30-20:00 (8)
+    });
+
+    it('should use the anticipación configured by the negocio', async () => {
+      // 11:10 hora AR con 2 horas de anticipación: el primer horario posible es 13:30,
+      // que ya no entra en la franja de la mañana (un turno de 30 min terminaría 14:00).
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T14:10:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, reservaAnticipacionMinutos: 120 });
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T19:30:00.000Z'); // 16:30 hora AR
+      expect(slots).toHaveLength(8);
+    });
+
+    it('should offer the whole day when it is in the future', async () => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T12:00:00.000Z'); // 09:00 hora AR
+      expect(slots).toHaveLength(17);
     });
   });
 

@@ -66,7 +66,9 @@ export interface ConfiguracionNegocio {
   fidelizacionFechaInicio: string | null;
   descuentoEmpleadoActivo: boolean;
   descuentoEmpleadoPorcentaje: number | null;
+  recordatorioActivo: boolean;
   recordatorioHorasAntes: number;
+  reservaAnticipacionMinutos: number;
   updatedAt?: string;
 }
 
@@ -112,5 +114,7 @@ export interface UpdateConfiguracionRequest {
   fidelizacionFechaInicio?: string;
   descuentoEmpleadoActivo?: boolean;
   descuentoEmpleadoPorcentaje?: number;
+  recordatorioActivo?: boolean;
   recordatorioHorasAntes?: number;
+  reservaAnticipacionMinutos?: number;
 }

@@ -14,6 +14,7 @@
 #
 # Además verifica que no se pueda reservar un horario ya ocupado y que al
 # barbero le llegue el aviso de cancelación (2 mails al email del negocio).
+# Cada reserva también le manda al negocio el aviso de turno nuevo.
 #
 # Los clientes ficticios usan direcciones de prueba de Resend
 # (delivered+jornada-NN@resend.dev): los mails de confirmación se
@@ -28,8 +29,14 @@
 #   (fechas AAAA-MM-DD). Tienen que ser días abiertos, desde hoy en adelante;
 #   si es hoy, solo se reservan los horarios que todavía no pasaron.
 #
+# EN DESARROLLO (base en el contenedor peluqueria-db y backend con
+# `npm run start:dev`, que tiene que estar corriendo):
+#   ENTORNO=dev ./scripts/prueba-jornada.sh crear
+#
 # Variables opcionales:
-#   API_URL=http://127.0.0.1:8080/api   (el frontend, que reenvía /api al backend)
+#   ENTORNO=prod                        (prod o dev)
+#   API_URL=http://127.0.0.1:8080/api   (en dev: http://localhost:3000/api)
+#   DB_CONTAINER=peluqueria-db          (solo dev)
 #   COMPOSE_FILE=docker-compose.prod.yml
 #   ENV_FILE=.env.production            (de acá salen DB_USER y DB_NAME)
 #   SERVICIOS=1,3                       (ids a rotar; por defecto, los vigentes de hasta 60 min)
@@ -50,7 +57,13 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-API_URL="${API_URL:-http://127.0.0.1:8080/api}"
+ENTORNO="${ENTORNO:-prod}"
+if [ "$ENTORNO" = "dev" ]; then
+  API_URL="${API_URL:-http://localhost:3000/api}"
+else
+  API_URL="${API_URL:-http://127.0.0.1:8080/api}"
+fi
+DB_CONTAINER="${DB_CONTAINER:-peluqueria-db}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 PAUSA="${PAUSA:-13}"
@@ -72,12 +85,22 @@ leer_env() {
   grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -n1 | cut -d= -f2- | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
 }
 
-DB_USER="${DB_USER:-$(leer_env DB_USER)}"
-DB_NAME="${DB_NAME:-$(leer_env DB_NAME)}"
-
 compose() { docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"; }
-sql() { compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -t -A -F ' | ' -c "$1"; }
-ayudante() { compose exec -T backend node - "$@" < scripts/prueba-jornada-helper.js; }
+
+if [ "$ENTORNO" = "dev" ]; then
+  # Mismos defaults que apps/backend/docker-compose.yml.
+  DB_USER="${DB_USER:-peluquero}"
+  DB_NAME="${DB_NAME:-peluqueria}"
+  sql() { docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -t -A -F ' | ' -c "$1"; }
+  # El backend de dev corre en la máquina: el ayudante usa su .env y el dist
+  # que compila `npm run start:dev`.
+  ayudante() { (cd apps/backend && node -r dotenv/config - "$@" < ../../scripts/prueba-jornada-helper.js); }
+else
+  DB_USER="${DB_USER:-$(leer_env DB_USER)}"
+  DB_NAME="${DB_NAME:-$(leer_env DB_NAME)}"
+  sql() { compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -t -A -F ' | ' -c "$1"; }
+  ayudante() { compose exec -T backend node - "$@" < scripts/prueba-jornada-helper.js; }
+fi
 
 ok()  { echo "  ✔ $1"; PASS=$((PASS + 1)); }
 mal() { echo "  ✘ $1"; FAIL=$((FAIL + 1)); }
@@ -313,7 +336,7 @@ crear() {
   local previos
   previos=$(sql "SELECT count(*) FROM turnos t JOIN personas p ON p.\"idPersona\" = t.\"idPersona\" WHERE p.mail LIKE '$EMAIL_PATRON' AND t.estado <> 'CANCELADO';") || exit 1
 
-  echo "Prueba de jornada completa"
+  echo "Prueba de jornada completa ($ENTORNO)"
   echo "  API:        $API_URL"
   echo "  Día 1:      $(nombre_dia "$f1") ($(franjas_de "$f1"))"
   echo "  Día 2:      $(nombre_dia "$f2") ($(franjas_de "$f2"))"
@@ -321,8 +344,9 @@ crear() {
   echo "  Forma pago: id $ID_FORMA_PAGO"
   echo ""
   echo "  Se van a crear hasta ~$((lugares + 2)) clientes y turnos ficticios (mails a direcciones de"
-  echo "  prueba de Resend, no le llegan a nadie) y se van a mandar 2 avisos de cancelación al"
-  echo "  mail del negocio. Tarda unos $(( (lugares + 4) * PAUSA / 60 + 1 )) minutos."
+  echo "  prueba de Resend, no le llegan a nadie). Al mail del negocio le van a llegar un aviso"
+  echo "  de turno nuevo por cada reserva (~$((lugares + 2))) y 2 avisos de cancelación."
+  echo "  Tarda unos $(( (lugares + 4) * PAUSA / 60 + 1 )) minutos."
   echo "  Mientras corre, la reserva online puede rechazar clientes reales por el límite de pedidos."
   [ "$previos" -gt 0 ] && echo "  Hay $previos turnos de una prueba anterior sin limpiar (se mantienen)."
   if [ "$f1" = "$(TZ="$TZ_AR" date +%F)" ] || [ "$f2" = "$(TZ="$TZ_AR" date +%F)" ]; then
@@ -454,8 +478,18 @@ limpiar() {
 for programa in curl jq docker; do
   command -v "$programa" >/dev/null || { echo "Falta $programa." >&2; exit 1; }
 done
-[ -f "$ENV_FILE" ] || { echo "No encuentro $ENV_FILE (correr desde la carpeta del repo en la VPS o pasar ENV_FILE=...)." >&2; exit 1; }
-[ -n "$DB_USER" ] && [ -n "$DB_NAME" ] || { echo "No pude leer DB_USER/DB_NAME de $ENV_FILE." >&2; exit 1; }
+case "$ENTORNO" in
+  dev)
+    [ -f apps/backend/.env ] || { echo "No encuentro apps/backend/.env (lo necesita el backend de desarrollo)." >&2; exit 1; }
+    [ -f apps/backend/dist/modules/turnos/cancelacion-token.util.js ] \
+      || { echo "Falta apps/backend/dist: levantá el backend con 'npm run start:dev' (lo compila)." >&2; exit 1; }
+    ;;
+  prod)
+    [ -f "$ENV_FILE" ] || { echo "No encuentro $ENV_FILE (correr desde la carpeta del repo en la VPS o pasar ENV_FILE=...)." >&2; exit 1; }
+    [ -n "$DB_USER" ] && [ -n "$DB_NAME" ] || { echo "No pude leer DB_USER/DB_NAME de $ENV_FILE." >&2; exit 1; }
+    ;;
+  *) echo "ENTORNO tiene que ser prod o dev (vino '$ENTORNO')." >&2; exit 1 ;;
+esac
 
 case "${1:-}" in
   crear) shift; crear "$@" ;;
