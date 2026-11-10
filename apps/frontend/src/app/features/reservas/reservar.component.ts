@@ -216,7 +216,10 @@ import { reglaClub } from '../../shared/utils/fidelizacion.util';
               @if (clienteExistente()?.existe) {
                 <div class="alert alert-success mt-4">
                   <app-icon name="check-circle" [size]="18" />
-                  <span>¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente, no hace falta que completes más datos.</span>
+                  <span>
+                    ¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente,
+                    {{ clienteExistente()!.faltaFechaNacimiento ? 'solo te pedimos tu cumpleaños si querés dejarlo.' : 'no hace falta que completes más datos.' }}
+                  </span>
                 </div>
                 <button type="button" class="btn btn-ghost btn-xs mt-1" (click)="cambiarEmail()">¿No sos vos? Usar otro email</button>
                 @if (clienteExistente()!.fidelizacion; as f) {
