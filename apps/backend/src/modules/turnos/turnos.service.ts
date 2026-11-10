@@ -10,6 +10,7 @@ import { MailService } from '../mail/mail.service';
 import { horaArAUtc, inicioDiaAr, finDiaAr, diaCalendarioAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 import { urlCancelacion, verificarTokenCancelacion } from './cancelacion-token.util';
+import { contarVisitasCompletadas, progresoDeCliente, progresoDeTurno, ProgresoCliente } from './fidelizacion.util';
 
 interface HorarioDiaConfig {
   dia: number;
@@ -191,6 +192,13 @@ export class TurnosService {
     if (turno.persona.mail) {
       try {
         const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+        const fidelizacion = await progresoDeTurno(this.prisma, config, {
+          idTurno: turno.idTurno,
+          idPersona: turno.idPersona,
+          fechaHoraInicio: turno.fechaHoraInicio,
+          aplicaDescuentoPersonal: persona.aplicaDescuentoPersonal,
+          serviciosQueSuman: data.servicios.filter((s) => servicios.find((x) => x.idServicio === s.idServicio)?.cuentaParaFidelizacion).length,
+        });
         await this.mailService.sendTurnoConfirmacion(turno.persona.mail, {
           nombreCliente: turno.persona.nombre,
           fechaHoraInicio: turno.fechaHoraInicio,
@@ -202,6 +210,7 @@ export class TurnosService {
           logoUrl: config?.logoUrl,
           colorPrimario: config?.colorPrimario,
           cancelarUrl: this.urlCancelacionDe(turno.idTurno),
+          fidelizacion,
         });
       } catch {
         // Silencioso
@@ -604,16 +613,7 @@ export class TurnosService {
       .sort((a: any, b: any) => a.idTurnoDetalle - b.idTurnoDetalle);
     if (detallesQueCuentan.length === 0) return;
 
-    const visitasPrevias = await this.prisma.turnoDetalle.count({
-      where: {
-        servicio: { cuentaParaFidelizacion: true },
-        turno: {
-          idPersona: turno.idPersona,
-          estado: 'COMPLETADO',
-          ...(config.fidelizacionFechaInicio ? { fechaHoraInicio: { gte: config.fidelizacionFechaInicio } } : {}),
-        },
-      },
-    });
+    const visitasPrevias = await contarVisitasCompletadas(this.prisma, turno.idPersona, config.fidelizacionFechaInicio);
 
     const visitasRequeridas = config.fidelizacionVisitasRequeridas;
     const descuentoPorcentaje = Number(config.fidelizacionDescuentoPorcentaje);
@@ -707,10 +707,24 @@ export class TurnosService {
    * Para el paso "Tus datos" del turnero público: si el email ya es de un
    * cliente, el frontend se salta el formulario de nombre/apellido/teléfono.
    * faltaFechaNacimiento: si no tiene el cumpleaños cargado, se le pide solo ese dato.
+   * fidelizacion: cuántas visitas lleva en el club (null si el programa está apagado).
    */
-  async buscarClientePorEmail(email: string): Promise<{ existe: boolean; nombre?: string; faltaFechaNacimiento?: boolean }> {
-    const persona = await this.prisma.persona.findUnique({ where: { mail: email }, select: { nombre: true, fechaNacimiento: true } });
-    return persona ? { existe: true, nombre: persona.nombre, faltaFechaNacimiento: !persona.fechaNacimiento } : { existe: false };
+  async buscarClientePorEmail(
+    email: string,
+  ): Promise<{ existe: boolean; nombre?: string; faltaFechaNacimiento?: boolean; fidelizacion?: ProgresoCliente | null }> {
+    const persona = await this.prisma.persona.findUnique({
+      where: { mail: email },
+      select: { idPersona: true, nombre: true, fechaNacimiento: true, aplicaDescuentoPersonal: true },
+    });
+    if (!persona) return { existe: false };
+
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    return {
+      existe: true,
+      nombre: persona.nombre,
+      faltaFechaNacimiento: !persona.fechaNacimiento,
+      fidelizacion: await progresoDeCliente(this.prisma, config, persona),
+    };
   }
 
   /** Formas de pago vigentes, para el selector del formulario de reserva pública. */

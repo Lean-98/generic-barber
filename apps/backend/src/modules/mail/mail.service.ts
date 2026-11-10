@@ -1,3 +1,4 @@
+import type { ProgresoTurno } from '../turnos/fidelizacion.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -18,6 +19,8 @@ export interface TurnoMailData {
   colorPrimario?: string | null;
   /** Link firmado para que el cliente cancele el turno él mismo (ver cancelacion-token.util.ts). */
   cancelarUrl?: string | null;
+  /** Visitas del club de fidelización; null si el programa está apagado o el turno no suma. */
+  fidelizacion?: ProgresoTurno | null;
 }
 
 /** Datos del aviso que recibe el barbero cuando un cliente cancela desde el link del mail. */
@@ -359,6 +362,34 @@ export class MailService {
     return true;
   }
 
+  /** Cuántas visitas lleva el cliente en el club, o si este turno ya tiene el descuento. */
+  private bloqueFidelizacion(f: ProgresoTurno, color: string): string {
+    const pct = `${Number(f.descuentoPorcentaje.toFixed(2))}%`;
+    const faltan = f.visitasRequeridas - f.visitaEnCiclo;
+    const titulo = f.conDescuento ? `¡Este turno tiene ${pct} de descuento!` : `Visita ${f.visitaEnCiclo} de ${f.visitasRequeridas} del club`;
+    const texto = f.conDescuento
+      ? `Es tu visita ${f.visitasRequeridas} del club: el descuento se aplica al cobrar.`
+      : `Te ${faltan === 1 ? 'falta 1 visita' : `faltan ${faltan} visitas`} para tu ${pct} de descuento.`;
+    const aclaracion = f.cuentaTurnosPendientes ? ' Contamos los turnos que ya tenés reservados antes de este.' : '';
+
+    // Puntitos de progreso; con muchas visitas por ciclo se omiten para no romper el ancho del mail.
+    const puntos =
+      f.visitasRequeridas <= 12
+        ? `<div style="margin-top:10px;">${Array.from({ length: f.visitasRequeridas }, (_, i) => {
+            const lleno = f.conDescuento || i < f.visitaEnCiclo;
+            return `<span style="display:inline-block;width:14px;height:14px;margin:0 4px 0 0;border-radius:50%;background-color:${lleno ? color : MARCA.base300};"></span>`;
+          }).join('')}</div>`
+        : '';
+
+    return `
+              <div style="margin:24px 32px 0;padding:16px 18px;background-color:${MARCA.base200};border-left:3px solid ${color};border-radius:0 6px 6px 0;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${color};">Club de fidelización</p>
+                <p style="margin:0;font-size:16px;font-weight:700;color:${MARCA.neutral};">${titulo}</p>
+                <p style="margin:4px 0 0;font-size:13px;color:${MARCA.textoCuerpo};line-height:1.5;">${texto}${aclaracion}</p>
+                ${puntos}
+              </div>`;
+  }
+
   private colorPrimario(data: { colorPrimario?: string | null }): string {
     return data.colorPrimario && /^#[0-9a-fA-F]{6}$/.test(data.colorPrimario)
       ? data.colorPrimario
@@ -426,6 +457,8 @@ export class MailService {
                   ${data.direccion ? fila('Dirección', data.direccion) : ''}
                 </table>
               </div>
+
+              ${data.fidelizacion ? this.bloqueFidelizacion(data.fidelizacion, color) : ''}
 
               ${data.whatsappUrl ? `
               <div style="padding:24px 32px 4px;text-align:center;">

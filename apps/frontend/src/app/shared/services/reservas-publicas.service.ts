@@ -26,6 +26,16 @@ export interface ClienteExistenteResponse {
   nombre?: string;
   /** Cliente existente sin cumpleaños cargado: se le pide solo ese dato. */
   faltaFechaNacimiento?: boolean;
+  /** Visitas en el club de fidelización; null si el programa está apagado o es empleado. */
+  fidelizacion?: ProgresoClub | null;
+}
+
+export interface ProgresoClub {
+  visitasRequeridas: number;
+  descuentoPorcentaje: number;
+  /** Hechas o ya reservadas en el ciclo actual, de 0 a N-1. */
+  visitasEnCiclo: number;
+  proximaConDescuento: boolean;
 }
 
 export interface FormaPagoPublica {

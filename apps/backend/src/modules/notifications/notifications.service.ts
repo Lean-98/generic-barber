@@ -4,6 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { urlCancelacion } from '../turnos/cancelacion-token.util';
+import { progresoDeTurno } from '../turnos/fidelizacion.util';
 
 const CONFIG_ID = 1;
 
@@ -52,6 +53,13 @@ export class NotificationsService {
       if (!turno.persona.mail) continue;
 
       try {
+        const fidelizacion = await progresoDeTurno(this.prisma, config, {
+          idTurno: turno.idTurno,
+          idPersona: turno.idPersona,
+          fechaHoraInicio: turno.fechaHoraInicio,
+          aplicaDescuentoPersonal: turno.persona.aplicaDescuentoPersonal,
+          serviciosQueSuman: turno.detalles.filter((d) => d.servicio.cuentaParaFidelizacion).length,
+        });
         const enviado = await this.mailService.sendTurnoRecordatorio(turno.persona.mail, {
           nombreCliente: turno.persona.nombre,
           fechaHoraInicio: turno.fechaHoraInicio,
@@ -62,6 +70,7 @@ export class NotificationsService {
           logoUrl: config?.logoUrl,
           colorPrimario: config?.colorPrimario,
           cancelarUrl: frontendUrl && secreto ? urlCancelacion(frontendUrl, turno.idTurno, secreto) : null,
+          fidelizacion,
         });
 
         if (!enviado) continue;

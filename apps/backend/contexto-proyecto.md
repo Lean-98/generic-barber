@@ -17,6 +17,7 @@
 - **Personas**: CRUD, búsqueda por nombre/apellido/email/teléfono (el teléfono se encuentra aunque se escriba con espacios o guiones), historial de turnos. El teléfono se guarda normalizado (`@IsTelefono`).
 - **Servicios / Categorías de servicios**: CRUD con baja lógica, historial de precio/duración/vigencia, duración de 5 a 180 minutos, costo de insumos interno.
 - **Turnos**: patrón State. Nacen `CONFIRMADO`; `TurnosCronService` los pasa a `EN_PROCESO` y `COMPLETADO` por reloj. Cancelar y "No vino" son manuales (no-show también desde `EN_PROCESO` y desde `COMPLETADO` sin pagos).
+- **Fidelización**: `fidelizacion.util.ts` calcula las visitas del club (mismo conteo que `aplicarDescuentoFidelizacion`) para los mails y para `GET /turnos-publicos/cliente`.
 - **Turnos públicos**: disponibilidad, reserva, y cancelación por el cliente con token firmado (`cancelacion-token.util.ts`), con aviso por mail al barbero.
 - **Caja**: pagos de turnos, venta de productos con descuento de stock, egresos y cierre de caja (Facade + Strategy).
 - **Productos / Categorías / Cursos**: catálogo de la web; productos con stock opcional y aviso de stock bajo.

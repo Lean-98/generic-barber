@@ -11,6 +11,7 @@ import { EmailValidoPipe, EMAIL_REGEX } from '../../shared/pipes/email-valido.pi
 import { BrandingService } from '../../core/services/branding.service';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
 import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
+import { reglaClub } from '../../shared/utils/fidelizacion.util';
 
 @Component({
   selector: 'app-reservar',
@@ -66,6 +67,12 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                           <app-icon name="clock" [size]="14" />
                           {{ servicio.duracionMinutos }} min
                         </p>
+                        @if (club() && servicio.cuentaParaFidelizacion) {
+                          <span class="badge badge-primary badge-outline badge-sm mt-2 gap-1">
+                            <app-icon name="star" [size]="10" />
+                            Suma al club
+                          </span>
+                        }
                       </div>
                       <p class="tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</p>
                     </div>
@@ -212,6 +219,33 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                   <span>¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente, no hace falta que completes más datos.</span>
                 </div>
                 <button type="button" class="btn btn-ghost btn-xs mt-1" (click)="cambiarEmail()">¿No sos vos? Usar otro email</button>
+                @if (clienteExistente()!.fidelizacion; as f) {
+                  <div class="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <p class="flex items-center gap-2 font-semibold">
+                      <app-icon name="star" [size]="16" className="text-primary" />
+                      @if (f.proximaConDescuento) {
+                        ¡Tu próxima visita tiene {{ f.descuentoPorcentaje }}% de descuento!
+                      } @else {
+                        Llevás {{ f.visitasEnCiclo }} de {{ f.visitasRequeridas }} visitas en el club
+                      }
+                    </p>
+                    @if (f.visitasRequeridas <= 12) {
+                      <div class="mt-2 flex gap-1.5" aria-hidden="true">
+                        @for (i of puntosClub(f.visitasRequeridas); track i) {
+                          <span class="h-3 w-3 rounded-full" [class.bg-primary]="i < f.visitasEnCiclo || (f.proximaConDescuento && i === f.visitasRequeridas - 1)" [class.bg-base-300]="!(i < f.visitasEnCiclo || (f.proximaConDescuento && i === f.visitasRequeridas - 1))"></span>
+                        }
+                      </div>
+                    }
+                    <p class="mt-2 text-xs text-base-content/60">
+                      @if (f.proximaConDescuento) {
+                        Se aplica al cobrar, si reservás un servicio que suma al club.
+                      } @else {
+                        Te {{ f.visitasRequeridas - f.visitasEnCiclo === 1 ? 'falta 1 visita' : 'faltan ' + (f.visitasRequeridas - f.visitasEnCiclo) + ' visitas' }} para tu {{ f.descuentoPorcentaje }}% de descuento.
+                      }
+                      Contamos tus visitas hechas y los turnos que ya tenés reservados.
+                    </p>
+                  </div>
+                }
               } @else if (clienteExistente()) {
                 <div class="grid gap-4 md:grid-cols-2 mt-4">
                   <div class="form-control">
@@ -233,6 +267,13 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                     <input type="tel" inputmode="tel" class="input input-bordered w-full" [(ngModel)]="telefono" name="telefono" placeholder="351 1234567" />
                     <label class="label"><span class="label-text-alt text-base-content/60">Con código de área, sin el 0 ni el 15. Ej: 351 1234567</span></label>
                   </div>
+                </div>
+              }
+
+              @if (clienteExistente() && !clienteExistente()!.existe && club(); as regla) {
+                <div class="mt-4 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <app-icon name="star" [size]="16" className="mt-0.5 shrink-0 text-primary" />
+                  <span>Sumate al club: cada {{ regla.visitasRequeridas }} visitas tenés {{ regla.descuento }} de descuento. Suman los servicios marcados con la estrella.</span>
                 </div>
               }
 
@@ -364,6 +405,8 @@ export class ReservarComponent implements OnInit {
   clienteExistente = signal<ClienteExistenteResponse | null>(null);
   private emailVerificado = '';
   readonly hoy = fechaLocal(new Date());
+  /** Regla del club de fidelización (null si está apagado). */
+  club = computed(() => reglaClub(this.branding()));
   /** Al cliente nuevo, y al que ya existe pero no tiene el cumpleaños cargado. */
   pedirCumpleanos = computed(() => {
     const cliente = this.clienteExistente();
@@ -522,6 +565,10 @@ export class ReservarComponent implements OnInit {
     this.apellido.set('');
     this.telefono.set('');
     this.fechaNacimiento.set('');
+  }
+
+  puntosClub(n: number): number[] {
+    return Array.from({ length: n }, (_, i) => i);
   }
 
   puedeReservar(): boolean {

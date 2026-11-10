@@ -5,6 +5,8 @@ import { ClaveBloqueClub, ConfiguracionNegocio } from '../../shared/models/confi
 import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
+import { ServiciosService } from '../../shared/services/servicios.service';
+import { reglaClub } from '../../shared/utils/fidelizacion.util';
 
 const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
   presentarTarjeta: 'credit-card',
@@ -66,11 +68,36 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
             <span class="text-base-content/70">Cargando...</span>
           </div>
         } @else {
-          @if (beneficios().length === 0) {
+          @if (club(); as regla) {
+            <div class="card mb-6 border border-primary/40 bg-base-100 shadow-md">
+              <div class="card-body sm:flex-row sm:items-center sm:gap-6">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-content">
+                  <app-icon name="star" [size]="26" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Programa de visitas</p>
+                  <h2 class="font-display mt-1 text-2xl font-semibold">
+                    Cada {{ regla.visitasRequeridas }} visitas, {{ regla.descuento }} de descuento
+                  </h2>
+                  <p class="mt-1 text-sm text-base-content/70">
+                    En tu visita número {{ regla.visitasRequeridas }} se aplica el descuento al cobrar, y vuelve a empezar.
+                    Te avisamos cuántas llevás en el mail de cada turno.
+                  </p>
+                  @if (serviciosQueSuman().length > 0) {
+                    <p class="mt-2 text-sm text-base-content/70">
+                      <span class="font-medium text-base-content">Suman:</span> {{ serviciosQueSuman().join(', ') }}.
+                    </p>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (beneficios().length === 0 && !club()) {
             <p class="rounded-xl bg-base-200/50 py-16 text-center text-base-content/60">
               Todavía no hay beneficios cargados.
             </p>
-          } @else {
+          } @else if (beneficios().length > 0) {
             <div class="grid gap-6 sm:grid-cols-2">
               @for (beneficio of beneficios(); track beneficio.clave) {
                 <div class="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
@@ -104,6 +131,8 @@ const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
 })
 export class ClubComponent implements OnInit {
   private readonly configuracionService = inject(ConfiguracionService);
+  private readonly serviciosService = inject(ServiciosService);
+  serviciosQueSuman = signal<string[]>([]);
 
   config = signal<ConfiguracionNegocio>({
     nombre: 'Peluquería',
@@ -160,6 +189,8 @@ export class ClubComponent implements OnInit {
     return nombre ? `${nombre} Club` : 'Club';
   });
 
+  club = computed(() => reglaClub(this.config()));
+
   beneficios = computed(() =>
     (this.config().clubBeneficios ?? [])
       .filter((b) => !!b.descripcion?.trim())
@@ -173,6 +204,10 @@ export class ClubComponent implements OnInit {
         this.cargando.set(false);
       },
       error: () => this.cargando.set(false),
+    });
+    this.serviciosService.findAll(true, undefined, 1, 100).subscribe({
+      next: (res) => this.serviciosQueSuman.set(res.data.filter((s) => s.cuentaParaFidelizacion).map((s) => s.nombre)),
+      error: () => this.serviciosQueSuman.set([]),
     });
   }
 }

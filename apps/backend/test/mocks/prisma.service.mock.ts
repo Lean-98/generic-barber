@@ -36,6 +36,8 @@ export class PrismaServiceMock {
     create: jest.fn(),
     createMany: jest.fn(),
     findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
   };
 
   persona = {

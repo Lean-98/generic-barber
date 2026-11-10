@@ -513,8 +513,28 @@ describe('TurnosService', () => {
 
   describe('buscarClientePorEmail', () => {
     it('should say when an existing cliente has no cumpleaños loaded', async () => {
-      prismaMock.persona.findUnique.mockResolvedValue({ nombre: 'Juan', fechaNacimiento: null });
-      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({ existe: true, nombre: 'Juan', faltaFechaNacimiento: true });
+      prismaMock.persona.findUnique.mockResolvedValue({ idPersona: 1, nombre: 'Juan', fechaNacimiento: null, aplicaDescuentoPersonal: false });
+      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({
+        existe: true,
+        nombre: 'Juan',
+        faltaFechaNacimiento: true,
+        fidelizacion: null, // el programa está apagado en mockConfigConHorarios
+      });
+    });
+
+    it('should tell an existing cliente how many visitas they have in the club', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ idPersona: 1, nombre: 'Juan', fechaNacimiento: null, aplicaDescuentoPersonal: false });
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({
+        fidelizacionActiva: true,
+        fidelizacionVisitasRequeridas: 5,
+        fidelizacionDescuentoPorcentaje: '50',
+        fidelizacionFechaInicio: null,
+      });
+      prismaMock.turnoDetalle.count.mockResolvedValueOnce(3).mockResolvedValueOnce(1); // 3 hechas + 1 reservada
+
+      const { fidelizacion } = await service.buscarClientePorEmail('juan@example.com');
+
+      expect(fidelizacion).toEqual({ visitasRequeridas: 5, descuentoPorcentaje: 50, visitasEnCiclo: 4, proximaConDescuento: true });
     });
 
     it('should not expose data for an unknown email', async () => {
