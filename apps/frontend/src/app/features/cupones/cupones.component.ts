@@ -95,7 +95,7 @@ function diaMes(fecha: string): string {
                           <app-icon [name]="c.activo ? 'x' : 'check'" [size]="16" />
                         </button>
                         @if (c.usos === 0) {
-                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="eliminar(c)" title="Borrar" aria-label="Borrar">
+                          <button class="btn btn-ghost btn-sm text-error hover:bg-error/10" (click)="confirmarEliminar(c)" title="Borrar" aria-label="Borrar">
                             <app-icon name="trash" [size]="16" />
                           </button>
                         }
@@ -201,11 +201,35 @@ function diaMes(fecha: string): string {
       </div>
       <form method="dialog" class="modal-backdrop"><button>cerrar</button></form>
     </dialog>
+
+    <dialog #eliminarModal class="modal">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold text-error">Borrar cupón</h3>
+        @if (cuponAEliminar(); as c) {
+          <p class="py-4">
+            ¿Querés borrar el cupón <strong class="font-mono">{{ c.codigo }}</strong> ({{ c.descuentoPorcentaje }}%)?
+            Si ya lo compartiste, el código va a dejar de funcionar.
+          </p>
+        }
+        <div class="modal-action">
+          <button class="btn btn-ghost" (click)="cerrarEliminar()">Cancelar</button>
+          <button class="btn btn-error" [disabled]="eliminando()" (click)="eliminar()">
+            {{ eliminando() ? 'Borrando...' : 'Borrar' }}
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button (click)="cerrarEliminar()">cerrar</button>
+      </form>
+    </dialog>
   `,
 })
 export class CuponesComponent implements OnInit {
   private readonly cuponesService = inject(CuponesService);
   @ViewChild('modal') modalRef!: ElementRef<HTMLDialogElement>;
+  @ViewChild('eliminarModal') eliminarModalRef!: ElementRef<HTMLDialogElement>;
+  cuponAEliminar = signal<Cupon | null>(null);
+  eliminando = signal(false);
 
   readonly estados = ESTADOS;
   cupones = signal<Cupon[]>([]);
@@ -315,14 +339,32 @@ export class CuponesComponent implements OnInit {
     });
   }
 
-  eliminar(c: Cupon): void {
-    if (!confirm(`¿Borrar el cupón ${c.codigo}?`)) return;
+  confirmarEliminar(c: Cupon): void {
+    this.cuponAEliminar.set(c);
+    this.eliminarModalRef.nativeElement.showModal();
+  }
+
+  cerrarEliminar(): void {
+    this.eliminarModalRef.nativeElement.close();
+    this.cuponAEliminar.set(null);
+  }
+
+  eliminar(): void {
+    const c = this.cuponAEliminar();
+    if (!c) return;
+    this.eliminando.set(true);
     this.cuponesService.remove(c.idCupon).subscribe({
       next: () => {
+        this.eliminando.set(false);
+        this.cerrarEliminar();
         this.cargar();
         this.mostrarAviso(`Cupón ${c.codigo} borrado.`);
       },
-      error: (err) => this.errorLista.set(mensajeDeErrorHttp(err, 'No se pudo borrar el cupón')),
+      error: (err) => {
+        this.eliminando.set(false);
+        this.cerrarEliminar();
+        this.errorLista.set(mensajeDeErrorHttp(err, 'No se pudo borrar el cupón'));
+      },
     });
   }
 
