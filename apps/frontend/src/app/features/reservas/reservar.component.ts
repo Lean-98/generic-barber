@@ -252,7 +252,7 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                   <label class="label">
                     <span class="label-text-alt text-base-content/60">
                       <app-icon name="star" [size]="12" className="inline -mt-0.5" />
-                      La usamos solo para hacerte un beneficio en tu cumpleaños. No se comparte con nadie.
+                      La usamos solo para hacerte un beneficio en tu cumpleaños.
                     </span>
                   </label>
                 </div>
