@@ -25,6 +25,13 @@ const DESCUENTO_MOTIVO_FIDELIZACION = 'FIDELIZACION';
 const DESCUENTO_MOTIVO_EMPLEADO = 'EMPLEADO';
 /** Estados desde los que el cliente todavía puede cancelar con el link del mail. */
 const ESTADOS_CANCELABLES_POR_CLIENTE = ['PENDIENTE', 'CONFIRMADO'];
+/**
+ * Anticipación mínima para reservar online: no se ofrecen ni se aceptan
+ * horarios que ya pasaron o que empiezan en menos de esto. Solo aplica a la
+ * reserva pública; desde el panel se puede cargar un turno pasado (ej. un
+ * cliente que vino sin turno).
+ */
+const ANTICIPACION_MINIMA_RESERVA_MIN = 15;
 
 export type OrigenCancelacion = 'CLIENTE' | 'PANEL';
 
@@ -656,6 +663,7 @@ export class TurnosService {
 
     const slots: string[] = [];
     const intervalo = 30; // minutos
+    const primerInicioPosible = this.primerInicioReservable();
     for (const franja of franjas) {
       const [horaAbre, minAbre] = franja.abre.split(':').map(Number);
       const [horaCierra, minCierra] = franja.cierra.split(':').map(Number);
@@ -667,6 +675,7 @@ export class TurnosService {
         const slotFin = new Date(slotInicio.getTime() + duracionTotal * 60000);
 
         if (slotFin > finFranja) break;
+        if (slotInicio < primerInicioPosible) continue;
 
         const ocupado = turnosOcupados.some((turno) => {
           const tInicio = new Date(turno.fechaHoraInicio);
@@ -687,6 +696,10 @@ export class TurnosService {
     return { slots, duracionTotal };
   }
 
+  private primerInicioReservable(): Date {
+    return new Date(Date.now() + ANTICIPACION_MINIMA_RESERVA_MIN * 60_000);
+  }
+
   /** Para el paso "Tus datos" del turnero público: si el email ya es de un cliente, el frontend se salta el formulario de nombre/apellido/teléfono. */
   async buscarClientePorEmail(email: string): Promise<{ existe: boolean; nombre?: string }> {
     const persona = await this.prisma.persona.findUnique({ where: { mail: email }, select: { nombre: true } });
@@ -703,6 +716,12 @@ export class TurnosService {
   }
 
   async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
+    // 0. Antes de crear la persona: si no, un horario rechazado igual dejaba
+    // un cliente nuevo cargado.
+    if (new Date(data.fechaHoraInicio) < this.primerInicioReservable()) {
+      throw new BadRequestException('Ese horario ya pasó o está por empezar. Elegí otro horario.');
+    }
+
     // 1. Buscar o crear persona por email
     let persona = await this.prisma.persona.findUnique({
       where: { mail: data.email },

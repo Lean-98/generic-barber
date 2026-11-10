@@ -11,6 +11,16 @@ import { cleanDatabase } from './setup-e2e';
  * Flujo probado:
  *   Cliente sin login → GET disponibilidad → POST reservar → Turno creado
  */
+// Un martes de la semana que viene o la siguiente (horario partido 9:00-13:30
+// y 16:30-20:30 AR). Tiene que ser futuro: la reserva online no ofrece ni
+// acepta horarios que ya pasaron.
+function proximoMartes(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7 + ((2 - d.getUTCDay() + 7) % 7));
+  return d.toISOString().slice(0, 10);
+}
+const FECHA = proximoMartes();
+
 describe('TurnosPublicosController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -56,9 +66,9 @@ describe('TurnosPublicosController (e2e)', () => {
         },
       });
 
-      // 2026-06-16 es martes: horario partido 9:00-13:30 / 16:30-20:30 AR
+      // FECHA es martes: horario partido 9:00-13:30 / 16:30-20:30 AR
       // (ver configuracion_negocio.horarios); el lunes (dia: 1) está cerrado.
-      const fecha = '2026-06-16';
+      const fecha = FECHA;
 
       // Act
       const response = await request(app.getHttpServer())
@@ -72,7 +82,7 @@ describe('TurnosPublicosController (e2e)', () => {
       expect(response.body.slots.length).toBeGreaterThan(0);
       // Primera franja abre 9:00 hora Argentina (UTC-3): en UTC es 12:00,
       // ya que las fechas se serializan siempre en UTC.
-      expect(response.body.slots[0]).toContain('2026-06-16T12:00:00');
+      expect(response.body.slots[0]).toContain(`${FECHA}T12:00:00`);
     });
 
     it('should return empty slots when all day is occupied', async () => {
@@ -93,7 +103,7 @@ describe('TurnosPublicosController (e2e)', () => {
       // Ocupar ambas franjas del horario partido (9:00-13:30 y 16:30-20:30
       // AR, es decir 12:00-23:30 UTC) cada 30 min, para que no quede ningún
       // slot libre en ninguna de las dos.
-      const fecha = '2026-06-16';
+      const fecha = FECHA;
       for (let hora = 12; hora < 24; hora++) {
         for (let minuto = 0; minuto < 60; minuto += 30) {
           const inicio = new Date(`${fecha}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00Z`);
@@ -140,8 +150,8 @@ describe('TurnosPublicosController (e2e)', () => {
         apellido: 'Gómez',
         email: 'maria@example.com',
         telefono: '+54 11 9876-5432',
-        // 2026-06-16 (martes) 12:00 UTC = 9:00 AR, apertura de la franja matutina.
-        fechaHoraInicio: '2026-06-16T12:00:00.000Z',
+        // FECHA (martes) 12:00 UTC = 9:00 AR, apertura de la franja matutina.
+        fechaHoraInicio: `${FECHA}T12:00:00.000Z`,
         observacion: 'Primera vez',
         servicios: [{ idServicio: servicio.idServicio, cantidad: 1 }],
         idFormaPagoPreferida: formaPago.idFormaPago,
@@ -194,8 +204,8 @@ describe('TurnosPublicosController (e2e)', () => {
         nombre: 'Carlos',
         apellido: 'López',
         email: 'carlos@example.com',
-        // 2026-06-16 (martes) 14:00 UTC = 11:00 AR, dentro de la franja matutina.
-        fechaHoraInicio: '2026-06-16T14:00:00.000Z',
+        // FECHA (martes) 14:00 UTC = 11:00 AR, dentro de la franja matutina.
+        fechaHoraInicio: `${FECHA}T14:00:00.000Z`,
         servicios: [{ idServicio: servicio.idServicio, cantidad: 1 }],
         idFormaPagoPreferida: formaPago.idFormaPago,
       };

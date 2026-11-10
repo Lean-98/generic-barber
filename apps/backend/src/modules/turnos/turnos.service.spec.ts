@@ -331,6 +331,32 @@ describe('TurnosService', () => {
   });
 
   describe('reservarPublica', () => {
+    // FECHA_DENTRO_DE_HORARIO tiene que ser futura respecto de "ahora".
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should reject a horario that already started or starts in less than 15 minutes, before creating the persona', async () => {
+      // 12:50Z: el turno de las 13:00Z empieza en 10 minutos.
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T12:50:00.000Z').getTime());
+
+      await expect(
+        service.reservarPublica({
+          nombre: 'Juan',
+          apellido: 'Pérez',
+          email: 'nuevo@example.com',
+          fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+          servicios: [{ idServicio: 1 }],
+          idFormaPagoPreferida: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.persona.create).not.toHaveBeenCalled();
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+    });
+
     it('should pass idFormaPagoPreferida through to the created turno', async () => {
       prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
       prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
@@ -357,6 +383,35 @@ describe('TurnosService', () => {
           data: expect.objectContaining({ idFormaPagoPreferida: 1, estado: 'CONFIRMADO' }),
         }),
       );
+    });
+  });
+
+  describe('getDisponibilidad', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should not offer horarios that already passed or start in less than 15 minutes', async () => {
+      // 14:10Z = 11:10 hora AR: el primer horario posible es 11:30 (11:25 + grilla de 30 min).
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T14:10:00.000Z').getTime());
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T14:30:00.000Z');
+      expect(slots).toHaveLength(12); // 11:30-13:00 (4) + 16:30-20:00 (8)
+    });
+
+    it('should offer the whole day when it is in the future', async () => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T12:00:00.000Z'); // 09:00 hora AR
+      expect(slots).toHaveLength(17);
     });
   });
 
