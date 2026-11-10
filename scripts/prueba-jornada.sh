@@ -14,6 +14,7 @@
 #
 # Además verifica que no se pueda reservar un horario ya ocupado y que al
 # barbero le llegue el aviso de cancelación (2 mails al email del negocio).
+# Cada reserva también le manda al negocio el aviso de turno nuevo.
 #
 # Los clientes ficticios usan direcciones de prueba de Resend
 # (delivered+jornada-NN@resend.dev): los mails de confirmación se
@@ -321,8 +322,9 @@ crear() {
   echo "  Forma pago: id $ID_FORMA_PAGO"
   echo ""
   echo "  Se van a crear hasta ~$((lugares + 2)) clientes y turnos ficticios (mails a direcciones de"
-  echo "  prueba de Resend, no le llegan a nadie) y se van a mandar 2 avisos de cancelación al"
-  echo "  mail del negocio. Tarda unos $(( (lugares + 4) * PAUSA / 60 + 1 )) minutos."
+  echo "  prueba de Resend, no le llegan a nadie). Al mail del negocio le van a llegar un aviso"
+  echo "  de turno nuevo por cada reserva (~$((lugares + 2))) y 2 avisos de cancelación."
+  echo "  Tarda unos $(( (lugares + 4) * PAUSA / 60 + 1 )) minutos."
   echo "  Mientras corre, la reserva online puede rechazar clientes reales por el límite de pedidos."
   [ "$previos" -gt 0 ] && echo "  Hay $previos turnos de una prueba anterior sin limpiar (se mantienen)."
   if [ "$f1" = "$(TZ="$TZ_AR" date +%F)" ] || [ "$f2" = "$(TZ="$TZ_AR" date +%F)" ]; then
