@@ -63,13 +63,19 @@ model Turno {
   /// puede calcular más adelante cuánta anticipación tuvo cada cancelación.
   canceladoEn  DateTime? @map("cancelado_en")
   canceladoPor String?   @map("cancelado_por")
+  /// Cupón con el que se reservó online (el descuento queda en los detalles,
+  /// con descuentoMotivo = "CUPON"). Sirve para contar usos: un turno
+  /// cancelado devuelve el cupón.
+  idCupon      Int?      @map("id_cupon")
 
   persona             Persona        @relation(fields: [idPersona], references: [idPersona])
   detalles             TurnoDetalle[]
   pagos                Pago[]
   movimientos          MovimientoCaja[]
   formaPagoPreferida   FormaPago?     @relation(fields: [idFormaPagoPreferida], references: [idFormaPago])
+  cupon                Cupon?         @relation(fields: [idCupon], references: [idCupon])
 
+  @@index([idCupon])
   @@map("turnos")
 }
 
@@ -356,4 +362,27 @@ model CostosNegocio {
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("costos_negocio")
+}
+
+/// Cupón de descuento para la reserva online (ej. "HOY20" para compartir por
+/// WhatsApp). Vale para las reservas hechas entre vigenteDesde y vigenteHasta
+/// (el día del turno no importa), una vez por cliente (email), para todos los
+/// servicios. No se acumula con otros descuentos: se aplica el mayor.
+model Cupon {
+  idCupon             Int      @id @default(autoincrement())
+  /// En mayúsculas, sin espacios.
+  codigo              String   @unique
+  descripcion         String?
+  descuentoPorcentaje Decimal  @db.Decimal(5, 2) @map("descuento_porcentaje")
+  vigenteDesde        DateTime @map("vigente_desde")
+  vigenteHasta        DateTime @map("vigente_hasta")
+  /// Cupo total ("los primeros 10"); null = sin límite.
+  usosMaximos         Int?     @map("usos_maximos")
+  /// Pausado desde el panel.
+  activo              Boolean  @default(true)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  turnos Turno[]
+
+  @@map("cupones")
 }

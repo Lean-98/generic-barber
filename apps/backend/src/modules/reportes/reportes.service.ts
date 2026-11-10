@@ -80,6 +80,9 @@ export interface ReporteRentabilidad {
   /** Lo que se dejó de cobrar por el programa de fidelización. */
   costoFidelizacion: number;
   serviciosConFidelizacion: number;
+  /** Lo que se dejó de cobrar por cupones de descuento. */
+  costoCupones: number;
+  serviciosConCupon: number;
   margenPromedioPorTurno: number | null;
   turnosParaCubrirFijosMes: number | null;
   turnosParaCubrirFijosPeriodo: number | null;
@@ -395,6 +398,8 @@ export class ReportesService {
     let costosVariables = 0;
     let costoFidelizacion = 0;
     let serviciosConFidelizacion = 0;
+    let costoCupones = 0;
+    let serviciosConCupon = 0;
 
     for (const turno of turnos) {
       for (const d of turno.detalles) {
@@ -406,6 +411,9 @@ export class ReportesService {
         if (d.descuentoMotivo === 'FIDELIZACION') {
           costoFidelizacion += descuento;
           serviciosConFidelizacion += d.cantidad;
+        } else if (d.descuentoMotivo === 'CUPON') {
+          costoCupones += descuento;
+          serviciosConCupon += d.cantidad;
         }
       }
     }
@@ -452,6 +460,8 @@ export class ReportesService {
       resultado: redondear(margenContribucion - costosFijosPeriodo),
       costoFidelizacion: redondear(costoFidelizacion),
       serviciosConFidelizacion,
+      costoCupones: redondear(costoCupones),
+      serviciosConCupon,
       margenPromedioPorTurno: margenPromedioPorTurno === null ? null : redondear(margenPromedioPorTurno),
       turnosParaCubrirFijosMes,
       turnosParaCubrirFijosPeriodo,

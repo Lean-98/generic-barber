@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { Pago, Prisma, Turno } from '@prisma/client';
+import { Cupon, Pago, Prisma, Turno } from '@prisma/client';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { getTurnoState } from './estados/turno-state.factory';
@@ -10,6 +10,7 @@ import { MailService } from '../mail/mail.service';
 import { horaArAUtc, inicioDiaAr, finDiaAr, diaCalendarioAr } from '../../common/utils/fecha-ar.util';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
 import { urlCancelacion, verificarTokenCancelacion } from './cancelacion-token.util';
+import { CuponesService } from '../cupones/cupones.service';
 import { contarVisitasCompletadas, progresoDeCliente, progresoDeTurno, ProgresoCliente } from './fidelizacion.util';
 
 interface HorarioDiaConfig {
@@ -24,6 +25,7 @@ interface HorarioDiaConfig {
 const CONFIG_ID = 1;
 const DESCUENTO_MOTIVO_FIDELIZACION = 'FIDELIZACION';
 const DESCUENTO_MOTIVO_EMPLEADO = 'EMPLEADO';
+const DESCUENTO_MOTIVO_CUPON = 'CUPON';
 /** Estados desde los que el cliente todavía puede cancelar con el link del mail. */
 const ESTADOS_CANCELABLES_POR_CLIENTE = ['PENDIENTE', 'CONFIRMADO'];
 /**
@@ -54,9 +56,17 @@ export class TurnosService {
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    private readonly cuponesService: CuponesService,
   ) {}
 
-  async create(data: CreateTurnoDto): Promise<Turno & { detalles: any[]; persona: any; pagos: Pago[] }> {
+  /**
+   * opciones.cupon: solo desde la reserva online (ya validado en vigencia).
+   * No se acumula con el descuento de personal: se aplica el mayor.
+   */
+  async create(
+    data: CreateTurnoDto,
+    opciones: { cupon?: Cupon } = {},
+  ): Promise<Turno & { detalles: any[]; persona: any; pagos: Pago[] }> {
     // 1. Validar que la persona existe
     const persona = await this.prisma.persona.findUnique({
       where: { idPersona: data.idPersona },
@@ -99,6 +109,12 @@ export class TurnosService {
       descuentoEmpleadoPorcentaje = Number(config.descuentoEmpleadoPorcentaje);
     }
 
+    // 2.d. Cupón: si es mayor que el descuento de personal, reemplaza a ese.
+    const cuponPorcentaje = opciones.cupon ? Number(opciones.cupon.descuentoPorcentaje) : 0;
+    const usaCupon = !!opciones.cupon && cuponPorcentaje > descuentoEmpleadoPorcentaje;
+    const descuentoPorcentaje = usaCupon ? cuponPorcentaje : descuentoEmpleadoPorcentaje;
+    const descuentoMotivo = usaCupon ? DESCUENTO_MOTIVO_CUPON : descuentoEmpleadoPorcentaje > 0 ? DESCUENTO_MOTIVO_EMPLEADO : null;
+
     // 3. Calcular duración total
     const duracionTotal = servicios.reduce((total, servicio) => {
       const cantidad =
@@ -132,6 +148,8 @@ export class TurnosService {
       turno = await this.prisma.$transaction(
         async (tx) => {
           await this.verificarDisponibilidad(fechaHoraInicio, fechaHoraFin, undefined, tx);
+          // Adentro de la transacción: dos reservas a la vez no se llevan el último lugar del cupo.
+          if (usaCupon) await this.cuponesService.verificarUsos(tx, opciones.cupon!, { idPersona: data.idPersona });
 
           const nuevoTurno = await tx.turno.create({
             data: {
@@ -146,6 +164,7 @@ export class TurnosService {
               estado: 'CONFIRMADO',
               observacion: data.observacion,
               idFormaPagoPreferida: data.idFormaPagoPreferida,
+              idCupon: usaCupon ? opciones.cupon!.idCupon : null,
             },
             include: { persona: true },
           });
@@ -158,8 +177,8 @@ export class TurnosService {
                 idServicio: servicioDto.idServicio,
                 precioReal: servicio.precio,
                 cantidad: servicioDto.cantidad || 1,
-                descuentoPorcentaje: descuentoEmpleadoPorcentaje,
-                descuentoMotivo: descuentoEmpleadoPorcentaje > 0 ? DESCUENTO_MOTIVO_EMPLEADO : null,
+                descuentoPorcentaje,
+                descuentoMotivo,
               };
             }),
           });
@@ -211,6 +230,7 @@ export class TurnosService {
           colorPrimario: config?.colorPrimario,
           cancelarUrl: this.urlCancelacionDe(turno.idTurno),
           fidelizacion,
+          cupon: usaCupon ? { codigo: opciones.cupon!.codigo, descuentoPorcentaje: cuponPorcentaje } : null,
         });
       } catch {
         // Silencioso
@@ -597,8 +617,8 @@ export class TurnosService {
    * como "cuenta para fidelización", la visita número N (2N, 3N, ...) se descuenta
    * automáticamente. Genérico: N, el % y si está activo son configurables, y no
    * cuenta a personas marcadas como empleado (esas usan el descuento de personal).
-   * Se corre al entrar a COMPLETADO; el filtro por descuentoPorcentaje === 0 lo
-   * hace idempotente ante llamados repetidos (ej. varios pagos parciales).
+   * Se corre al entrar a COMPLETADO (una sola vez, ver el chequeo de estado).
+   * Si el servicio ya tenía un cupón menor, el descuento del club lo reemplaza.
    */
   private async aplicarDescuentoFidelizacion(turno: Turno & { idPersona: number; persona: { aplicaDescuentoPersonal: boolean }; detalles: any[] }): Promise<void> {
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
@@ -607,9 +627,15 @@ export class TurnosService {
     }
 
     if (turno.persona.aplicaDescuentoPersonal) return;
+    // Ya se calculó al entrar a COMPLETADO (acá se vuelve a pasar con cada
+    // pago parcial): si se recalculara, el turno ya figuraría entre las
+    // visitas previas y la numeración se correría una.
+    if (turno.estado === 'COMPLETADO') return;
 
+    // Todos los servicios que suman cuentan como visita, tengan o no un
+    // cupón (mismo conteo que contarVisitasCompletadas y que el contador del mail).
     const detallesQueCuentan = turno.detalles
-      .filter((d: any) => d.servicio?.cuentaParaFidelizacion && Number(d.descuentoPorcentaje) === 0)
+      .filter((d: any) => d.servicio?.cuentaParaFidelizacion)
       .sort((a: any, b: any) => a.idTurnoDetalle - b.idTurnoDetalle);
     if (detallesQueCuentan.length === 0) return;
 
@@ -620,7 +646,8 @@ export class TurnosService {
 
     for (let i = 0; i < detallesQueCuentan.length; i++) {
       const numeroVisita = visitasPrevias + i + 1;
-      if (numeroVisita % visitasRequeridas === 0) {
+      // No se acumula con un cupón: queda el mayor de los dos.
+      if (numeroVisita % visitasRequeridas === 0 && Number(detallesQueCuentan[i].descuentoPorcentaje) < descuentoPorcentaje) {
         await this.prisma.turnoDetalle.update({
           where: { idTurnoDetalle: detallesQueCuentan[i].idTurnoDetalle },
           data: { descuentoPorcentaje, descuentoMotivo: DESCUENTO_MOTIVO_FIDELIZACION },
@@ -736,7 +763,7 @@ export class TurnosService {
     });
   }
 
-  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaNacimiento?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
+  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaNacimiento?: string; codigoCupon?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
     // 0. Antes de crear la persona: si no, un horario rechazado igual dejaba
     // un cliente nuevo cargado.
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
@@ -744,6 +771,10 @@ export class TurnosService {
       throw new BadRequestException('Ese horario ya pasó o no llega a la anticipación mínima para reservar online. Elegí otro horario.');
     }
     const fechaNacimiento = this.parsearFechaNacimiento(data.fechaNacimiento);
+    // Vigencia y cupo antes de crear la persona; "ya lo usaste" se vuelve a
+    // chequear adentro de la transacción del turno.
+    const cupon = data.codigoCupon?.trim() ? await this.cuponesService.buscarAplicable(data.codigoCupon) : undefined;
+    if (cupon) await this.cuponesService.verificarUsos(this.prisma, cupon, { email: data.email });
 
     // 1. Buscar o crear persona por email
     let persona = await this.prisma.persona.findUnique({
@@ -796,11 +827,11 @@ export class TurnosService {
       idFormaPagoPreferida: data.idFormaPagoPreferida,
     };
 
-    const turno = await this.create(createDto);
+    const turno = await this.create(createDto, { cupon });
 
     // 4. Aviso al negocio. Solo acá y no en create(): los turnos cargados
     // desde el panel los carga el mismo dueño.
-    await this.avisarNuevaReservaAlNegocio(turno, clienteNuevo, config);
+    await this.avisarNuevaReservaAlNegocio(turno, clienteNuevo, config, turno.idCupon ? cupon : undefined);
 
     return turno;
   }
@@ -820,6 +851,7 @@ export class TurnosService {
     turno: Turno & { detalles: any[]; persona: any },
     clienteNuevo: boolean,
     config: { email: string | null; nombre: string; colorPrimario: string | null } | null,
+    cupon?: Cupon,
   ): Promise<void> {
     try {
       const destinatarios = await this.destinatariosDelNegocio(config);
@@ -841,6 +873,7 @@ export class TurnosService {
           ? `${String(nacimiento.getUTCDate()).padStart(2, '0')}/${String(nacimiento.getUTCMonth() + 1).padStart(2, '0')}`
           : null,
         clienteNuevo,
+        cupon: cupon ? { codigo: cupon.codigo, descuentoPorcentaje: Number(cupon.descuentoPorcentaje) } : null,
         panelUrl: frontendUrl ? `${frontendUrl.replace(/\/+$/, '')}/turnos` : null,
         nombreNegocio: config?.nombre,
         colorPrimario: config?.colorPrimario,

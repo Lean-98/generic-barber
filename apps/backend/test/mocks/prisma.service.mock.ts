@@ -108,6 +108,14 @@ export class PrismaServiceMock {
     update: jest.fn(),
   };
 
+  cupon = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
   costosNegocio = {
     findUnique: jest.fn(),
     upsert: jest.fn(),

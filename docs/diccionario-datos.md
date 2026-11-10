@@ -24,6 +24,7 @@ Motor: PostgreSQL. Cada sección es una tabla; "Campo" es el nombre en el códig
 - [`productos`](#productos) — Productos de la tienda, con stock opcional.
 - [`cursos`](#cursos) — Cursos de barbería que se publican en la web.
 - [`costos_negocio`](#costos_negocio) — Costos internos para el reporte de rentabilidad (gastos fijos y costo por hora). Una sola fila. No es pública.
+- [`cupones`](#cupones) — 
 
 ---
 
@@ -96,8 +97,9 @@ Modelo Prisma: `Turno`. Reservas. Cada turno es de un cliente, tiene horario, es
 | idFormaPagoPreferida | id_forma_pago_preferida | Int | No |  | FK → formas_pago.idFormaPago, Preferencia elegida por el cliente al reservar online; no es el pago real (eso sigue siendo explícito en caja), solo sirve para precargar la forma de pago sugerida al cobrar. Nullable porque el alta manual de un turno desde el panel no la pide. |
 | canceladoEn | cancelado_en | DateTime | No |  | Quién y cuándo canceló el turno ("CLIENTE" desde el link del mail, o "PANEL" desde la administración). Con canceladoEn vs. fechaHoraInicio se puede calcular más adelante cuánta anticipación tuvo cada cancelación. |
 | canceladoPor | cancelado_por | String | No |  |  |
+| idCupon | id_cupon | Int | No |  | FK → cupones.idCupon, Cupón con el que se reservó online (el descuento queda en los detalles, con descuentoMotivo = "CUPON"). Sirve para contar usos: un turno cancelado devuelve el cupón. |
 
-**Relaciones:** `persona` → personas (uno) · `detalles` → turno_detalles (muchos) · `pagos` → pagos (muchos) · `movimientos` → movimientos_caja (muchos) · `formaPagoPreferida` → formas_pago (uno, opcional)
+**Relaciones:** `persona` → personas (uno) · `detalles` → turno_detalles (muchos) · `pagos` → pagos (muchos) · `movimientos` → movimientos_caja (muchos) · `formaPagoPreferida` → formas_pago (uno, opcional) · `cupon` → cupones (uno, opcional)
 
 **Restricciones CHECK:**
 
@@ -461,3 +463,30 @@ Modelo Prisma: `CostosNegocio`. Costos internos para el reporte de rentabilidad 
 
 - `costos_negocio_valores_check`: `"costos_fijos_mensuales" >= 0 AND "costo_hora_trabajo" >= 0`
 - `costos_negocio_fila_unica_check`: `"id" = 1`
+
+---
+
+## cupones
+
+Modelo Prisma: `Cupon`. 
+
+| Campo | Columna | Tipo | Obligatorio | Default | Notas |
+|---|---|---|---|---|---|
+| idCupon | idCupon | Int | Sí | autoincrement() | PK |
+| codigo | codigo | String | Sí |  | UNIQUE, En mayúsculas, sin espacios. |
+| descripcion | descripcion | String | No |  |  |
+| descuentoPorcentaje | descuento_porcentaje | Decimal | Sí |  |  |
+| vigenteDesde | vigente_desde | DateTime | Sí |  |  |
+| vigenteHasta | vigente_hasta | DateTime | Sí |  |  |
+| usosMaximos | usos_maximos | Int | No |  | Cupo total ("los primeros 10"); null = sin límite. |
+| activo | activo | Boolean | Sí | true | Pausado desde el panel. |
+| createdAt | created_at | DateTime | Sí | now() |  |
+
+**Relaciones:** `turnos` → turnos (muchos)
+
+**Restricciones CHECK:**
+
+- `cupones_descuento_check`: `"descuento_porcentaje" > 0 AND "descuento_porcentaje" <= 100`
+- `cupones_vigencia_check`: `"vigente_hasta" > "vigente_desde"`
+- `cupones_usos_check`: `"usos_maximos" IS NULL OR "usos_maximos" > 0`
+- `cupones_codigo_check`: `"codigo" ~ '^[A-Z0-9_-]{3,30}$'`

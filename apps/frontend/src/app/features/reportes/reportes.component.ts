@@ -319,6 +319,12 @@ import { BrandingService } from '../../core/services/branding.service';
                   } @else {
                     <p class="mt-2 text-sm text-base-content/70">No hubo descuentos por fidelización en este período.</p>
                   }
+                  @if (r.serviciosConCupon > 0) {
+                    <p class="mt-2 text-sm">
+                      Por cupones se dejaron de cobrar <strong>{{ r.costoCupones | pesos }}</strong> en {{ r.serviciosConCupon }}
+                      {{ r.serviciosConCupon === 1 ? 'servicio' : 'servicios' }}.
+                    </p>
+                  }
                 </div>
               </div>
 

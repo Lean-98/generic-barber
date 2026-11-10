@@ -19,6 +19,7 @@
 - **Turnos**: patrón State. Nacen `CONFIRMADO`; `TurnosCronService` los pasa a `EN_PROCESO` y `COMPLETADO` por reloj. Cancelar y "No vino" son manuales (no-show también desde `EN_PROCESO` y desde `COMPLETADO` sin pagos).
 - **Fidelización**: `fidelizacion.util.ts` calcula las visitas del club (mismo conteo que `aplicarDescuentoFidelizacion`) para los mails y para `GET /turnos-publicos/cliente`.
 - **Turnos públicos**: disponibilidad, reserva, y cancelación por el cliente con token firmado (`cancelacion-token.util.ts`), con aviso por mail al barbero.
+- **Cupones**: códigos de descuento (%) para la reserva online. Valen para las reservas hechas dentro de la vigencia (no importa el día del turno), una vez por email, cupo opcional, para todos los servicios. No se acumulan: queda el mayor (cupón, personal o club). Cancelar devuelve el cupón. `GET /turnos-publicos/cupon` valida; el panel los administra en `/cupones` (con mensaje y link para WhatsApp).
 - **Caja**: pagos de turnos, venta de productos con descuento de stock, egresos y cierre de caja (Facade + Strategy).
 - **Productos / Categorías / Cursos**: catálogo de la web; productos con stock opcional y aviso de stock bajo.
 - **Reportes**: resumen, ingresos por día, turnos por estado, top servicios y clientes, formas de pago, **rentabilidad** y **clientes para recontactar**. Los costos internos viven en `costos_negocio` (`GET`/`PUT /reportes/costos`).
@@ -67,6 +68,7 @@ apps/frontend/src/app/
 | Clientes | `/personas` | ABM, búsqueda e historial |
 | Caja | `/caja` | Movimientos, registrar pago, vender producto, egresos, cierre e historial |
 | Catálogo | `/servicios`, `/productos`, `/cursos` | Costo de insumos por servicio, stock por producto |
+| Cupones | `/cupones` | Códigos de descuento con vigencia, cupo y mensaje para WhatsApp |
 | Reportes | `/reportes` | Resumen, rentabilidad (con modal de costos) y clientes para recontactar |
 | Configuración | `/configuracion/marca`, `/configuracion/google-calendar` | Marca, horarios, descuentos, notificaciones, calendario |
 

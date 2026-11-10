@@ -68,6 +68,8 @@ export interface ReporteRentabilidad {
   resultado: number;
   costoFidelizacion: number;
   serviciosConFidelizacion: number;
+  costoCupones: number;
+  serviciosConCupon: number;
   margenPromedioPorTurno: number | null;
   turnosParaCubrirFijosMes: number | null;
   turnosParaCubrirFijosPeriodo: number | null;

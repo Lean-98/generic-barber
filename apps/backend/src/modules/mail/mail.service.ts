@@ -21,6 +21,8 @@ export interface TurnoMailData {
   cancelarUrl?: string | null;
   /** Visitas del club de fidelización; null si el programa está apagado o el turno no suma. */
   fidelizacion?: ProgresoTurno | null;
+  /** Cupón con el que se reservó (solo en la confirmación). */
+  cupon?: { codigo: string; descuentoPorcentaje: number } | null;
 }
 
 /** Datos del aviso que recibe el barbero cuando un cliente cancela desde el link del mail. */
@@ -44,6 +46,7 @@ export interface AvisoNuevaReservaData {
   observacion?: string | null;
   /** dd/mm, si el cliente la cargó. */
   cumpleanos?: string | null;
+  cupon?: { codigo: string; descuentoPorcentaje: number } | null;
   clienteNuevo: boolean;
   /** Link a la agenda del panel; null si falta FRONTEND_URL. */
   panelUrl?: string | null;
@@ -335,6 +338,7 @@ export class MailService {
                 ${fila('Turno', fecha)}
                 ${fila('Servicios', escapeHtml(data.servicios.join(', ')))}
                 ${data.formaPago ? fila('Va a pagar con', escapeHtml(data.formaPago)) : ''}
+                ${data.cupon ? fila('Cupón', `${escapeHtml(data.cupon.codigo)} (${Number(data.cupon.descuentoPorcentaje.toFixed(2))}% de descuento)`) : ''}
                 ${data.telefonoCliente ? fila('Teléfono', escapeHtml(data.telefonoCliente)) : ''}
                 ${data.emailCliente ? fila('Email', escapeHtml(data.emailCliente)) : ''}
                 ${data.cumpleanos ? fila('Cumpleaños', escapeHtml(data.cumpleanos)) : ''}
@@ -455,6 +459,7 @@ export class MailService {
                   ${fila('Fecha', fecha)}
                   ${fila('Servicios', data.servicios.join(', '))}
                   ${data.direccion ? fila('Dirección', data.direccion) : ''}
+                  ${data.cupon ? fila('Descuento', `${Number(data.cupon.descuentoPorcentaje.toFixed(2))}% con el cupón ${escapeHtml(data.cupon.codigo)}`) : ''}
                 </table>
               </div>
 
