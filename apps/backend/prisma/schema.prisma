@@ -105,11 +105,16 @@ model Persona {
   ultimoCorte    DateTime? @map("ultimo_corte")
   usuario        String?   @unique
   aplicaDescuentoPersonal Boolean @default(false) @map("aplica_descuento_personal")
+  /// Si acepta recibir promociones y beneficios por email (ej. el cupón de
+  /// cumpleaños). Lo elige al reservar online, se puede cambiar desde la ficha
+  /// y cada mail de promociones trae un link para darse de baja.
+  recibePromociones Boolean @default(true) @map("recibe_promociones")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   turnos      Turno[]
   usuarioWeb  UsuarioWeb?
+  cupones     Cupon[]
 
   @@map("personas")
 }
@@ -279,6 +284,13 @@ model ConfiguracionNegocio {
   /// reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto.
   /// No aplica a los turnos cargados desde el panel.
   reservaAnticipacionMinutos      Int      @default(15) @map("reserva_anticipacion_minutos")
+  /// Beneficio de cumpleaños: cupón personal que se manda por email
+  /// cumpleDiasAnticipacion días antes del cumple y vale cumpleDiasValidez
+  /// días desde ese aviso (con 3 y 7, la semana del cumple).
+  cumpleActivo                    Boolean  @default(false) @map("cumple_activo")
+  cumpleDescuentoPorcentaje       Decimal  @default(20) @db.Decimal(5, 2) @map("cumple_descuento_porcentaje")
+  cumpleDiasAnticipacion          Int      @default(3) @map("cumple_dias_anticipacion")
+  cumpleDiasValidez               Int      @default(7) @map("cumple_dias_validez")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")
@@ -381,8 +393,16 @@ model Cupon {
   /// Pausado desde el panel.
   activo              Boolean  @default(true)
   createdAt           DateTime @default(now()) @map("created_at")
+  /// "PROMO" (creado desde el panel) o "CUMPLEANOS" (automático).
+  origen              String   @default("PROMO")
+  /// Cupón personal: solo lo puede usar esta persona (el de cumpleaños).
+  idPersona           Int?     @map("id_persona")
+  /// Año del cumpleaños al que corresponde: uno por persona y por año.
+  anioCumpleanos      Int?     @map("anio_cumpleanos")
 
-  turnos Turno[]
+  turnos  Turno[]
+  persona Persona? @relation(fields: [idPersona], references: [idPersona], onDelete: Cascade)
 
+  @@unique([idPersona, anioCumpleanos])
   @@map("cupones")
 }

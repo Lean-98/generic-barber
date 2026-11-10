@@ -168,6 +168,12 @@ const LIMITE_PAGINA = 20;
               <span class="label-text">Es empleado</span>
             </label>
           </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="nuevoRecibePromociones" name="recibePromociones" />
+              <span class="label-text">Recibe promociones por email (ej. el cupón de cumpleaños)</span>
+            </label>
+          </div>
           @if (errorForm()) {
             <div class="alert alert-error mt-4 py-2.5 text-sm">
               <app-icon name="alert-circle" [size]="18" />
@@ -217,6 +223,10 @@ const LIMITE_PAGINA = 20;
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Fecha de nacimiento</span>
               <span>{{ p.fechaNacimiento ? (p.fechaNacimiento | fechaAr:'media':true) : '—' }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b">
+              <span class="text-base-content/60">Recibe promociones</span>
+              <span>{{ p.recibePromociones ? 'Sí' : 'No' }}</span>
             </div>
             <div class="flex justify-between py-2 border-b">
               <span class="text-base-content/60">Total turnos</span>
@@ -271,6 +281,12 @@ const LIMITE_PAGINA = 20;
               <label class="label cursor-pointer justify-start gap-3">
                 <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="p.aplicaDescuentoPersonal" name="editAplicaDescuentoPersonal" />
                 <span class="label-text">Es empleado</span>
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer justify-start gap-3">
+                <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="p.recibePromociones" name="editRecibePromociones" />
+                <span class="label-text">Recibe promociones por email</span>
               </label>
             </div>
             @if (errorForm()) {
@@ -405,6 +421,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
   nuevoInstagram = '';
   nuevaFechaNacimiento = '';
   nuevoAplicaDescuentoPersonal = false;
+  nuevoRecibePromociones = true;
 
   ngOnInit(): void {
     this.loadPersonas();
@@ -459,6 +476,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
     this.nuevoInstagram = '';
     this.nuevaFechaNacimiento = '';
     this.nuevoAplicaDescuentoPersonal = false;
+    this.nuevoRecibePromociones = true;
     this.crearModalRef.nativeElement.showModal();
   }
 
@@ -478,6 +496,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
       instagram: this.nuevoInstagram || undefined,
       fechaNacimiento: this.nuevaFechaNacimiento || undefined,
       aplicaDescuentoPersonal: this.nuevoAplicaDescuentoPersonal,
+      recibePromociones: this.nuevoRecibePromociones,
     }).subscribe({
       next: () => {
         this.creando.set(false);
@@ -544,6 +563,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
       instagram: p.instagram || undefined,
       fechaNacimiento: p.fechaNacimiento || undefined,
       aplicaDescuentoPersonal: p.aplicaDescuentoPersonal,
+      recibePromociones: p.recibePromociones,
     };
 
     this.personasService.update(p.idPersona, data).subscribe({

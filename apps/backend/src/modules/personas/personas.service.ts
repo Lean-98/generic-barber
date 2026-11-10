@@ -19,6 +19,7 @@ export class PersonasService {
         fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : undefined,
         instagram: data.instagram,
         aplicaDescuentoPersonal: data.aplicaDescuentoPersonal ?? false,
+        recibePromociones: data.recibePromociones ?? true,
       },
     });
   }
@@ -60,6 +61,7 @@ export class PersonasService {
         fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : undefined,
         instagram: data.instagram,
         aplicaDescuentoPersonal: data.aplicaDescuentoPersonal,
+        recibePromociones: data.recibePromociones,
       },
     });
   }

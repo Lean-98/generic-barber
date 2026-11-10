@@ -5,7 +5,7 @@ import { diaCalendarioAr, finDiaAr, inicioDiaAr } from '../../common/utils/fecha
 import { CreateCuponDto, UpdateCuponDto } from './dto/cupon.dto';
 
 /** Lo que el sistema pueda usar para contar: el cliente normal o el de una transacción. */
-type Db = Pick<PrismaClient, 'turno'> | Prisma.TransactionClient;
+type Db = Pick<PrismaClient, 'turno' | 'persona'> | Prisma.TransactionClient;
 
 export type EstadoCupon = 'ACTIVO' | 'PAUSADO' | 'PROGRAMADO' | 'VENCIDO' | 'AGOTADO';
 
@@ -21,6 +21,9 @@ export interface CuponPanel {
   usos: number;
   activo: boolean;
   estado: EstadoCupon;
+  origen: string;
+  /** Cupón personal (el de cumpleaños): a quién pertenece. */
+  persona: { idPersona: number; nombre: string; apellido: string } | null;
 }
 
 export type ValidacionCupon =
@@ -50,9 +53,14 @@ export class CuponesService {
 
   // ─── Panel ───
 
-  async findAll(): Promise<CuponPanel[]> {
+  /** origen: "PROMO" (los del panel) o "CUMPLEANOS"; sin filtro, todos. */
+  async findAll(origen?: string): Promise<CuponPanel[]> {
     const [cupones, usos] = await Promise.all([
-      this.prisma.cupon.findMany({ orderBy: { vigenteDesde: 'desc' } }),
+      this.prisma.cupon.findMany({
+        where: origen ? { origen } : undefined,
+        orderBy: { vigenteDesde: 'desc' },
+        include: { persona: { select: { idPersona: true, nombre: true, apellido: true } } },
+      }),
       this.prisma.turno.groupBy({
         by: ['idCupon'],
         where: { idCupon: { not: null }, estado: { notIn: ESTADOS_QUE_NO_USAN } },
@@ -150,6 +158,13 @@ export class CuponesService {
     if (cupon.usosMaximos != null && (await this.contarUsos(db, cupon.idCupon)) >= cupon.usosMaximos) {
       throw new BadRequestException('Ese cupón ya se agotó.');
     }
+    if (cupon.idPersona != null) {
+      // Personal: sin saber quién es todavía (link abierto sin email) se deja
+      // pasar; al reservar siempre se sabe y se vuelve a chequear.
+      if (cliente && !(await this.esDuenioDelCupon(db, cupon.idPersona, cliente))) {
+        throw new BadRequestException('Este cupón es personal y no corresponde a tu email.');
+      }
+    }
     if (cliente) {
       const persona = 'idPersona' in cliente ? { idPersona: cliente.idPersona } : { persona: { mail: cliente.email } };
       const usados = await db.turno.count({
@@ -160,6 +175,12 @@ export class CuponesService {
   }
 
   // ─── Internos ───
+
+  private async esDuenioDelCupon(db: Db, idPersona: number, cliente: { idPersona: number } | { email: string }): Promise<boolean> {
+    if ('idPersona' in cliente) return cliente.idPersona === idPersona;
+    const persona = await db.persona.findUnique({ where: { idPersona }, select: { mail: true } });
+    return !!persona?.mail && persona.mail.toLowerCase() === cliente.email.trim().toLowerCase();
+  }
 
   private contarUsos(db: Db, idCupon: number): Promise<number> {
     return db.turno.count({ where: { idCupon, estado: { notIn: ESTADOS_QUE_NO_USAN } } });
@@ -188,7 +209,11 @@ export class CuponesService {
     return { vigenteDesde: inicioDiaAr(d), vigenteHasta: finDiaAr(h) };
   }
 
-  private aPanel(c: Cupon, usos: number, ahora = new Date()): CuponPanel {
+  private aPanel(
+    c: Cupon & { persona?: { idPersona: number; nombre: string; apellido: string } | null },
+    usos: number,
+    ahora = new Date(),
+  ): CuponPanel {
     let estado: EstadoCupon = 'ACTIVO';
     if (!c.activo) estado = 'PAUSADO';
     else if (ahora > c.vigenteHasta) estado = 'VENCIDO';
@@ -206,6 +231,8 @@ export class CuponesService {
       usos,
       activo: c.activo,
       estado,
+      origen: c.origen,
+      persona: c.persona ?? null,
     };
   }
 }

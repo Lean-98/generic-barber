@@ -33,10 +33,16 @@ function diaMes(fecha: string): string {
           <h1 class="text-3xl font-medium tracking-tight">Cupones</h1>
           <p class="text-base-content/60 mt-1">Códigos de descuento para compartir por WhatsApp y usar en la reserva online</p>
         </div>
-        <button class="btn btn-primary gap-2" (click)="abrirCrear()">
-          <app-icon name="plus" [size]="18" />
-          Nuevo cupón
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="label cursor-pointer gap-2 rounded-lg border bg-base-100 px-4 py-2 shadow-sm">
+            <span class="label-text text-sm">Ver los de cumpleaños</span>
+            <input type="checkbox" class="toggle toggle-sm toggle-primary" [checked]="verCumpleanos()" (change)="alternarVista()" />
+          </label>
+          <button class="btn btn-primary gap-2" (click)="abrirCrear()">
+            <app-icon name="plus" [size]="18" />
+            Nuevo cupón
+          </button>
+        </div>
       </div>
 
       @if (aviso()) {
@@ -70,7 +76,9 @@ function diaMes(fecha: string): string {
                         </div>
                         <div>
                           <div class="font-mono font-semibold tracking-wide">{{ c.codigo }}</div>
-                          @if (c.descripcion) {
+                          @if (c.persona) {
+                            <div class="text-xs text-base-content/60">🎂 {{ c.persona.nombre }} {{ c.persona.apellido }} · {{ c.descripcion }}</div>
+                          } @else if (c.descripcion) {
                             <div class="text-xs text-base-content/60">{{ c.descripcion }}</div>
                           }
                         </div>
@@ -82,12 +90,14 @@ function diaMes(fecha: string): string {
                     <td><span class="badge badge-sm" [class]="estados[c.estado].clase">{{ estados[c.estado].texto }}</span></td>
                     <td class="text-right">
                       <div class="flex flex-wrap items-center justify-end gap-1">
-                        <button class="btn btn-ghost btn-sm text-success" (click)="compartir(c)" title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp">
-                          <app-icon name="whatsapp" [size]="16" />
-                        </button>
-                        <button class="btn btn-ghost btn-sm" (click)="copiar(c)" title="Copiar mensaje" aria-label="Copiar mensaje">
-                          <app-icon name="copy" [size]="16" />
-                        </button>
+                        @if (c.origen === 'PROMO') {
+                          <button class="btn btn-ghost btn-sm text-success" (click)="compartir(c)" title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp">
+                            <app-icon name="whatsapp" [size]="16" />
+                          </button>
+                          <button class="btn btn-ghost btn-sm" (click)="copiar(c)" title="Copiar mensaje" aria-label="Copiar mensaje">
+                            <app-icon name="copy" [size]="16" />
+                          </button>
+                        }
                         <button class="btn btn-ghost btn-sm" (click)="abrirEditar(c)" title="Editar" aria-label="Editar">
                           <app-icon name="edit" [size]="16" />
                         </button>
@@ -108,8 +118,13 @@ function diaMes(fecha: string): string {
                       <div class="flex flex-col items-center gap-3">
                         <app-icon name="tag" [size]="40" />
                         <div>
-                          <p class="font-medium">Todavía no hay cupones</p>
-                          <p class="text-sm">Creá uno, compartilo por WhatsApp y tus clientes lo usan al reservar.</p>
+                          @if (verCumpleanos()) {
+                            <p class="font-medium">Todavía no se generó ningún cupón de cumpleaños</p>
+                            <p class="text-sm">Se crean solos cuando activás el beneficio en Configuración → Marca.</p>
+                          } @else {
+                            <p class="font-medium">Todavía no hay cupones</p>
+                            <p class="text-sm">Creá uno, compartilo por WhatsApp y tus clientes lo usan al reservar.</p>
+                          }
                         </div>
                       </div>
                     </td>
@@ -233,6 +248,8 @@ export class CuponesComponent implements OnInit {
 
   readonly estados = ESTADOS;
   cupones = signal<Cupon[]>([]);
+  /** Los de cumpleaños son personales y automáticos: van aparte de las promos. */
+  verCumpleanos = signal(false);
   editando = signal<Cupon | null>(null);
   guardando = signal(false);
   errorForm = signal('');
@@ -252,10 +269,15 @@ export class CuponesComponent implements OnInit {
   }
 
   cargar(): void {
-    this.cuponesService.findAll().subscribe({
+    this.cuponesService.findAll(this.verCumpleanos() ? 'CUMPLEANOS' : 'PROMO').subscribe({
       next: (lista) => this.cupones.set(lista),
       error: (err) => this.errorLista.set(mensajeDeErrorHttp(err, 'No se pudieron cargar los cupones')),
     });
+  }
+
+  alternarVista(): void {
+    this.verCumpleanos.update((v) => !v);
+    this.cargar();
   }
 
   abrirCrear(): void {

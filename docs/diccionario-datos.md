@@ -149,10 +149,11 @@ Modelo Prisma: `Persona`. Clientes (y también las personas detrás de los usuar
 | ultimoCorte | ultimo_corte | DateTime | No |  |  |
 | usuario | usuario | String | No |  | UNIQUE |
 | aplicaDescuentoPersonal | aplica_descuento_personal | Boolean | Sí | false |  |
+| recibePromociones | recibe_promociones | Boolean | Sí | true | Si acepta recibir promociones y beneficios por email (ej. el cupón de cumpleaños). Lo elige al reservar online, se puede cambiar desde la ficha y cada mail de promociones trae un link para darse de baja. |
 | createdAt | created_at | DateTime | Sí | now() |  |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |
 
-**Relaciones:** `turnos` → turnos (muchos) · `usuarioWeb` → usuarios_web (uno, opcional)
+**Relaciones:** `turnos` → turnos (muchos) · `usuarioWeb` → usuarios_web (uno, opcional) · `cupones` → cupones (muchos)
 
 ---
 
@@ -344,6 +345,10 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 | recordatorioActivo | recordatorio_activo | Boolean | Sí | true | Si está apagado, no se manda el recordatorio de turno por email. |
 | recordatorioHorasAntes | recordatorio_horas_antes | Int | Sí | 24 |  |
 | reservaAnticipacionMinutos | reserva_anticipacion_minutos | Int | Sí | 15 | Anticipación mínima para reservar online, en minutos: la página de reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto. No aplica a los turnos cargados desde el panel. |
+| cumpleActivo | cumple_activo | Boolean | Sí | false | Beneficio de cumpleaños: cupón personal que se manda por email cumpleDiasAnticipacion días antes del cumple y vale cumpleDiasValidez días desde ese aviso (con 3 y 7, la semana del cumple). |
+| cumpleDescuentoPorcentaje | cumple_descuento_porcentaje | Decimal | Sí | 20 |  |
+| cumpleDiasAnticipacion | cumple_dias_anticipacion | Int | Sí | 3 |  |
+| cumpleDiasValidez | cumple_dias_validez | Int | Sí | 7 |  |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |
 
 **Restricciones CHECK:**
@@ -353,6 +358,7 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 - `configuracion_descuento_empleado_check`: `"descuento_empleado_porcentaje" IS NULL OR "descuento_empleado_porcentaje" BETWEEN 0 AND 100`
 - `configuracion_recordatorio_horas_check`: `"recordatorio_horas_antes" > 0`
 - `configuracion_reserva_anticipacion_check`: `"reserva_anticipacion_minutos" BETWEEN 0 AND 1440`
+- `configuracion_cumple_check`: `"cumple_descuento_porcentaje" > 0 AND "cumple_descuento_porcentaje" <= 100 AND "cumple_dias_anticipacion" BETWEEN 0 AND 30 AND "cumple_dias_validez" BETWEEN 1 AND 60`
 
 ---
 
@@ -481,8 +487,13 @@ Modelo Prisma: `Cupon`.
 | usosMaximos | usos_maximos | Int | No |  | Cupo total ("los primeros 10"); null = sin límite. |
 | activo | activo | Boolean | Sí | true | Pausado desde el panel. |
 | createdAt | created_at | DateTime | Sí | now() |  |
+| origen | origen | String | Sí | PROMO | "PROMO" (creado desde el panel) o "CUMPLEANOS" (automático). |
+| idPersona | id_persona | Int | No |  | FK → personas.idPersona, Cupón personal: solo lo puede usar esta persona (el de cumpleaños). |
+| anioCumpleanos | anio_cumpleanos | Int | No |  | Año del cumpleaños al que corresponde: uno por persona y por año. |
 
-**Relaciones:** `turnos` → turnos (muchos)
+**Relaciones:** `turnos` → turnos (muchos) · `persona` → personas (uno, opcional)
+
+**Únicos compuestos:** (idPersona, anioCumpleanos)
 
 **Restricciones CHECK:**
 
@@ -490,3 +501,4 @@ Modelo Prisma: `Cupon`.
 - `cupones_vigencia_check`: `"vigente_hasta" > "vigente_desde"`
 - `cupones_usos_check`: `"usos_maximos" IS NULL OR "usos_maximos" > 0`
 - `cupones_codigo_check`: `"codigo" ~ '^[A-Z0-9_-]{3,30}$'`
+- `cupones_origen_check`: `"origen" IN ('PROMO', 'CUMPLEANOS')`

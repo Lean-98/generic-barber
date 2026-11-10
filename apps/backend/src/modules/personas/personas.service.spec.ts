@@ -31,6 +31,7 @@ describe('PersonasService', () => {
     ultimoCorte: null,
     usuario: null,
     aplicaDescuentoPersonal: false,
+    recibePromociones: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -86,6 +87,7 @@ describe('PersonasService', () => {
           fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
           instagram: dto.instagram,
           aplicaDescuentoPersonal: false,
+          recibePromociones: true,
         },
       });
       expect(result).toBeDefined();

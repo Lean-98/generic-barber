@@ -154,6 +154,10 @@ export class TiendaComponent implements OnInit {
     recordatorioActivo: true,
     recordatorioHorasAntes: 24,
     reservaAnticipacionMinutos: 15,
+    cumpleActivo: false,
+    cumpleDescuentoPorcentaje: 20,
+    cumpleDiasAnticipacion: 3,
+    cumpleDiasValidez: 7,
   });
   productos = signal<Producto[]>([]);
   cargando = signal(true);

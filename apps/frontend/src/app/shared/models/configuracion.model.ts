@@ -69,6 +69,10 @@ export interface ConfiguracionNegocio {
   recordatorioActivo: boolean;
   recordatorioHorasAntes: number;
   reservaAnticipacionMinutos: number;
+  cumpleActivo: boolean;
+  cumpleDescuentoPorcentaje: number;
+  cumpleDiasAnticipacion: number;
+  cumpleDiasValidez: number;
   updatedAt?: string;
 }
 
@@ -117,4 +121,8 @@ export interface UpdateConfiguracionRequest {
   recordatorioActivo?: boolean;
   recordatorioHorasAntes?: number;
   reservaAnticipacionMinutos?: number;
+  cumpleActivo?: boolean;
+  cumpleDescuentoPorcentaje?: number;
+  cumpleDiasAnticipacion?: number;
+  cumpleDiasValidez?: number;
 }

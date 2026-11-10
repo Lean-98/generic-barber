@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CuponesService, CuponPanel } from './cupones.service';
 import { CreateCuponDto, UpdateCuponDto } from './dto/cupon.dto';
@@ -13,8 +13,9 @@ export class CuponesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar cupones con sus usos y estado' })
-  findAll(): Promise<CuponPanel[]> {
-    return this.cuponesService.findAll();
+  @ApiQuery({ name: 'origen', required: false, enum: ['PROMO', 'CUMPLEANOS'] })
+  findAll(@Query('origen') origen?: string): Promise<CuponPanel[]> {
+    return this.cuponesService.findAll(origen === 'PROMO' || origen === 'CUMPLEANOS' ? origen : undefined);
   }
 
   @Post()

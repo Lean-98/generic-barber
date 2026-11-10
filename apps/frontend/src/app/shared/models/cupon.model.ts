@@ -12,6 +12,9 @@ export interface Cupon {
   usos: number;
   activo: boolean;
   estado: EstadoCupon;
+  /** "PROMO" (creado en el panel) o "CUMPLEANOS" (automático). */
+  origen: 'PROMO' | 'CUMPLEANOS';
+  persona: { idPersona: number; nombre: string; apellido: string } | null;
 }
 
 export interface CuponRequest {

@@ -54,6 +54,22 @@ export interface AvisoNuevaReservaData {
   colorPrimario?: string | null;
 }
 
+export interface CuponCumpleanosData {
+  nombreCliente: string;
+  codigo: string;
+  descuentoPorcentaje: number;
+  /** dd/mm */
+  fechaCumple: string;
+  /** dd/mm, último día para reservar con el cupón. */
+  hasta: string;
+  reservarUrl: string;
+  /** Link para dejar de recibir promociones; null si falta FRONTEND_URL o JWT_SECRET. */
+  bajaUrl: string | null;
+  nombreNegocio?: string | null;
+  logoUrl?: string | null;
+  colorPrimario?: string | null;
+}
+
 /** Los datos del cliente vienen del formulario público: se escapan antes de meterlos en el HTML. */
 function escapeHtml(texto: string): string {
   return texto
@@ -392,6 +408,84 @@ export class MailService {
                 <p style="margin:4px 0 0;font-size:13px;color:${MARCA.textoCuerpo};line-height:1.5;">${texto}${aclaracion}</p>
                 ${puntos}
               </div>`;
+  }
+
+  /** Regalo de cumpleaños: cupón personal con botón para reservar. Devuelve si se mandó. */
+  async sendCuponCumpleanos(to: string, data: CuponCumpleanosData): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY no configurada: no se envió el cupón de cumpleaños a ${to}`);
+      return false;
+    }
+
+    const color = this.colorPrimario(data);
+    const nombreNegocio = escapeHtml(data.nombreNegocio || 'Tu barbería');
+    const nombre = escapeHtml(data.nombreCliente);
+    const pct = `${Number(data.descuentoPorcentaje.toFixed(2))}%`;
+    const subject = `¡Feliz cumple, ${data.nombreCliente}! Te regalamos ${pct} de descuento`;
+
+    const html = `
+      <!doctype html>
+      <html lang="es">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+      <body style="margin:0;padding:0;">
+      <div style="background-color:${MARCA.base200};padding:32px 16px;font-family:${MARCA.fontSans};">
+        <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;border-collapse:collapse;">
+          <tr>
+            <td style="background-color:${MARCA.base100};border:1px solid ${MARCA.base300};border-radius:12px;overflow:hidden;">
+              <table role="presentation" width="100%" style="border-collapse:collapse;">
+                <tr>
+                  <td style="background-color:${MARCA.neutral};padding:28px 32px;text-align:center;">
+                    ${data.logoUrl ? `<img src="${data.logoUrl}" alt="${nombreNegocio}" height="36" style="max-height:36px;margin-bottom:10px;" />` : ''}
+                    <div style="font-family:${MARCA.fontDisplay};font-size:21px;font-weight:600;color:${MARCA.neutralContent};">${nombreNegocio}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="padding:32px 32px 8px;text-align:center;">
+                <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">Regalo de cumpleaños</p>
+                <h1 style="font-family:${MARCA.fontDisplay};font-size:26px;font-weight:600;color:${MARCA.neutral};margin:10px 0 8px;">¡Feliz cumple, ${nombre}! 🎉</h1>
+                <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0;line-height:1.5;">
+                  Para festejar tu cumple (${data.fechaCumple}) te regalamos <strong>${pct} de descuento</strong> en tu próximo turno.
+                </p>
+              </div>
+
+              <div style="margin:24px 32px 0;padding:20px;border:2px dashed ${color};border-radius:10px;text-align:center;background-color:${MARCA.base200};">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${MARCA.textoSuave};">Tu código</p>
+                <p style="margin:0;font-family:monospace;font-size:24px;font-weight:700;letter-spacing:0.06em;color:${MARCA.neutral};">${escapeHtml(data.codigo)}</p>
+                <p style="margin:8px 0 0;font-size:13px;color:${MARCA.textoCuerpo};">Reservá hasta el <strong>${data.hasta}</strong>. Es personal y se usa una vez.</p>
+              </div>
+
+              <div style="padding:24px 32px 4px;text-align:center;">
+                <a href="${data.reservarUrl}" style="display:inline-block;background-color:${color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 30px;border-radius:8px;">Reservar con mi descuento</a>
+                <p style="margin:10px 0 0;font-size:12px;color:${MARCA.textoSuave};">El código ya va cargado. No se suma a otros descuentos: si te toca uno mayor, queda ese.</p>
+              </div>
+
+              <div style="padding:28px 32px 32px;text-align:center;">
+                <p style="margin:0;font-size:12px;color:${MARCA.textoSuave};">${nombreNegocio}</p>
+                ${data.bajaUrl ? `<p style="margin:8px 0 0;font-size:11px;color:${MARCA.textoSuave};">¿No querés recibir más promociones? <a href="${data.bajaUrl}" style="color:${MARCA.textoSuave};">Darme de baja</a></p>` : ''}
+                <p style="margin:6px 0 0;font-size:11px;color:${MARCA.textoSuave};opacity:0.7;">Powered by ${POWERED_BY_NAME}</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      </body>
+      </html>
+    `;
+
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject,
+      html,
+      // Para que Gmail y otros muestren su propio botón de "desuscribirse".
+      headers: data.bajaUrl ? { 'List-Unsubscribe': `<${data.bajaUrl}>` } : undefined,
+    });
+    if (error) {
+      this.logger.error(`Fallo al enviar el cupón de cumpleaños a ${to}: ${JSON.stringify(error)}`);
+      return false;
+    }
+    return true;
   }
 
   private colorPrimario(data: { colorPrimario?: string | null }): string {

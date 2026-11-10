@@ -39,4 +39,10 @@ export class CreatePersonaDto {
   @IsOptional()
   @Type(() => Boolean)
   aplicaDescuentoPersonal?: boolean;
+
+  @ApiPropertyOptional({ description: 'Si acepta recibir promociones y beneficios por email (ej. el cupón de cumpleaños)', example: true })
+  @IsBoolean()
+  @IsOptional()
+  @Type(() => Boolean)
+  recibePromociones?: boolean;
 }

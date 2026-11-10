@@ -105,6 +105,15 @@ describe('CuponesService', () => {
       await expect(service.validarParaReserva('NOEXISTE')).resolves.toEqual({ valido: false, mensaje: expect.stringContaining('no existe') });
     });
 
+    it('should only let the owner use a personal cupón', async () => {
+      prisma.cupon.findUnique.mockResolvedValue(cupon({ idPersona: 5, origen: 'CUMPLEANOS', usosMaximos: 1 }));
+      prisma.turno.count.mockResolvedValue(0);
+      prisma.persona.findUnique.mockResolvedValue({ mail: 'juan@test.com' });
+
+      await expect(service.validarParaReserva('HOY20', 'otro@test.com')).resolves.toEqual({ valido: false, mensaje: expect.stringContaining('es personal') });
+      await expect(service.validarParaReserva('HOY20', 'Juan@Test.com')).resolves.toMatchObject({ valido: true });
+    });
+
     it('should not count cancelled turnos as uses', async () => {
       prisma.cupon.findUnique.mockResolvedValue(cupon({ usosMaximos: 1 }));
       prisma.turno.count.mockResolvedValue(0);

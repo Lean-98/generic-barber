@@ -14,6 +14,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { ConfiguracionModule } from './modules/configuracion/configuracion.module';
 import { CategoriasModule } from './modules/categorias/categorias.module';
 import { CuponesModule } from './modules/cupones/cupones.module';
+import { CumpleanosModule } from './modules/cumpleanos/cumpleanos.module';
 import { CategoriasServiciosModule } from './modules/categorias-servicios/categorias-servicios.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { CursosModule } from './modules/cursos/cursos.module';
@@ -50,6 +51,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ConfiguracionModule,
     CategoriasModule,
     CuponesModule,
+    CumpleanosModule,
     CategoriasServiciosModule,
     ProductosModule,
     CursosModule,

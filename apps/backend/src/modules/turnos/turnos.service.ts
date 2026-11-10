@@ -763,7 +763,7 @@ export class TurnosService {
     });
   }
 
-  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaNacimiento?: string; codigoCupon?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
+  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaNacimiento?: string; codigoCupon?: string; recibePromociones?: boolean; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
     // 0. Antes de crear la persona: si no, un horario rechazado igual dejaba
     // un cliente nuevo cargado.
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
@@ -795,6 +795,7 @@ export class TurnosService {
           mail: data.email,
           telefono: data.telefono,
           fechaNacimiento,
+          recibePromociones: data.recibePromociones ?? true,
         },
       });
       clienteNuevo = true;

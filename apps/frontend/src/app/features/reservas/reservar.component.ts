@@ -310,6 +310,15 @@ import { reglaClub } from '../../shared/utils/fidelizacion.util';
                 </div>
               }
 
+              @if (clienteExistente() && !clienteExistente()!.existe) {
+                <label class="label mt-2 cursor-pointer items-start justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-primary checkbox-sm mt-0.5" [(ngModel)]="recibePromociones" name="recibePromociones" />
+                  <span class="label-text text-sm">
+                    Quiero recibir beneficios y promociones por email, como el regalo de cumpleaños. Me puedo dar de baja cuando quiera.
+                  </span>
+                </label>
+              }
+
               <div class="form-control mt-2">
                 <label class="label">
                   <span class="label-text font-medium">¿Tenés un cupón de descuento?</span>
@@ -453,6 +462,7 @@ export class ReservarComponent implements OnInit {
   email = signal('');
   telefono = signal('');
   fechaNacimiento = signal('');
+  recibePromociones = signal(true);
   observacion = signal('');
   formasPago = signal<FormaPagoPublica[]>([]);
   formaPagoPreferidaId = signal<number | null>(null);
@@ -692,6 +702,7 @@ export class ReservarComponent implements OnInit {
       telefono: this.telefono() || undefined,
       fechaNacimiento: (this.pedirCumpleanos() && this.fechaNacimiento()) || undefined,
       codigoCupon: this.cuponAplicado()?.codigo,
+      recibePromociones: esClienteExistente ? undefined : this.recibePromociones(),
       fechaHoraInicio: this.slotSeleccionado()!,
       observacion: this.observacion() || undefined,
       servicios: this.serviciosSeleccionados().map((s) => ({
@@ -722,6 +733,7 @@ export class ReservarComponent implements OnInit {
     this.email.set('');
     this.telefono.set('');
     this.fechaNacimiento.set('');
+    this.recibePromociones.set(true);
     this.observacion.set('');
     this.formaPagoPreferidaId.set(null);
     this.clienteExistente.set(null);

@@ -9,8 +9,8 @@ export class CuponesService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/cupones`;
 
-  findAll(): Observable<Cupon[]> {
-    return this.http.get<Cupon[]>(this.apiUrl);
+  findAll(origen?: 'PROMO' | 'CUMPLEANOS'): Observable<Cupon[]> {
+    return this.http.get<Cupon[]>(this.apiUrl, { params: origen ? { origen } : {} });
   }
 
   create(data: CuponRequest): Observable<Cupon> {

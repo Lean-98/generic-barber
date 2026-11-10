@@ -17,6 +17,8 @@ export interface ReservaRequest {
   /** AAAA-MM-DD, para el beneficio de cumpleaños. */
   fechaNacimiento?: string;
   codigoCupon?: string;
+  /** Solo para un cliente nuevo: si acepta recibir promociones por email. */
+  recibePromociones?: boolean;
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];

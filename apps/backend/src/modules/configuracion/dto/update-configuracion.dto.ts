@@ -389,4 +389,32 @@ export class UpdateConfiguracionDto {
   @Min(0)
   @Max(1440)
   reservaAnticipacionMinutos?: number;
+
+  // --- Beneficio de cumpleaños ---
+
+  @ApiPropertyOptional({ description: 'Si se manda el cupón de cumpleaños automáticamente', example: true })
+  @IsOptional()
+  @IsBoolean()
+  cumpleActivo?: boolean;
+
+  @ApiPropertyOptional({ description: 'Porcentaje del cupón de cumpleaños', example: 20 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(1)
+  @Max(100)
+  cumpleDescuentoPorcentaje?: number;
+
+  @ApiPropertyOptional({ description: 'Cuántos días antes del cumple se manda el cupón (0 = el mismo día)', example: 3 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(30)
+  cumpleDiasAnticipacion?: number;
+
+  @ApiPropertyOptional({ description: 'Cuántos días vale el cupón desde que se manda', example: 7 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  cumpleDiasValidez?: number;
 }

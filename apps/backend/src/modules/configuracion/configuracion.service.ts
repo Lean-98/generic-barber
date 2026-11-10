@@ -51,6 +51,10 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   recordatorioActivo: true,
   recordatorioHorasAntes: 24,
   reservaAnticipacionMinutos: 15,
+  cumpleActivo: false,
+  cumpleDescuentoPorcentaje: new Prisma.Decimal(20),
+  cumpleDiasAnticipacion: 3,
+  cumpleDiasValidez: 7,
   updatedAt: new Date(0),
 };
 

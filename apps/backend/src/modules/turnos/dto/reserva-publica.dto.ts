@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, Matches, MaxLength, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, IsBoolean, Matches, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsTelefono } from '../../../common/decorators/is-telefono.decorator';
 
@@ -59,6 +59,11 @@ export class ReservaPublicaDto {
   @ValidateNested({ each: true })
   @Type(() => ServicioReservaDto)
   servicios: ServicioReservaDto[];
+
+  @ApiPropertyOptional({ description: 'Si acepta recibir promociones y beneficios por email. Solo se usa al crear un cliente nuevo.', example: true })
+  @IsOptional()
+  @IsBoolean()
+  recibePromociones?: boolean;
 
   @ApiPropertyOptional({ description: 'Código de cupón de descuento', example: 'HOY20' })
   @IsOptional()
