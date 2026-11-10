@@ -11,6 +11,13 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // En producción los pedidos pasan por dos proxies propios: el Nginx de la
+  // VPS (que ya resuelve la IP real detrás de Cloudflare) y el del frontend.
+  // Sin esto, req.ip es la del proxy y el rate limit es global para todos los
+  // clientes. Con 2 se toma la IP que agregó el Nginx de la VPS, que el
+  // cliente no puede falsificar (no usar `true`).
+  app.set('trust proxy', 2);
+
   // 0. Cabeceras de seguridad. CSP desactivada porque rompe los assets
   // inline que usa Swagger UI (montado más abajo).
   app.use(helmet({ contentSecurityPolicy: false }));
