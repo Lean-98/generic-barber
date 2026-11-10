@@ -77,6 +77,7 @@ apps/frontend/src/app/
 - **Backend**: 216 tests unitarios (Jest) + 7 suites e2e (`npm run test:e2e`, necesitan la base levantada).
 - **Swagger UI**: `/api/docs`.
 - **Seed**: datos de demo con `npx prisma db seed`.
+- **Datos de prueba de cupones, cumpleaños y club** (solo desarrollo): `npm run mock:cumple` los crea con fechas relativas a hoy, `npm run mock:cumple -- procesar` corre la tarea diaria de cumpleaños en el momento y `npm run mock:cumple -- limpiar` borra todo y restaura la configuración.
 
 ## Decisiones Clave
 - **Prisma sobre TypeORM**: mejor DX, migraciones confiables, type safety de punta a punta.
