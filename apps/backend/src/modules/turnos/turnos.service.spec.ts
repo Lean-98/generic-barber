@@ -95,6 +95,7 @@ describe('TurnosService', () => {
             sendTurnoConfirmacion: jest.fn().mockResolvedValue(undefined),
             sendTurnoRecordatorio: jest.fn().mockResolvedValue(undefined),
             sendAvisoCancelacion: jest.fn().mockResolvedValue(true),
+            sendAvisoNuevaReserva: jest.fn().mockResolvedValue(true),
           },
         },
         {
@@ -399,6 +400,126 @@ describe('TurnosService', () => {
           data: expect.objectContaining({ idFormaPagoPreferida: 1, estado: 'CONFIRMADO' }),
         }),
       );
+    });
+  });
+
+  describe('reservarPublica: cumpleaños y aviso al negocio', () => {
+    const mockTurnoCreado = (persona: any) => ({
+      ...mockTurno,
+      idFormaPagoPreferida: 1,
+      observacion: 'Primera vez',
+      detalles: [{ servicio: mockServicio, precioReal: 25.0, cantidad: 1 }],
+      persona,
+      pagos: [],
+    });
+    const reserva = (extra: Record<string, unknown> = {}) =>
+      service.reservarPublica({
+        email: 'juan@example.com',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+        servicios: [{ idServicio: 1 }],
+        idFormaPagoPreferida: 1,
+        ...extra,
+      });
+    let mail: { sendAvisoNuevaReserva: jest.Mock };
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T12:00:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, email: 'barber@test.com', nombre: 'Authentic' });
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(mockFormaPago);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+      mail = (service as any).mailService;
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should save the cumpleaños of a new cliente', async () => {
+      const creada = { ...mockPersona, fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') };
+      // Primero no existe; create() la vuelve a buscar ya creada.
+      prismaMock.persona.findUnique.mockResolvedValueOnce(null).mockResolvedValue(creada);
+      prismaMock.persona.create.mockResolvedValue(creada);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(creada));
+
+      await reserva({ nombre: 'Juan', apellido: 'Pérez', fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') }),
+      });
+    });
+
+    it('should fill the cumpleaños of an existing cliente that did not have one', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ ...mockPersona, fechaNacimiento: null });
+      prismaMock.persona.update.mockResolvedValue({ ...mockPersona, fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') });
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+
+      await reserva({ fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.update).toHaveBeenCalledWith({
+        where: { idPersona: mockPersona.idPersona },
+        data: { fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') },
+      });
+    });
+
+    it('should not overwrite a cumpleaños already loaded', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ ...mockPersona, fechaNacimiento: new Date('1990-01-01T00:00:00.000Z') });
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+
+      await reserva({ fechaNacimiento: '1995-03-12' });
+
+      expect(prismaMock.persona.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['2027-01-01', '1995-02-30', '1899-12-31'])('should reject an invalid cumpleaños (%s)', async (fecha) => {
+      prismaMock.persona.findUnique.mockResolvedValue(null);
+
+      await expect(reserva({ nombre: 'Juan', apellido: 'Pérez', fechaNacimiento: fecha })).rejects.toThrow(BadRequestException);
+      expect(prismaMock.persona.create).not.toHaveBeenCalled();
+    });
+
+    it('should notify the negocio with the turno, the cliente and the forma de pago', async () => {
+      const persona = { ...mockPersona, nombre: 'Juan', apellido: 'Pérez', telefono: '3511234567', mail: 'juan@example.com', fechaNacimiento: new Date('1995-03-12T00:00:00.000Z') };
+      prismaMock.persona.findUnique.mockResolvedValue(persona);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(persona));
+
+      await reserva();
+
+      expect(mail.sendAvisoNuevaReserva).toHaveBeenCalledWith(
+        ['barber@test.com'],
+        expect.objectContaining({
+          nombreCliente: 'Juan Pérez',
+          telefonoCliente: '3511234567',
+          servicios: ['Corte'],
+          formaPago: 'Efectivo',
+          observacion: 'Primera vez',
+          cumpleanos: '12/03',
+          clienteNuevo: false,
+          panelUrl: 'https://barber.test/turnos',
+        }),
+      );
+    });
+
+    it('should still return the turno if the aviso fails', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.turno.findUnique.mockResolvedValue(mockTurnoCreado(mockPersona));
+      mail.sendAvisoNuevaReserva.mockRejectedValueOnce(new Error('resend caído'));
+
+      await expect(reserva()).resolves.toHaveProperty('idTurno');
+    });
+  });
+
+  describe('buscarClientePorEmail', () => {
+    it('should say when an existing cliente has no cumpleaños loaded', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ nombre: 'Juan', fechaNacimiento: null });
+      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({ existe: true, nombre: 'Juan', faltaFechaNacimiento: true });
+    });
+
+    it('should not expose data for an unknown email', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue(null);
+      await expect(service.buscarClientePorEmail('nadie@example.com')).resolves.toEqual({ existe: false });
     });
   });
 

@@ -23,7 +23,7 @@
 - **Reportes**: resumen, ingresos por día, turnos por estado, top servicios y clientes, formas de pago, **rentabilidad** y **clientes para recontactar**. Los costos internos viven en `costos_negocio` (`GET`/`PUT /reportes/costos`).
 - **Configuración**: marca, horarios de atención, contenido de la landing, fidelización, descuento de personal, recordatorios y anticipación mínima para reservar online. Es pública (`GET /configuracion/branding`), por eso no guarda nada interno.
 - **Notifications**: cron de recordatorios por mail (con link para cancelar).
-- **Mail**: confirmación, recordatorio, aviso de cancelación al barbero, código 2FA, recuperación de contraseña.
+- **Mail**: confirmación, recordatorio, aviso de nueva reserva online y de cancelación al barbero, código 2FA, recuperación de contraseña.
 - **Google Calendar**: sincroniza turnos (crear, editar, borrar al cancelar o marcar "No vino").
 - **Cloudinary**: subida de imágenes desde el panel.
 
@@ -94,7 +94,7 @@ apps/frontend/src/app/
 
 ## Reserva y cancelación públicas
 - `GET /api/turnos-publicos/disponibilidad?fecha=YYYY-MM-DD&servicios=1,2`: slots cada 30 minutos dentro de los horarios configurados en Marca (con franjas partidas por día). No ofrece horarios que empiezan antes de la anticipación mínima configurada (`reservaAnticipacionMinutos`, 15 por defecto); la reserva también la valida. Desde el panel no hay ese límite.
-- `POST /api/turnos-publicos/reservar`: busca o crea la persona por email y crea el turno `CONFIRMADO`, validando horario de atención y superposición en una transacción serializable.
+- `POST /api/turnos-publicos/reservar`: busca o crea la persona por email y crea el turno `CONFIRMADO`, validando horario de atención y superposición en una transacción serializable. Acepta `fechaNacimiento` opcional (beneficio de cumpleaños): se guarda al crear la persona o si le faltaba, nunca pisa una cargada. Después avisa por mail al negocio (mismo destinatario que el aviso de cancelación).
 - `GET /api/turnos-publicos/cancelacion?token=…` y `POST /api/turnos-publicos/cancelar`: ver y cancelar el turno desde el link del mail.
 
 ## Google Calendar

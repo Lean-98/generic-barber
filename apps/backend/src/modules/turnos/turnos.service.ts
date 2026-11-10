@@ -55,7 +55,7 @@ export class TurnosService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(data: CreateTurnoDto): Promise<Turno> {
+  async create(data: CreateTurnoDto): Promise<Turno & { detalles: any[]; persona: any; pagos: Pago[] }> {
     // 1. Validar que la persona existe
     const persona = await this.prisma.persona.findUnique({
       where: { idPersona: data.idPersona },
@@ -399,11 +399,7 @@ export class TurnosService {
   ): Promise<void> {
     try {
       const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
-      let destinatarios = config?.email ? [config.email] : [];
-      if (destinatarios.length === 0) {
-        const usuarios = await this.prisma.usuarioWeb.findMany({ select: { email: true } });
-        destinatarios = usuarios.map((u) => u.email).filter(Boolean);
-      }
+      const destinatarios = await this.destinatariosDelNegocio(config);
 
       await this.mailService.sendAvisoCancelacion(destinatarios, {
         nombreCliente: `${turno.persona.nombre} ${turno.persona.apellido}`.trim(),
@@ -417,6 +413,13 @@ export class TurnosService {
     } catch (err) {
       this.logger.error(`Fallo al avisar la cancelación del turno ${turno.idTurno}: ${err}`);
     }
+  }
+
+  /** El email de contacto del negocio (Configuración → Marca); si no está cargado, los usuarios del panel. */
+  private async destinatariosDelNegocio(config: { email: string | null } | null): Promise<string[]> {
+    if (config?.email) return [config.email];
+    const usuarios = await this.prisma.usuarioWeb.findMany({ select: { email: true } });
+    return usuarios.map((u) => u.email).filter(Boolean);
   }
 
   private async borrarEventoCalendar(googleEventId: string | null): Promise<void> {
@@ -700,10 +703,14 @@ export class TurnosService {
     return new Date(Date.now() + (anticipacionMinutos ?? ANTICIPACION_RESERVA_DEFECTO_MIN) * 60_000);
   }
 
-  /** Para el paso "Tus datos" del turnero público: si el email ya es de un cliente, el frontend se salta el formulario de nombre/apellido/teléfono. */
-  async buscarClientePorEmail(email: string): Promise<{ existe: boolean; nombre?: string }> {
-    const persona = await this.prisma.persona.findUnique({ where: { mail: email }, select: { nombre: true } });
-    return persona ? { existe: true, nombre: persona.nombre } : { existe: false };
+  /**
+   * Para el paso "Tus datos" del turnero público: si el email ya es de un
+   * cliente, el frontend se salta el formulario de nombre/apellido/teléfono.
+   * faltaFechaNacimiento: si no tiene el cumpleaños cargado, se le pide solo ese dato.
+   */
+  async buscarClientePorEmail(email: string): Promise<{ existe: boolean; nombre?: string; faltaFechaNacimiento?: boolean }> {
+    const persona = await this.prisma.persona.findUnique({ where: { mail: email }, select: { nombre: true, fechaNacimiento: true } });
+    return persona ? { existe: true, nombre: persona.nombre, faltaFechaNacimiento: !persona.fechaNacimiento } : { existe: false };
   }
 
   /** Formas de pago vigentes, para el selector del formulario de reserva pública. */
@@ -715,19 +722,21 @@ export class TurnosService {
     });
   }
 
-  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
+  async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaNacimiento?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
     // 0. Antes de crear la persona: si no, un horario rechazado igual dejaba
     // un cliente nuevo cargado.
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
     if (new Date(data.fechaHoraInicio) < this.primerInicioReservable(config?.reservaAnticipacionMinutos)) {
       throw new BadRequestException('Ese horario ya pasó o no llega a la anticipación mínima para reservar online. Elegí otro horario.');
     }
+    const fechaNacimiento = this.parsearFechaNacimiento(data.fechaNacimiento);
 
     // 1. Buscar o crear persona por email
     let persona = await this.prisma.persona.findUnique({
       where: { mail: data.email },
     });
 
+    let clienteNuevo = false;
     if (!persona) {
       // Cliente nuevo: acá sí hacen falta nombre y apellido (el frontend solo
       // los pide cuando buscarClientePorEmail no encontró a nadie con ese mail).
@@ -740,7 +749,16 @@ export class TurnosService {
           apellido: data.apellido,
           mail: data.email,
           telefono: data.telefono,
+          fechaNacimiento,
         },
+      });
+      clienteNuevo = true;
+    } else if (fechaNacimiento && !persona.fechaNacimiento) {
+      // Solo se completa si faltaba: para reservar alcanza con saber un
+      // email, así que una fecha ya cargada no se pisa desde acá.
+      persona = await this.prisma.persona.update({
+        where: { idPersona: persona.idPersona },
+        data: { fechaNacimiento },
       });
     }
 
@@ -764,6 +782,57 @@ export class TurnosService {
       idFormaPagoPreferida: data.idFormaPagoPreferida,
     };
 
-    return this.create(createDto);
+    const turno = await this.create(createDto);
+
+    // 4. Aviso al negocio. Solo acá y no en create(): los turnos cargados
+    // desde el panel los carga el mismo dueño.
+    await this.avisarNuevaReservaAlNegocio(turno, clienteNuevo, config);
+
+    return turno;
+  }
+
+  /** AAAA-MM-DD → Date (UTC, columna DATE). Rechaza fechas inexistentes, futuras o anteriores a 1900. */
+  private parsearFechaNacimiento(valor: string | undefined): Date | null {
+    if (!valor) return null;
+    const fecha = new Date(`${valor}T00:00:00.000Z`);
+    if (isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== valor || valor < '1900-01-01' || fecha.getTime() > Date.now()) {
+      throw new BadRequestException('La fecha de cumpleaños no es válida');
+    }
+    return fecha;
+  }
+
+  /** Best-effort: si el mail falla, el turno ya quedó reservado y solo se loguea. */
+  private async avisarNuevaReservaAlNegocio(
+    turno: Turno & { detalles: any[]; persona: any },
+    clienteNuevo: boolean,
+    config: { email: string | null; nombre: string; colorPrimario: string | null } | null,
+  ): Promise<void> {
+    try {
+      const destinatarios = await this.destinatariosDelNegocio(config);
+      const formaPago = turno.idFormaPagoPreferida
+        ? await this.prisma.formaPago.findUnique({ where: { idFormaPago: turno.idFormaPagoPreferida }, select: { nombre: true } })
+        : null;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const nacimiento: Date | null = turno.persona.fechaNacimiento ? new Date(turno.persona.fechaNacimiento) : null;
+
+      await this.mailService.sendAvisoNuevaReserva(destinatarios, {
+        nombreCliente: `${turno.persona.nombre} ${turno.persona.apellido}`.trim(),
+        telefonoCliente: turno.persona.telefono,
+        emailCliente: turno.persona.mail,
+        fechaHoraInicio: turno.fechaHoraInicio,
+        servicios: turno.detalles.map((d: any) => d.servicio.nombre),
+        formaPago: formaPago?.nombre,
+        observacion: turno.observacion,
+        cumpleanos: nacimiento
+          ? `${String(nacimiento.getUTCDate()).padStart(2, '0')}/${String(nacimiento.getUTCMonth() + 1).padStart(2, '0')}`
+          : null,
+        clienteNuevo,
+        panelUrl: frontendUrl ? `${frontendUrl.replace(/\/+$/, '')}/turnos` : null,
+        nombreNegocio: config?.nombre,
+        colorPrimario: config?.colorPrimario,
+      });
+    } catch (err) {
+      this.logger.error(`Fallo al avisar la nueva reserva del turno ${turno.idTurno}: ${err}`);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ReservasPublicasService, ClienteExistenteResponse, FormaPagoPublica } from '../../shared/services/reservas-publicas.service';
@@ -236,6 +236,28 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                 </div>
               }
 
+              @if (pedirCumpleanos()) {
+                <div class="form-control mt-4">
+                  <label class="label">
+                    <span class="label-text font-medium">Fecha de cumpleaños (opcional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    class="input input-bordered w-full"
+                    [(ngModel)]="fechaNacimiento"
+                    name="fechaNacimiento"
+                    min="1900-01-01"
+                    [max]="hoy"
+                  />
+                  <label class="label">
+                    <span class="label-text-alt text-base-content/60">
+                      <app-icon name="star" [size]="12" className="inline -mt-0.5" />
+                      La usamos solo para hacerte un beneficio en tu cumpleaños. No se comparte con nadie.
+                    </span>
+                  </label>
+                </div>
+              }
+
               <div class="form-control mt-2">
                 <label class="label">
                   <span class="label-text font-medium">Notas (opcional)</span>
@@ -334,12 +356,19 @@ export class ReservarComponent implements OnInit {
   apellido = signal('');
   email = signal('');
   telefono = signal('');
+  fechaNacimiento = signal('');
   observacion = signal('');
   formasPago = signal<FormaPagoPublica[]>([]);
   formaPagoPreferidaId = signal<number | null>(null);
   verificandoCliente = signal(false);
   clienteExistente = signal<ClienteExistenteResponse | null>(null);
   private emailVerificado = '';
+  readonly hoy = fechaLocal(new Date());
+  /** Al cliente nuevo, y al que ya existe pero no tiene el cumpleaños cargado. */
+  pedirCumpleanos = computed(() => {
+    const cliente = this.clienteExistente();
+    return !!cliente && (!cliente.existe || !!cliente.faltaFechaNacimiento);
+  });
 
   // Estado
   loading = signal(false);
@@ -492,6 +521,7 @@ export class ReservarComponent implements OnInit {
     this.nombre.set('');
     this.apellido.set('');
     this.telefono.set('');
+    this.fechaNacimiento.set('');
   }
 
   puedeReservar(): boolean {
@@ -511,6 +541,7 @@ export class ReservarComponent implements OnInit {
       apellido: esClienteExistente ? undefined : this.apellido(),
       email: this.email(),
       telefono: this.telefono() || undefined,
+      fechaNacimiento: (this.pedirCumpleanos() && this.fechaNacimiento()) || undefined,
       fechaHoraInicio: this.slotSeleccionado()!,
       observacion: this.observacion() || undefined,
       servicios: this.serviciosSeleccionados().map((s) => ({
@@ -540,6 +571,7 @@ export class ReservarComponent implements OnInit {
     this.apellido.set('');
     this.email.set('');
     this.telefono.set('');
+    this.fechaNacimiento.set('');
     this.observacion.set('');
     this.formaPagoPreferidaId.set(null);
     this.clienteExistente.set(null);

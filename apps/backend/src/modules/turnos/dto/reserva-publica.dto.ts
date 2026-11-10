@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty, IsArray, IsInt, IsDateString, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsTelefono } from '../../../common/decorators/is-telefono.decorator';
 
@@ -36,6 +36,14 @@ export class ReservaPublicaDto {
   // Se guarda solo con dígitos (ver IsTelefono)
   @IsTelefono()
   telefono?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de cumpleaños (AAAA-MM-DD), para el beneficio de cumpleaños. Solo se guarda si el cliente todavía no tenía una cargada.',
+    example: '1995-03-12',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'La fecha de cumpleaños tiene que tener el formato AAAA-MM-DD' })
+  fechaNacimiento?: string;
 
   @ApiProperty({ description: 'Fecha y hora de inicio del turno', example: '2026-06-15T10:00:00.000Z' })
   @IsDateString()
