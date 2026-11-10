@@ -25,7 +25,8 @@
 #   ./scripts/prueba-jornada.sh limpiar
 #
 #   Sin fechas, usa el lunes y el martes que caen dentro de 2 a 3 semanas
-#   (fechas AAAA-MM-DD). Tienen que ser días futuros y abiertos.
+#   (fechas AAAA-MM-DD). Tienen que ser días abiertos, desde hoy en adelante;
+#   si es hoy, solo se reservan los horarios que todavía no pasaron.
 #
 # Variables opcionales:
 #   API_URL=http://127.0.0.1:8080/api   (el frontend, que reenvía /api al backend)
@@ -117,6 +118,8 @@ pedir_con_limite() {
 }
 
 # Deja en SLOTS los horarios libres (ISO, UTC) de esa fecha para ese servicio.
+# Descarta los que empiezan dentro de los próximos 15 minutos o ya pasaron:
+# la API los sigue ofreciendo, pero un turno así no se puede cancelar.
 obtener_slots() {
   SLOTS=()
   pedir GET "$API_URL/turnos-publicos/disponibilidad?fecha=$1&servicios=$2"
@@ -124,7 +127,8 @@ obtener_slots() {
     echo "    No se pudo consultar la disponibilidad (HTTP $HTTP_CODE): $HTTP_BODY" >&2
     return 1
   fi
-  mapfile -t SLOTS < <(jq -r '.slots[]' <<<"$HTTP_BODY")
+  mapfile -t SLOTS < <(jq -r --argjson desde "$(( $(date +%s) + 900 ))" \
+    '.slots[] | select((sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) > $desde)' <<<"$HTTP_BODY")
 }
 
 contiene() {
@@ -293,7 +297,7 @@ crear() {
   for f in "$f1" "$f2"; do
     [[ "$f" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && date -d "$f" >/dev/null 2>&1 \
       || { echo "Fecha inválida: $f (usar AAAA-MM-DD)" >&2; exit 1; }
-    [ "$f" \> "$(TZ="$TZ_AR" date +%F)" ] || { echo "La fecha $f no es futura: el cliente solo puede cancelar turnos que todavía no empezaron." >&2; exit 1; }
+    [ "$f" \< "$(TZ="$TZ_AR" date +%F)" ] && { echo "La fecha $f ya pasó." >&2; exit 1; }
   done
   [ "$f1" != "$f2" ] || { echo "Las dos fechas tienen que ser distintas." >&2; exit 1; }
 
@@ -321,6 +325,12 @@ crear() {
   echo "  mail del negocio. Tarda unos $(( (lugares + 4) * PAUSA / 60 + 1 )) minutos."
   echo "  Mientras corre, la reserva online puede rechazar clientes reales por el límite de pedidos."
   [ "$previos" -gt 0 ] && echo "  Hay $previos turnos de una prueba anterior sin limpiar (se mantienen)."
+  if [ "$f1" = "$(TZ="$TZ_AR" date +%F)" ] || [ "$f2" = "$(TZ="$TZ_AR" date +%F)" ]; then
+    echo "  Hoy solo se reservan los horarios que todavía no pasaron. Esos turnos van a ir pasando"
+    echo "  solos a EN_PROCESO y COMPLETADO a medida que avance el día."
+  fi
+  echo "  OJO: mientras los turnos de prueba estén cargados, los clientes reales no van a poder"
+  echo "  reservar online esos días. Correr \"limpiar\" apenas termines de revisar."
   echo ""
   confirmar
 
