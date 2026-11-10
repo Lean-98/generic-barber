@@ -198,6 +198,7 @@ export class LayoutComponent {
         { label: 'Turnos', route: '/turnos', icon: 'calendar' },
         { label: 'Clientes', route: '/personas', icon: 'users' },
         { label: 'Caja', route: '/caja', icon: 'wallet' },
+        { label: 'Cupones', route: '/cupones', icon: 'tag' },
       ],
     },
     {

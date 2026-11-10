@@ -179,6 +179,42 @@ describe('ReportesService', () => {
     });
   });
 
+  describe('cumpleaños', () => {
+    const det = (descuentoPorcentaje: number, descuentoMotivo: string | null) => ({ precioReal: 10000, cantidad: 1, descuentoPorcentaje, descuentoMotivo });
+
+    it('counts sent and used cupones, and what was billed with them', async () => {
+      prisma.cupon.findMany.mockResolvedValue([
+        // Usado y completado con 20%.
+        { recordatorioEnviadoEn: null, turnos: [{ estado: 'COMPLETADO', detalles: [det(20, 'CUPON')] }] },
+        // Usado, el turno todavía no pasó.
+        { recordatorioEnviadoEn: new Date(), turnos: [{ estado: 'CONFIRMADO', detalles: [det(20, 'CUPON')] }] },
+        // Sin usar (los cancelados ya vienen filtrados).
+        { recordatorioEnviadoEn: new Date(), turnos: [] },
+        { recordatorioEnviadoEn: null, turnos: [] },
+      ]);
+
+      const r = await service.getCumpleanos('2026-11-01', '2026-11-30');
+
+      expect(prisma.cupon.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { origen: 'CUMPLEANOS', createdAt: { gte: expect.any(Date), lte: expect.any(Date) } },
+      }));
+      expect(r).toEqual({
+        enviados: 4,
+        usados: 2,
+        porcentajeUso: 50,
+        recordatoriosEnviados: 2,
+        turnosCompletados: 1,
+        facturado: 8000,
+        descuentoOtorgado: 2000,
+      });
+    });
+
+    it('has no percentage without cupones', async () => {
+      prisma.cupon.findMany.mockResolvedValue([]);
+      expect((await service.getCumpleanos()).porcentajeUso).toBeNull();
+    });
+  });
+
   describe('rentabilidad', () => {
     const detalle = (extra: Record<string, unknown> = {}) => ({
       precioReal: 10000, cantidad: 1, descuentoPorcentaje: 0, descuentoMotivo: null,

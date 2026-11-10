@@ -24,6 +24,7 @@ Motor: PostgreSQL. Cada sección es una tabla; "Campo" es el nombre en el códig
 - [`productos`](#productos) — Productos de la tienda, con stock opcional.
 - [`cursos`](#cursos) — Cursos de barbería que se publican en la web.
 - [`costos_negocio`](#costos_negocio) — Costos internos para el reporte de rentabilidad (gastos fijos y costo por hora). Una sola fila. No es pública.
+- [`cupones`](#cupones) — 
 
 ---
 
@@ -96,8 +97,9 @@ Modelo Prisma: `Turno`. Reservas. Cada turno es de un cliente, tiene horario, es
 | idFormaPagoPreferida | id_forma_pago_preferida | Int | No |  | FK → formas_pago.idFormaPago, Preferencia elegida por el cliente al reservar online; no es el pago real (eso sigue siendo explícito en caja), solo sirve para precargar la forma de pago sugerida al cobrar. Nullable porque el alta manual de un turno desde el panel no la pide. |
 | canceladoEn | cancelado_en | DateTime | No |  | Quién y cuándo canceló el turno ("CLIENTE" desde el link del mail, o "PANEL" desde la administración). Con canceladoEn vs. fechaHoraInicio se puede calcular más adelante cuánta anticipación tuvo cada cancelación. |
 | canceladoPor | cancelado_por | String | No |  |  |
+| idCupon | id_cupon | Int | No |  | FK → cupones.idCupon, Cupón con el que se reservó online (el descuento queda en los detalles, con descuentoMotivo = "CUPON"). Sirve para contar usos: un turno cancelado devuelve el cupón. |
 
-**Relaciones:** `persona` → personas (uno) · `detalles` → turno_detalles (muchos) · `pagos` → pagos (muchos) · `movimientos` → movimientos_caja (muchos) · `formaPagoPreferida` → formas_pago (uno, opcional)
+**Relaciones:** `persona` → personas (uno) · `detalles` → turno_detalles (muchos) · `pagos` → pagos (muchos) · `movimientos` → movimientos_caja (muchos) · `formaPagoPreferida` → formas_pago (uno, opcional) · `cupon` → cupones (uno, opcional)
 
 **Restricciones CHECK:**
 
@@ -147,10 +149,11 @@ Modelo Prisma: `Persona`. Clientes (y también las personas detrás de los usuar
 | ultimoCorte | ultimo_corte | DateTime | No |  |  |
 | usuario | usuario | String | No |  | UNIQUE |
 | aplicaDescuentoPersonal | aplica_descuento_personal | Boolean | Sí | false |  |
+| recibePromociones | recibe_promociones | Boolean | Sí | true | Si acepta recibir promociones y beneficios por email (ej. el cupón de cumpleaños). Lo elige al reservar online, se puede cambiar desde la ficha y cada mail de promociones trae un link para darse de baja. |
 | createdAt | created_at | DateTime | Sí | now() |  |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |
 
-**Relaciones:** `turnos` → turnos (muchos) · `usuarioWeb` → usuarios_web (uno, opcional)
+**Relaciones:** `turnos` → turnos (muchos) · `usuarioWeb` → usuarios_web (uno, opcional) · `cupones` → cupones (muchos)
 
 ---
 
@@ -342,6 +345,11 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 | recordatorioActivo | recordatorio_activo | Boolean | Sí | true | Si está apagado, no se manda el recordatorio de turno por email. |
 | recordatorioHorasAntes | recordatorio_horas_antes | Int | Sí | 24 |  |
 | reservaAnticipacionMinutos | reserva_anticipacion_minutos | Int | Sí | 15 | Anticipación mínima para reservar online, en minutos: la página de reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto. No aplica a los turnos cargados desde el panel. |
+| cumpleActivo | cumple_activo | Boolean | Sí | false | Beneficio de cumpleaños: cupón personal que se manda por email cumpleDiasAnticipacion días antes del cumple y vale cumpleDiasValidez días desde ese aviso (con 3 y 7, la semana del cumple). |
+| cumpleDescuentoPorcentaje | cumple_descuento_porcentaje | Decimal | Sí | 20 |  |
+| cumpleDiasAnticipacion | cumple_dias_anticipacion | Int | Sí | 3 |  |
+| cumpleDiasValidez | cumple_dias_validez | Int | Sí | 7 |  |
+| cumpleDiasRecordatorio | cumple_dias_recordatorio | Int | Sí | 2 | Recordatorio por mail cuando al cupón sin usar le quedan estos días (0 = no se manda). |
 | updatedAt | updated_at | DateTime | Sí |  | se actualiza sola |
 
 **Restricciones CHECK:**
@@ -351,6 +359,8 @@ Modelo Prisma: `ConfiguracionNegocio`. Configuración del negocio y de la web (m
 - `configuracion_descuento_empleado_check`: `"descuento_empleado_porcentaje" IS NULL OR "descuento_empleado_porcentaje" BETWEEN 0 AND 100`
 - `configuracion_recordatorio_horas_check`: `"recordatorio_horas_antes" > 0`
 - `configuracion_reserva_anticipacion_check`: `"reserva_anticipacion_minutos" BETWEEN 0 AND 1440`
+- `configuracion_cumple_check`: `"cumple_descuento_porcentaje" > 0 AND "cumple_descuento_porcentaje" <= 100 AND "cumple_dias_anticipacion" BETWEEN 0 AND 30 AND "cumple_dias_validez" BETWEEN 1 AND 60`
+- `configuracion_cumple_recordatorio_check`: `"cumple_dias_recordatorio" BETWEEN 0 AND 30`
 
 ---
 
@@ -461,3 +471,37 @@ Modelo Prisma: `CostosNegocio`. Costos internos para el reporte de rentabilidad 
 
 - `costos_negocio_valores_check`: `"costos_fijos_mensuales" >= 0 AND "costo_hora_trabajo" >= 0`
 - `costos_negocio_fila_unica_check`: `"id" = 1`
+
+---
+
+## cupones
+
+Modelo Prisma: `Cupon`. 
+
+| Campo | Columna | Tipo | Obligatorio | Default | Notas |
+|---|---|---|---|---|---|
+| idCupon | idCupon | Int | Sí | autoincrement() | PK |
+| codigo | codigo | String | Sí |  | UNIQUE, En mayúsculas, sin espacios. |
+| descripcion | descripcion | String | No |  |  |
+| descuentoPorcentaje | descuento_porcentaje | Decimal | Sí |  |  |
+| vigenteDesde | vigente_desde | DateTime | Sí |  |  |
+| vigenteHasta | vigente_hasta | DateTime | Sí |  |  |
+| usosMaximos | usos_maximos | Int | No |  | Cupo total ("los primeros 10"); null = sin límite. |
+| activo | activo | Boolean | Sí | true | Pausado desde el panel. |
+| createdAt | created_at | DateTime | Sí | now() |  |
+| origen | origen | String | Sí | PROMO | "PROMO" (creado desde el panel) o "CUMPLEANOS" (automático). |
+| idPersona | id_persona | Int | No |  | FK → personas.idPersona, Cupón personal: solo lo puede usar esta persona (el de cumpleaños). |
+| anioCumpleanos | anio_cumpleanos | Int | No |  | Año del cumpleaños al que corresponde: uno por persona y por año. |
+| recordatorioEnviadoEn | recordatorio_enviado_en | DateTime | No |  | Cuándo se mandó el recordatorio de que el cupón vence (uno solo por cupón). |
+
+**Relaciones:** `turnos` → turnos (muchos) · `persona` → personas (uno, opcional)
+
+**Únicos compuestos:** (idPersona, anioCumpleanos)
+
+**Restricciones CHECK:**
+
+- `cupones_descuento_check`: `"descuento_porcentaje" > 0 AND "descuento_porcentaje" <= 100`
+- `cupones_vigencia_check`: `"vigente_hasta" > "vigente_desde"`
+- `cupones_usos_check`: `"usos_maximos" IS NULL OR "usos_maximos" > 0`
+- `cupones_codigo_check`: `"codigo" ~ '^[A-Z0-9_-]{3,30}$'`
+- `cupones_origen_check`: `"origen" IN ('PROMO', 'CUMPLEANOS')`

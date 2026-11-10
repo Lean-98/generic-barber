@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ReservasPublicasService, ClienteExistenteResponse, FormaPagoPublica } from '../../shared/services/reservas-publicas.service';
 import { ServiciosService } from '../../shared/services/servicios.service';
@@ -11,6 +11,7 @@ import { EmailValidoPipe, EMAIL_REGEX } from '../../shared/pipes/email-valido.pi
 import { BrandingService } from '../../core/services/branding.service';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
 import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
+import { reglaClub } from '../../shared/utils/fidelizacion.util';
 
 @Component({
   selector: 'app-reservar',
@@ -66,6 +67,12 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                           <app-icon name="clock" [size]="14" />
                           {{ servicio.duracionMinutos }} min
                         </p>
+                        @if (club() && servicio.cuentaParaFidelizacion) {
+                          <span class="badge badge-primary badge-outline badge-sm mt-2 gap-1">
+                            <app-icon name="star" [size]="10" />
+                            Suma al club
+                          </span>
+                        }
                       </div>
                       <p class="tabular-nums font-semibold text-primary">{{ servicio.precio | pesos }}</p>
                     </div>
@@ -92,7 +99,15 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
             @if (serviciosSeleccionados().length > 0) {
               <div class="mt-6 flex items-center justify-between rounded-box bg-base-200/50 p-4">
                 <span class="text-sm text-base-content/70">Duración total: <strong>{{ duracionTotal() }} min</strong></span>
-                <span class="font-display tabular-nums text-lg font-semibold">Total: {{ totalPrecio() | pesos }}</span>
+                <span class="font-display tabular-nums text-lg font-semibold">
+                  Total:
+                  @if (cuponAplicado(); as c) {
+                    <span class="text-sm font-normal text-base-content/50 line-through">{{ totalPrecio() | pesos }}</span>
+                    {{ totalConCupon() | pesos }}
+                  } @else {
+                    {{ totalPrecio() | pesos }}
+                  }
+                </span>
               </div>
             }
           </div>
@@ -209,9 +224,39 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
               @if (clienteExistente()?.existe) {
                 <div class="alert alert-success mt-4">
                   <app-icon name="check-circle" [size]="18" />
-                  <span>¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente, no hace falta que completes más datos.</span>
+                  <span>
+                    ¡Hola {{ clienteExistente()!.nombre }}! Ya sos cliente,
+                    {{ clienteExistente()!.faltaFechaNacimiento ? 'solo te pedimos tu cumpleaños si querés dejarlo.' : 'no hace falta que completes más datos.' }}
+                  </span>
                 </div>
                 <button type="button" class="btn btn-ghost btn-xs mt-1" (click)="cambiarEmail()">¿No sos vos? Usar otro email</button>
+                @if (clienteExistente()!.fidelizacion; as f) {
+                  <div class="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <p class="flex items-center gap-2 font-semibold">
+                      <app-icon name="star" [size]="16" className="text-primary" />
+                      @if (f.proximaConDescuento) {
+                        ¡Tu próxima visita tiene {{ f.descuentoPorcentaje }}% de descuento!
+                      } @else {
+                        Llevás {{ f.visitasEnCiclo }} de {{ f.visitasRequeridas }} visitas en el club
+                      }
+                    </p>
+                    @if (f.visitasRequeridas <= 12) {
+                      <div class="mt-2 flex gap-1.5" aria-hidden="true">
+                        @for (i of puntosClub(f.visitasRequeridas); track i) {
+                          <span class="h-3 w-3 rounded-full" [class.bg-primary]="i < f.visitasEnCiclo || (f.proximaConDescuento && i === f.visitasRequeridas - 1)" [class.bg-base-300]="!(i < f.visitasEnCiclo || (f.proximaConDescuento && i === f.visitasRequeridas - 1))"></span>
+                        }
+                      </div>
+                    }
+                    <p class="mt-2 text-xs text-base-content/60">
+                      @if (f.proximaConDescuento) {
+                        Se aplica al cobrar, si reservás un servicio que suma al club.
+                      } @else {
+                        Te {{ f.visitasRequeridas - f.visitasEnCiclo === 1 ? 'falta 1 visita' : 'faltan ' + (f.visitasRequeridas - f.visitasEnCiclo) + ' visitas' }} para tu {{ f.descuentoPorcentaje }}% de descuento.
+                      }
+                      Contamos tus visitas hechas y los turnos que ya tenés reservados.
+                    </p>
+                  </div>
+                }
               } @else if (clienteExistente()) {
                 <div class="grid gap-4 md:grid-cols-2 mt-4">
                   <div class="form-control">
@@ -236,6 +281,13 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                 </div>
               }
 
+              @if (clienteExistente() && !clienteExistente()!.existe && club(); as regla) {
+                <div class="mt-4 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <app-icon name="star" [size]="16" className="mt-0.5 shrink-0 text-primary" />
+                  <span>Sumate al club: cada {{ regla.visitasRequeridas }} visitas tenés {{ regla.descuento }} de descuento. Suman los servicios marcados con la estrella.</span>
+                </div>
+              }
+
               @if (pedirCumpleanos()) {
                 <div class="form-control mt-4">
                   <label class="label">
@@ -257,6 +309,52 @@ import { mensajeDeErrorHttp } from '../../shared/utils/error-http.util';
                   </label>
                 </div>
               }
+
+              @if (clienteExistente() && !clienteExistente()!.existe) {
+                <label class="label mt-2 cursor-pointer items-start justify-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-primary checkbox-sm mt-0.5" [(ngModel)]="recibePromociones" name="recibePromociones" />
+                  <span class="label-text text-sm">
+                    Quiero recibir beneficios y promociones por email, como el regalo de cumpleaños. Me puedo dar de baja cuando quiera.
+                  </span>
+                </label>
+              }
+
+              <div class="form-control mt-2">
+                <label class="label">
+                  <span class="label-text font-medium">¿Tenés un cupón de descuento?</span>
+                </label>
+                @if (cuponAplicado(); as c) {
+                  <div class="alert alert-success py-3">
+                    <app-icon name="tag" [size]="18" />
+                    <span>
+                      Cupón <strong class="font-mono">{{ c.codigo }}</strong> aplicado: {{ c.descuentoPorcentaje }}% de descuento.
+                      Total con descuento: <strong>{{ totalConCupon() | pesos }}</strong>.
+                    </span>
+                    <button type="button" class="btn btn-ghost btn-xs" (click)="quitarCupon()">Quitar</button>
+                  </div>
+                } @else {
+                  <div class="join w-full">
+                    <input
+                      type="text"
+                      class="input input-bordered join-item w-full font-mono uppercase"
+                      [(ngModel)]="cuponCodigo"
+                      name="cuponCodigo"
+                      placeholder="Ej: HOY20"
+                      maxlength="30"
+                      (keydown.enter)="$event.preventDefault(); aplicarCupon()"
+                    />
+                    <button type="button" class="btn join-item" [disabled]="!cuponCodigo().trim() || validandoCupon()" (click)="aplicarCupon()">
+                      {{ validandoCupon() ? 'Validando...' : 'Aplicar' }}
+                    </button>
+                  </div>
+                  @if (cuponError()) {
+                    <label class="label"><span class="label-text-alt text-error">{{ cuponError() }}</span></label>
+                  }
+                }
+                <label class="label">
+                  <span class="label-text-alt text-base-content/60">Se usa una vez por persona y no se suma a otros descuentos: si te toca uno mayor, queda ese.</span>
+                </label>
+              </div>
 
               <div class="form-control mt-2">
                 <label class="label">
@@ -337,6 +435,13 @@ export class ReservarComponent implements OnInit {
   private readonly reservasService = inject(ReservasPublicasService);
   private readonly serviciosService = inject(ServiciosService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  // Cupón de descuento
+  cuponCodigo = signal('');
+  cuponAplicado = signal<{ codigo: string; descuentoPorcentaje: number } | null>(null);
+  cuponError = signal('');
+  validandoCupon = signal(false);
   private readonly brandingService = inject(BrandingService);
   branding = this.brandingService.branding;
 
@@ -357,6 +462,7 @@ export class ReservarComponent implements OnInit {
   email = signal('');
   telefono = signal('');
   fechaNacimiento = signal('');
+  recibePromociones = signal(true);
   observacion = signal('');
   formasPago = signal<FormaPagoPublica[]>([]);
   formaPagoPreferidaId = signal<number | null>(null);
@@ -364,6 +470,8 @@ export class ReservarComponent implements OnInit {
   clienteExistente = signal<ClienteExistenteResponse | null>(null);
   private emailVerificado = '';
   readonly hoy = fechaLocal(new Date());
+  /** Regla del club de fidelización (null si está apagado). */
+  club = computed(() => reglaClub(this.branding()));
   /** Al cliente nuevo, y al que ya existe pero no tiene el cumpleaños cargado. */
   pedirCumpleanos = computed(() => {
     const cliente = this.clienteExistente();
@@ -380,6 +488,47 @@ export class ReservarComponent implements OnInit {
       this.servicios.set(res.data.filter((sv) => sv.vigente));
     });
     this.reservasService.findFormasPago().subscribe((fp) => this.formasPago.set(fp));
+
+    // Link compartido por WhatsApp: /reservar?cupon=HOY20 ya trae el código cargado.
+    const cupon = this.route.snapshot.queryParamMap.get('cupon');
+    if (cupon) {
+      this.cuponCodigo.set(cupon);
+      this.aplicarCupon();
+    }
+  }
+
+  aplicarCupon(): void {
+    const codigo = this.cuponCodigo().trim();
+    if (!codigo) return;
+    const email = EMAIL_REGEX.test(this.email().trim()) ? this.email().trim() : undefined;
+    this.validandoCupon.set(true);
+    this.cuponError.set('');
+    this.reservasService.validarCupon(codigo, email).subscribe({
+      next: (res) => {
+        this.validandoCupon.set(false);
+        if (res.valido) {
+          this.cuponAplicado.set({ codigo: res.codigo, descuentoPorcentaje: res.descuentoPorcentaje });
+        } else {
+          this.cuponAplicado.set(null);
+          this.cuponError.set(res.mensaje);
+        }
+      },
+      error: (err) => {
+        this.validandoCupon.set(false);
+        this.cuponError.set(mensajeDeErrorHttp(err, 'No se pudo validar el cupón'));
+      },
+    });
+  }
+
+  quitarCupon(): void {
+    this.cuponAplicado.set(null);
+    this.cuponCodigo.set('');
+    this.cuponError.set('');
+  }
+
+  totalConCupon(): number {
+    const c = this.cuponAplicado();
+    return c ? this.totalPrecio() * (1 - c.descuentoPorcentaje / 100) : this.totalPrecio();
   }
 
   toggleServicio(servicio: Servicio): void {
@@ -503,6 +652,12 @@ export class ReservarComponent implements OnInit {
         this.clienteExistente.set(res);
         this.emailVerificado = value;
         this.verificandoCliente.set(false);
+        // Con el email ya se sabe si esta persona usó el cupón antes.
+        const cupon = this.cuponAplicado();
+        if (cupon) {
+          this.cuponCodigo.set(cupon.codigo);
+          this.aplicarCupon();
+        }
       },
       error: () => {
         // Si falla la verificación, no bloqueamos la reserva: mostramos el
@@ -524,6 +679,10 @@ export class ReservarComponent implements OnInit {
     this.fechaNacimiento.set('');
   }
 
+  puntosClub(n: number): number[] {
+    return Array.from({ length: n }, (_, i) => i);
+  }
+
   puedeReservar(): boolean {
     if (!EMAIL_REGEX.test(this.email().trim()) || !this.slotSeleccionado()) return false;
     if (!this.formaPagoPreferidaId()) return false;
@@ -542,6 +701,8 @@ export class ReservarComponent implements OnInit {
       email: this.email(),
       telefono: this.telefono() || undefined,
       fechaNacimiento: (this.pedirCumpleanos() && this.fechaNacimiento()) || undefined,
+      codigoCupon: this.cuponAplicado()?.codigo,
+      recibePromociones: esClienteExistente ? undefined : this.recibePromociones(),
       fechaHoraInicio: this.slotSeleccionado()!,
       observacion: this.observacion() || undefined,
       servicios: this.serviciosSeleccionados().map((s) => ({
@@ -572,11 +733,13 @@ export class ReservarComponent implements OnInit {
     this.email.set('');
     this.telefono.set('');
     this.fechaNacimiento.set('');
+    this.recibePromociones.set(true);
     this.observacion.set('');
     this.formaPagoPreferidaId.set(null);
     this.clienteExistente.set(null);
     this.emailVerificado = '';
     this.exito.set(false);
+    this.quitarCupon();
     this.error.set('');
   }
 }

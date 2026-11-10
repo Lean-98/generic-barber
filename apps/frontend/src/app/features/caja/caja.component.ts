@@ -555,6 +555,8 @@ export class CajaComponent implements OnInit, OnDestroy {
         return 'Programa de fidelización';
       case 'EMPLEADO':
         return 'Descuento de personal';
+      case 'CUPON':
+        return 'Cupón de descuento';
       default:
         return '';
     }

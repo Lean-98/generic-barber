@@ -9,6 +9,8 @@ export interface Persona {
   ultimoCorte?: string;
   /** Habilita el descuento de personal al reservarle un turno. */
   aplicaDescuentoPersonal: boolean;
+  /** Si acepta recibir promociones por email (ej. el cupón de cumpleaños). */
+  recibePromociones: boolean;
 }
 
 export interface CreatePersonaRequest {
@@ -19,6 +21,7 @@ export interface CreatePersonaRequest {
   fechaNacimiento?: string;
   instagram?: string;
   aplicaDescuentoPersonal?: boolean;
+  recibePromociones?: boolean;
 }
 
 export interface UpdatePersonaRequest {
@@ -29,4 +32,5 @@ export interface UpdatePersonaRequest {
   fechaNacimiento?: string;
   instagram?: string;
   aplicaDescuentoPersonal?: boolean;
+  recibePromociones?: boolean;
 }

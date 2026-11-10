@@ -17,7 +17,10 @@
 - **Personas**: CRUD, búsqueda por nombre/apellido/email/teléfono (el teléfono se encuentra aunque se escriba con espacios o guiones), historial de turnos. El teléfono se guarda normalizado (`@IsTelefono`).
 - **Servicios / Categorías de servicios**: CRUD con baja lógica, historial de precio/duración/vigencia, duración de 5 a 180 minutos, costo de insumos interno.
 - **Turnos**: patrón State. Nacen `CONFIRMADO`; `TurnosCronService` los pasa a `EN_PROCESO` y `COMPLETADO` por reloj. Cancelar y "No vino" son manuales (no-show también desde `EN_PROCESO` y desde `COMPLETADO` sin pagos).
+- **Fidelización**: `fidelizacion.util.ts` calcula las visitas del club (mismo conteo que `aplicarDescuentoFidelizacion`) para los mails y para `GET /turnos-publicos/cliente`.
 - **Turnos públicos**: disponibilidad, reserva, y cancelación por el cliente con token firmado (`cancelacion-token.util.ts`), con aviso por mail al barbero.
+- **Cupones**: códigos de descuento (%) para la reserva online. Valen para las reservas hechas dentro de la vigencia (no importa el día del turno), una vez por email, cupo opcional, para todos los servicios. No se acumulan: queda el mayor (cupón, personal o club). Cancelar devuelve el cupón. `GET /turnos-publicos/cupon` valida; el panel los administra en `/cupones` (con mensaje y link para WhatsApp).
+- **Cumpleaños**: `CumpleanosService` corre todos los días a las 10:00 (hora AR) y, si el beneficio está activo, crea el cupón personal (`origen = CUMPLEANOS`, un uso, solo para el email de esa persona, uno por año) de quienes cumplen dentro de la anticipación configurada, y se lo manda por mail con link para reservar y para darse de baja. Solo a quienes tienen email, cumpleaños cargado, `recibePromociones` y no son empleados. La misma tarea manda un recordatorio (uno por cupón, `recordatorioEnviadoEn`) cuando al cupón sin usar le quedan `cumpleDiasRecordatorio` días. `GET /cumpleanos/proximos` alimenta el recuadro del Dashboard, `GET /reportes/cumpleanos` el reporte (enviados, usados, facturado) y `GET /personas/cumplen-mes` el filtro de Clientes; `GET`/`POST /promociones/preferencia` es la baja desde el mail (token firmado, `baja-promociones-token.util.ts`).
 - **Caja**: pagos de turnos, venta de productos con descuento de stock, egresos y cierre de caja (Facade + Strategy).
 - **Productos / Categorías / Cursos**: catálogo de la web; productos con stock opcional y aviso de stock bajo.
 - **Reportes**: resumen, ingresos por día, turnos por estado, top servicios y clientes, formas de pago, **rentabilidad** y **clientes para recontactar**. Los costos internos viven en `costos_negocio` (`GET`/`PUT /reportes/costos`).
@@ -66,6 +69,7 @@ apps/frontend/src/app/
 | Clientes | `/personas` | ABM, búsqueda e historial |
 | Caja | `/caja` | Movimientos, registrar pago, vender producto, egresos, cierre e historial |
 | Catálogo | `/servicios`, `/productos`, `/cursos` | Costo de insumos por servicio, stock por producto |
+| Cupones | `/cupones` | Códigos de descuento con vigencia, cupo y mensaje para WhatsApp |
 | Reportes | `/reportes` | Resumen, rentabilidad (con modal de costos) y clientes para recontactar |
 | Configuración | `/configuracion/marca`, `/configuracion/google-calendar` | Marca, horarios, descuentos, notificaciones, calendario |
 
@@ -73,6 +77,7 @@ apps/frontend/src/app/
 - **Backend**: 216 tests unitarios (Jest) + 7 suites e2e (`npm run test:e2e`, necesitan la base levantada).
 - **Swagger UI**: `/api/docs`.
 - **Seed**: datos de demo con `npx prisma db seed`.
+- **Datos de prueba de cupones, cumpleaños y club** (solo desarrollo): `npm run mock:cumple` los crea con fechas relativas a hoy, `npm run mock:cumple -- procesar` corre la tarea diaria de cumpleaños en el momento y `npm run mock:cumple -- limpiar` borra todo y restaura la configuración.
 
 ## Decisiones Clave
 - **Prisma sobre TypeORM**: mejor DX, migraciones confiables, type safety de punta a punta.

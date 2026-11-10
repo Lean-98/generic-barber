@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PrismaServiceMock } from '../../../test/mocks/prisma.service.mock';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { MailService } from '../mail/mail.service';
+import { CuponesService } from '../cupones/cupones.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { ConfigService } from '@nestjs/config';
 import { generarTokenCancelacion } from './cancelacion-token.util';
@@ -76,6 +77,7 @@ describe('TurnosService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TurnosService,
+        CuponesService,
         {
           provide: PrismaService,
           useValue: prismaMock,
@@ -511,10 +513,156 @@ describe('TurnosService', () => {
     });
   });
 
+  describe('reservarPublica: cupón de descuento', () => {
+    const CUPON = {
+      idCupon: 7,
+      codigo: 'HOY20',
+      descripcion: null,
+      descuentoPorcentaje: '20',
+      vigenteDesde: new Date('2026-06-15T03:00:00.000Z'),
+      vigenteHasta: new Date('2026-06-16T02:59:59.999Z'),
+      usosMaximos: null as number | null,
+      activo: true,
+      createdAt: new Date(),
+    };
+    const reserva = () =>
+      service.reservarPublica({
+        email: 'juan@example.com',
+        fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+        servicios: [{ idServicio: 1 }],
+        idFormaPagoPreferida: 1,
+        codigoCupon: ' hoy20 ',
+      });
+
+    beforeEach(() => {
+      // Se reserva el 15/06 (dentro de la vigencia) para un turno del 16/06.
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-15T15:00:00.000Z').getTime());
+      jest.useFakeTimers({ now: new Date('2026-06-15T15:00:00.000Z'), doNotFake: ['nextTick', 'setImmediate', 'setTimeout'] });
+      prismaMock.persona.findUnique.mockResolvedValue(mockPersona);
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.formaPago.findUnique.mockResolvedValue(mockFormaPago);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+      prismaMock.turno.count.mockResolvedValue(0);
+      prismaMock.turno.create.mockResolvedValue({ ...mockTurno, persona: mockPersona });
+      prismaMock.turnoDetalle.createMany.mockResolvedValue({ count: 1 });
+      prismaMock.turno.findUnique.mockResolvedValue({ ...mockTurno, detalles: [{ servicio: mockServicio }], persona: mockPersona, pagos: [] });
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    });
+
+    it('should apply the cupón to every servicio and link it to the turno', async () => {
+      prismaMock.cupon.findUnique.mockResolvedValue(CUPON);
+
+      await reserva();
+
+      expect(prismaMock.cupon.findUnique).toHaveBeenCalledWith({ where: { codigo: 'HOY20' } });
+      expect(prismaMock.turno.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ idCupon: 7 }) }));
+      expect(prismaMock.turnoDetalle.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ descuentoPorcentaje: 20, descuentoMotivo: 'CUPON' })],
+      });
+    });
+
+    it.each([
+      [{ activo: false }, 'no está disponible'],
+      [{ vigenteHasta: new Date('2026-06-15T02:59:59.999Z') }, 'ya venció'],
+      [{ vigenteDesde: new Date('2026-06-16T03:00:00.000Z'), vigenteHasta: new Date('2026-06-17T02:59:59.999Z') }, 'todavía no está vigente'],
+    ])('should reject a cupón that cannot be used (%o)', async (cambios, mensaje) => {
+      prismaMock.cupon.findUnique.mockResolvedValue({ ...CUPON, ...cambios });
+
+      await expect(reserva()).rejects.toThrow(mensaje);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a cupón the cliente already used', async () => {
+      prismaMock.cupon.findUnique.mockResolvedValue(CUPON);
+      prismaMock.turno.count.mockResolvedValue(1);
+
+      await expect(reserva()).rejects.toThrow('Ya usaste este cupón');
+    });
+
+    it('should reject when the cupo runs out, also inside the transaction', async () => {
+      prismaMock.cupon.findUnique.mockResolvedValue({ ...CUPON, usosMaximos: 10 });
+      // Afuera quedaban lugares; adentro de la transacción ya no.
+      prismaMock.turno.count.mockResolvedValueOnce(9).mockResolvedValueOnce(0).mockResolvedValue(10);
+
+      await expect(reserva()).rejects.toThrow('se agotó');
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('fidelización con cupón', () => {
+    const configClub = { ...mockConfigConHorarios, fidelizacionActiva: true, fidelizacionVisitasRequeridas: 5, fidelizacionDescuentoPorcentaje: '50', fidelizacionFechaInicio: null };
+    const turnoEnProceso = (detalle: Record<string, unknown>, estado = 'EN_PROCESO') => ({
+      ...mockTurno,
+      estado,
+      persona: { ...mockPersona, aplicaDescuentoPersonal: false },
+      detalles: [{ idTurnoDetalle: 3, servicio: { ...mockServicio, cuentaParaFidelizacion: true }, ...detalle }],
+      pagos: [],
+    });
+
+    beforeEach(() => {
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue(configClub);
+      prismaMock.turno.update.mockResolvedValue(mockTurno);
+    });
+
+    it('should replace a smaller cupón with the club descuento on the visita N', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoEnProceso({ descuentoPorcentaje: '20', descuentoMotivo: 'CUPON' }));
+      prismaMock.turnoDetalle.count.mockResolvedValue(4);
+
+      await service.finalizar(1);
+
+      expect(prismaMock.turnoDetalle.update).toHaveBeenCalledWith({
+        where: { idTurnoDetalle: 3 },
+        data: { descuentoPorcentaje: 50, descuentoMotivo: 'FIDELIZACION' },
+      });
+    });
+
+    it('should keep a cupón that is bigger than the club descuento', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoEnProceso({ descuentoPorcentaje: '60', descuentoMotivo: 'CUPON' }));
+      prismaMock.turnoDetalle.count.mockResolvedValue(4);
+
+      await service.finalizar(1);
+
+      expect(prismaMock.turnoDetalle.update).not.toHaveBeenCalled();
+    });
+
+    it('should not recalculate on a second pago of an already COMPLETADO turno', async () => {
+      prismaMock.turno.findUnique.mockResolvedValue(turnoEnProceso({ descuentoPorcentaje: '0' }, 'COMPLETADO'));
+      prismaMock.turnoDetalle.count.mockResolvedValue(4);
+
+      await service.registrarPago(1);
+
+      expect(prismaMock.turnoDetalle.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('buscarClientePorEmail', () => {
     it('should say when an existing cliente has no cumpleaños loaded', async () => {
-      prismaMock.persona.findUnique.mockResolvedValue({ nombre: 'Juan', fechaNacimiento: null });
-      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({ existe: true, nombre: 'Juan', faltaFechaNacimiento: true });
+      prismaMock.persona.findUnique.mockResolvedValue({ idPersona: 1, nombre: 'Juan', fechaNacimiento: null, aplicaDescuentoPersonal: false });
+      await expect(service.buscarClientePorEmail('juan@example.com')).resolves.toEqual({
+        existe: true,
+        nombre: 'Juan',
+        faltaFechaNacimiento: true,
+        fidelizacion: null, // el programa está apagado en mockConfigConHorarios
+      });
+    });
+
+    it('should tell an existing cliente how many visitas they have in the club', async () => {
+      prismaMock.persona.findUnique.mockResolvedValue({ idPersona: 1, nombre: 'Juan', fechaNacimiento: null, aplicaDescuentoPersonal: false });
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({
+        fidelizacionActiva: true,
+        fidelizacionVisitasRequeridas: 5,
+        fidelizacionDescuentoPorcentaje: '50',
+        fidelizacionFechaInicio: null,
+      });
+      prismaMock.turnoDetalle.count.mockResolvedValueOnce(3).mockResolvedValueOnce(1); // 3 hechas + 1 reservada
+
+      const { fidelizacion } = await service.buscarClientePorEmail('juan@example.com');
+
+      expect(fidelizacion).toEqual({ visitasRequeridas: 5, descuentoPorcentaje: 50, visitasEnCiclo: 4, proximaConDescuento: true });
     });
 
     it('should not expose data for an unknown email', async () => {

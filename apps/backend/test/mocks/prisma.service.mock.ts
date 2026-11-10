@@ -36,6 +36,8 @@ export class PrismaServiceMock {
     create: jest.fn(),
     createMany: jest.fn(),
     findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
   };
 
   persona = {
@@ -104,6 +106,14 @@ export class PrismaServiceMock {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+  };
+
+  cupon = {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   };
 
   costosNegocio = {

@@ -57,6 +57,7 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
   { dia: 6, nombre: 'Sábado' },
   { dia: 0, nombre: 'Domingo' },
 ];
+import { textoBeneficioCumple } from '../../shared/utils/fidelizacion.util';
 
 @Component({
   selector: 'app-branding-config',
@@ -366,14 +367,21 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
                       [name]="'clubTitulo' + beneficio.clave"
                       maxlength="80"
                     />
-                    <textarea
-                      class="textarea textarea-bordered w-full"
-                      rows="3"
-                      [(ngModel)]="beneficio.descripcion"
-                      [name]="'clubDescripcion' + beneficio.clave"
-                      placeholder="Descripción breve..."
-                      maxlength="1000"
-                    ></textarea>
+                    @if (beneficio.clave === 'cumpleanos' && textoCumpleAuto(); as auto) {
+                      <p class="rounded-md bg-base-200 p-2 text-sm text-base-content/70">{{ auto }}</p>
+                      <p class="text-xs text-base-content/60">
+                        Con el beneficio de cumpleaños activo, este texto se arma solo con su configuración (más abajo).
+                      </p>
+                    } @else {
+                      <textarea
+                        class="textarea textarea-bordered w-full"
+                        rows="3"
+                        [(ngModel)]="beneficio.descripcion"
+                        [name]="'clubDescripcion' + beneficio.clave"
+                        placeholder="Descripción breve..."
+                        maxlength="1000"
+                      ></textarea>
+                    }
                   </div>
                 }
               </div>
@@ -562,6 +570,56 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Beneficio de cumpleaños</h2>
+              <p class="text-sm text-base-content/60">
+                Cupón personal que se manda solo por email antes del cumpleaños de cada cliente.
+              </p>
+
+              <div class="space-y-3 rounded-lg border border-base-300 p-4">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input type="checkbox" class="toggle toggle-sm" [(ngModel)]="cumpleActivo" name="cumpleActivo" />
+                  <span class="label-text font-medium">Mandar el cupón de cumpleaños</span>
+                </label>
+                @if (cumpleActivo) {
+                  <div class="grid gap-4 pl-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">% de descuento</span></label>
+                      <input type="number" class="input input-bordered w-full" [(ngModel)]="cumpleDescuentoPorcentaje" name="cumpleDescuentoPorcentaje" min="1" max="100" placeholder="20" />
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Días antes del cumple</span></label>
+                      <input type="number" class="input input-bordered w-full" [(ngModel)]="cumpleDiasAnticipacion" name="cumpleDiasAnticipacion" min="0" max="30" placeholder="3" />
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Días de validez</span></label>
+                      <input type="number" class="input input-bordered w-full" [(ngModel)]="cumpleDiasValidez" name="cumpleDiasValidez" min="1" max="60" placeholder="7" />
+                    </div>
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Recordar días antes de vencer</span></label>
+                      <input type="number" class="input input-bordered w-full" [(ngModel)]="cumpleDiasRecordatorio" name="cumpleDiasRecordatorio" min="0" max="30" placeholder="2" />
+                    </div>
+                  </div>
+                  <p class="pl-1 text-xs text-base-content/60">{{ ejemploCumple() }}</p>
+                  <p class="pl-1 text-xs text-base-content/60">
+                    @if (cumpleDiasRecordatorio) {
+                      Si no lo usó, le mandamos un recordatorio cuando le queden {{ cumpleDiasRecordatorio }}
+                      {{ cumpleDiasRecordatorio === 1 ? 'día' : 'días' }}. Con 0 no se manda.
+                    } @else {
+                      Sin recordatorio antes de que venza.
+                    }
+                  </p>
+                  <p class="pl-1 text-xs text-base-content/60">
+                    Lo reciben los clientes con email y cumpleaños cargados que aceptaron promociones (no los empleados).
+                    Se usa una vez, solo con su email, y no se suma a otros descuentos. Para los que no tienen email, en el
+                    Dashboard aparecen los cumpleaños de la semana con un botón de WhatsApp.
+                  </p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Reserva online</h2>
               <p class="text-sm text-base-content/60">Con cuánta anticipación mínima se puede reservar desde la web.</p>
 
@@ -711,6 +769,11 @@ export class BrandingConfigComponent implements OnInit {
   recordatorioActivo = true;
   recordatorioHorasAntes: number | null = null;
   reservaAnticipacionMinutos: number | null = null;
+  cumpleActivo = false;
+  cumpleDescuentoPorcentaje: number | null = 20;
+  cumpleDiasAnticipacion: number | null = 3;
+  cumpleDiasValidez: number | null = 7;
+  cumpleDiasRecordatorio: number | null = 2;
   clubImagenUrl = '';
   bloquesClub: FilaClub[] = BLOQUES_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
@@ -759,6 +822,11 @@ export class BrandingConfigComponent implements OnInit {
         this.recordatorioActivo = data.recordatorioActivo;
         this.recordatorioHorasAntes = data.recordatorioHorasAntes;
         this.reservaAnticipacionMinutos = data.reservaAnticipacionMinutos;
+        this.cumpleActivo = data.cumpleActivo;
+        this.cumpleDescuentoPorcentaje = Number(data.cumpleDescuentoPorcentaje);
+        this.cumpleDiasAnticipacion = data.cumpleDiasAnticipacion;
+        this.cumpleDiasValidez = data.cumpleDiasValidez;
+        this.cumpleDiasRecordatorio = data.cumpleDiasRecordatorio;
         this.clubImagenUrl = data.clubImagenUrl ?? '';
         this.bloquesClub = this.mapearClub(data.clubBeneficios);
         this.loading.set(false);
@@ -828,6 +896,27 @@ export class BrandingConfigComponent implements OnInit {
     return Math.min(100, Math.max(0, valor));
   }
 
+  /** El texto que va a mostrar la tarjeta de cumpleaños del Club con los valores del formulario. */
+  textoCumpleAuto(): string | null {
+    return textoBeneficioCumple({
+      cumpleActivo: this.cumpleActivo,
+      cumpleDescuentoPorcentaje: this.cumpleDescuentoPorcentaje ?? 20,
+      cumpleDiasAnticipacion: this.cumpleDiasAnticipacion ?? 3,
+      cumpleDiasValidez: this.cumpleDiasValidez ?? 7,
+    });
+  }
+
+  /** Ejemplo con un cumple el 15/03 para que se entienda qué hacen los dos números. */
+  ejemploCumple(): string {
+    const anticipacion = this.cumpleDiasAnticipacion ?? 3;
+    const validez = this.cumpleDiasValidez ?? 7;
+    const dia = (n: number) => {
+      const f = new Date(2026, 2, 15 + n);
+      return `${String(f.getDate()).padStart(2, '0')}/${String(f.getMonth() + 1).padStart(2, '0')}`;
+    };
+    return `Ejemplo: para un cumple el 15/03, el mail sale el ${dia(-anticipacion)} y el cupón vale para reservas hechas del ${dia(-anticipacion)} al ${dia(-anticipacion + validez - 1)}.`;
+  }
+
   private clampRango(valor: number | null, min: number, max: number): number | null {
     if (valor === null || valor === undefined) return valor;
     return Math.min(max, Math.max(min, valor));
@@ -838,6 +927,10 @@ export class BrandingConfigComponent implements OnInit {
     this.descuentoEmpleadoPorcentaje = this.clampPorcentaje(this.descuentoEmpleadoPorcentaje);
     this.recordatorioHorasAntes = this.clampRango(this.recordatorioHorasAntes, 1, 168);
     this.reservaAnticipacionMinutos = this.clampRango(this.reservaAnticipacionMinutos, 0, 1440);
+    this.cumpleDescuentoPorcentaje = this.clampRango(this.cumpleDescuentoPorcentaje, 1, 100);
+    this.cumpleDiasAnticipacion = this.clampRango(this.cumpleDiasAnticipacion, 0, 30);
+    this.cumpleDiasValidez = this.clampRango(this.cumpleDiasValidez, 1, 60);
+    this.cumpleDiasRecordatorio = this.clampRango(this.cumpleDiasRecordatorio, 0, 30);
 
     this.guardando.set(true);
     this.mensaje.set('');
@@ -908,6 +1001,11 @@ export class BrandingConfigComponent implements OnInit {
         recordatorioActivo: this.recordatorioActivo,
         recordatorioHorasAntes: this.recordatorioHorasAntes ?? undefined,
         reservaAnticipacionMinutos: this.reservaAnticipacionMinutos ?? undefined,
+        cumpleActivo: this.cumpleActivo,
+        cumpleDescuentoPorcentaje: this.cumpleDescuentoPorcentaje ?? undefined,
+        cumpleDiasAnticipacion: this.cumpleDiasAnticipacion ?? undefined,
+        cumpleDiasValidez: this.cumpleDiasValidez ?? undefined,
+        cumpleDiasRecordatorio: this.cumpleDiasRecordatorio ?? undefined,
       })
       .subscribe({
         next: () => {

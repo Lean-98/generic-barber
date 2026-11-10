@@ -31,6 +31,7 @@ describe('PersonasService', () => {
     ultimoCorte: null,
     usuario: null,
     aplicaDescuentoPersonal: false,
+    recibePromociones: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -86,6 +87,7 @@ describe('PersonasService', () => {
           fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
           instagram: dto.instagram,
           aplicaDescuentoPersonal: false,
+          recibePromociones: true,
         },
       });
       expect(result).toBeDefined();
@@ -216,6 +218,24 @@ describe('PersonasService', () => {
         where: { instagram: { equals: '@juan_perez', mode: 'insensitive' } },
       });
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('cumplenEnMes', () => {
+    it('should return the clientes of that month ordered by day, paginated', async () => {
+      prismaMock.persona.findMany
+        .mockResolvedValueOnce([
+          { idPersona: 1, apellido: 'Zeta', fechaNacimiento: new Date('1990-11-20T00:00:00.000Z') },
+          { idPersona: 2, apellido: 'Alfa', fechaNacimiento: new Date('1985-11-03T00:00:00.000Z') },
+          { idPersona: 3, apellido: 'Beta', fechaNacimiento: new Date('1992-12-03T00:00:00.000Z') },
+        ])
+        .mockResolvedValueOnce([{ idPersona: 1 }, { idPersona: 2 }]);
+
+      const res = await service.cumplenEnMes(11, 1, 20);
+
+      expect(prismaMock.persona.findMany).toHaveBeenLastCalledWith({ where: { idPersona: { in: [2, 1] } } });
+      expect(res.data.map((p: any) => p.idPersona)).toEqual([2, 1]);
+      expect(res.total).toBe(2);
     });
   });
 });

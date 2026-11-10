@@ -5,9 +5,10 @@ import { TurnosPublicosController } from './turnos-publicos.controller';
 import { TurnosCronService } from './turnos-cron.service';
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
 import { MailModule } from '../mail/mail.module';
+import { CuponesModule } from '../cupones/cupones.module';
 
 @Module({
-  imports: [GoogleCalendarModule, MailModule],
+  imports: [GoogleCalendarModule, MailModule, CuponesModule],
   controllers: [TurnosController, TurnosPublicosController],
   providers: [TurnosService, TurnosCronService],
   exports: [TurnosService],

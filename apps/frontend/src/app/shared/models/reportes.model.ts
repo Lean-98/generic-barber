@@ -68,10 +68,24 @@ export interface ReporteRentabilidad {
   resultado: number;
   costoFidelizacion: number;
   serviciosConFidelizacion: number;
+  costoCupones: number;
+  serviciosConCupon: number;
+  /** La parte de costoCupones que fue por cupones de cumpleaños. */
+  costoCuponesCumpleanos: number;
   margenPromedioPorTurno: number | null;
   turnosParaCubrirFijosMes: number | null;
   turnosParaCubrirFijosPeriodo: number | null;
   turnosFaltantesPeriodo: number | null;
   serviciosSinCosto: number;
   aviso: string | null;
+}
+
+export interface ReporteCumpleanos {
+  enviados: number;
+  usados: number;
+  porcentajeUso: number | null;
+  recordatoriosEnviados: number;
+  turnosCompletados: number;
+  facturado: number;
+  descuentoOtorgado: number;
 }

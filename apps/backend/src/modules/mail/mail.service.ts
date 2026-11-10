@@ -1,3 +1,4 @@
+import type { ProgresoTurno } from '../turnos/fidelizacion.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
@@ -18,6 +19,10 @@ export interface TurnoMailData {
   colorPrimario?: string | null;
   /** Link firmado para que el cliente cancele el turno él mismo (ver cancelacion-token.util.ts). */
   cancelarUrl?: string | null;
+  /** Visitas del club de fidelización; null si el programa está apagado o el turno no suma. */
+  fidelizacion?: ProgresoTurno | null;
+  /** Cupón con el que se reservó (solo en la confirmación). */
+  cupon?: { codigo: string; descuentoPorcentaje: number } | null;
 }
 
 /** Datos del aviso que recibe el barbero cuando un cliente cancela desde el link del mail. */
@@ -41,10 +46,29 @@ export interface AvisoNuevaReservaData {
   observacion?: string | null;
   /** dd/mm, si el cliente la cargó. */
   cumpleanos?: string | null;
+  cupon?: { codigo: string; descuentoPorcentaje: number } | null;
   clienteNuevo: boolean;
   /** Link a la agenda del panel; null si falta FRONTEND_URL. */
   panelUrl?: string | null;
   nombreNegocio?: string | null;
+  colorPrimario?: string | null;
+}
+
+export interface CuponCumpleanosData {
+  nombreCliente: string;
+  codigo: string;
+  descuentoPorcentaje: number;
+  /** dd/mm */
+  fechaCumple: string;
+  /** dd/mm, último día para reservar con el cupón. */
+  hasta: string;
+  reservarUrl: string;
+  /** Link para dejar de recibir promociones; null si falta FRONTEND_URL o JWT_SECRET. */
+  bajaUrl: string | null;
+  /** true = aviso de que el cupón está por vencer (en vez del regalo). */
+  recordatorio?: boolean;
+  nombreNegocio?: string | null;
+  logoUrl?: string | null;
   colorPrimario?: string | null;
 }
 
@@ -332,6 +356,7 @@ export class MailService {
                 ${fila('Turno', fecha)}
                 ${fila('Servicios', escapeHtml(data.servicios.join(', ')))}
                 ${data.formaPago ? fila('Va a pagar con', escapeHtml(data.formaPago)) : ''}
+                ${data.cupon ? fila('Cupón', `${escapeHtml(data.cupon.codigo)} (${Number(data.cupon.descuentoPorcentaje.toFixed(2))}% de descuento)`) : ''}
                 ${data.telefonoCliente ? fila('Teléfono', escapeHtml(data.telefonoCliente)) : ''}
                 ${data.emailCliente ? fila('Email', escapeHtml(data.emailCliente)) : ''}
                 ${data.cumpleanos ? fila('Cumpleaños', escapeHtml(data.cumpleanos)) : ''}
@@ -354,6 +379,117 @@ export class MailService {
     const { error } = await this.resend.emails.send({ from: this.from, to, subject, html });
     if (error) {
       this.logger.error(`Fallo al enviar aviso de nueva reserva a ${to.join(', ')}: ${JSON.stringify(error)}`);
+      return false;
+    }
+    return true;
+  }
+
+  /** Cuántas visitas lleva el cliente en el club, o si este turno ya tiene el descuento. */
+  private bloqueFidelizacion(f: ProgresoTurno, color: string): string {
+    const pct = `${Number(f.descuentoPorcentaje.toFixed(2))}%`;
+    const faltan = f.visitasRequeridas - f.visitaEnCiclo;
+    const titulo = f.conDescuento ? `¡Este turno tiene ${pct} de descuento!` : `Visita ${f.visitaEnCiclo} de ${f.visitasRequeridas} del club`;
+    const texto = f.conDescuento
+      ? `Es tu visita ${f.visitasRequeridas} del club: el descuento se aplica al cobrar.`
+      : `Te ${faltan === 1 ? 'falta 1 visita' : `faltan ${faltan} visitas`} para tu ${pct} de descuento.`;
+    const aclaracion = f.cuentaTurnosPendientes ? ' Contamos los turnos que ya tenés reservados antes de este.' : '';
+
+    // Puntitos de progreso; con muchas visitas por ciclo se omiten para no romper el ancho del mail.
+    const puntos =
+      f.visitasRequeridas <= 12
+        ? `<div style="margin-top:10px;">${Array.from({ length: f.visitasRequeridas }, (_, i) => {
+            const lleno = f.conDescuento || i < f.visitaEnCiclo;
+            return `<span style="display:inline-block;width:14px;height:14px;margin:0 4px 0 0;border-radius:50%;background-color:${lleno ? color : MARCA.base300};"></span>`;
+          }).join('')}</div>`
+        : '';
+
+    return `
+              <div style="margin:24px 32px 0;padding:16px 18px;background-color:${MARCA.base200};border-left:3px solid ${color};border-radius:0 6px 6px 0;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:${color};">Club de fidelización</p>
+                <p style="margin:0;font-size:16px;font-weight:700;color:${MARCA.neutral};">${titulo}</p>
+                <p style="margin:4px 0 0;font-size:13px;color:${MARCA.textoCuerpo};line-height:1.5;">${texto}${aclaracion}</p>
+                ${puntos}
+              </div>`;
+  }
+
+  /** Regalo de cumpleaños: cupón personal con botón para reservar. Devuelve si se mandó. */
+  async sendCuponCumpleanos(to: string, data: CuponCumpleanosData): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn(`RESEND_API_KEY no configurada: no se envió el cupón de cumpleaños a ${to}`);
+      return false;
+    }
+
+    const color = this.colorPrimario(data);
+    const nombreNegocio = escapeHtml(data.nombreNegocio || 'Tu barbería');
+    const nombre = escapeHtml(data.nombreCliente);
+    const pct = `${Number(data.descuentoPorcentaje.toFixed(2))}%`;
+    const subject = data.recordatorio
+      ? `${data.nombreCliente}, tu regalo de cumple vence el ${data.hasta}`
+      : `¡Feliz cumple, ${data.nombreCliente}! Te regalamos ${pct} de descuento`;
+    const eyebrow = data.recordatorio ? 'Tu regalo vence pronto' : 'Regalo de cumpleaños';
+    const titulo = data.recordatorio ? `${nombre}, no te olvides de tu regalo` : `¡Feliz cumple, ${nombre}! 🎉`;
+    const intro = data.recordatorio
+      ? `Todavía tenés <strong>${pct} de descuento</strong> por tu cumple. Reservá hasta el <strong>${data.hasta}</strong> para usarlo.`
+      : `Para festejar tu cumple (${data.fechaCumple}) te regalamos <strong>${pct} de descuento</strong> en tu próximo turno.`;
+
+    const html = `
+      <!doctype html>
+      <html lang="es">
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+      <body style="margin:0;padding:0;">
+      <div style="background-color:${MARCA.base200};padding:32px 16px;font-family:${MARCA.fontSans};">
+        <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;border-collapse:collapse;">
+          <tr>
+            <td style="background-color:${MARCA.base100};border:1px solid ${MARCA.base300};border-radius:12px;overflow:hidden;">
+              <table role="presentation" width="100%" style="border-collapse:collapse;">
+                <tr>
+                  <td style="background-color:${MARCA.neutral};padding:28px 32px;text-align:center;">
+                    ${data.logoUrl ? `<img src="${data.logoUrl}" alt="${nombreNegocio}" height="36" style="max-height:36px;margin-bottom:10px;" />` : ''}
+                    <div style="font-family:${MARCA.fontDisplay};font-size:21px;font-weight:600;color:${MARCA.neutralContent};">${nombreNegocio}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="padding:32px 32px 8px;text-align:center;">
+                <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">${eyebrow}</p>
+                <h1 style="font-family:${MARCA.fontDisplay};font-size:26px;font-weight:600;color:${MARCA.neutral};margin:10px 0 8px;">${titulo}</h1>
+                <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0;line-height:1.5;">${intro}</p>
+              </div>
+
+              <div style="margin:24px 32px 0;padding:20px;border:2px dashed ${color};border-radius:10px;text-align:center;background-color:${MARCA.base200};">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${MARCA.textoSuave};">Tu código</p>
+                <p style="margin:0;font-family:monospace;font-size:24px;font-weight:700;letter-spacing:0.06em;color:${MARCA.neutral};">${escapeHtml(data.codigo)}</p>
+                <p style="margin:8px 0 0;font-size:13px;color:${MARCA.textoCuerpo};">Reservá hasta el <strong>${data.hasta}</strong>. Es personal y se usa una vez.</p>
+              </div>
+
+              <div style="padding:24px 32px 4px;text-align:center;">
+                <a href="${data.reservarUrl}" style="display:inline-block;background-color:${color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 30px;border-radius:8px;">Reservar con mi descuento</a>
+                <p style="margin:10px 0 0;font-size:12px;color:${MARCA.textoSuave};">El código ya va cargado. No se suma a otros descuentos: si te toca uno mayor, queda ese.</p>
+              </div>
+
+              <div style="padding:28px 32px 32px;text-align:center;">
+                <p style="margin:0;font-size:12px;color:${MARCA.textoSuave};">${nombreNegocio}</p>
+                ${data.bajaUrl ? `<p style="margin:8px 0 0;font-size:11px;color:${MARCA.textoSuave};">¿No querés recibir más promociones? <a href="${data.bajaUrl}" style="color:${MARCA.textoSuave};">Darme de baja</a></p>` : ''}
+                <p style="margin:6px 0 0;font-size:11px;color:${MARCA.textoSuave};opacity:0.7;">Powered by ${POWERED_BY_NAME}</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      </body>
+      </html>
+    `;
+
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject,
+      html,
+      // Para que Gmail y otros muestren su propio botón de "desuscribirse".
+      headers: data.bajaUrl ? { 'List-Unsubscribe': `<${data.bajaUrl}>` } : undefined,
+    });
+    if (error) {
+      this.logger.error(`Fallo al enviar el cupón de cumpleaños a ${to}: ${JSON.stringify(error)}`);
       return false;
     }
     return true;
@@ -424,8 +560,11 @@ export class MailService {
                   ${fila('Fecha', fecha)}
                   ${fila('Servicios', data.servicios.join(', '))}
                   ${data.direccion ? fila('Dirección', data.direccion) : ''}
+                  ${data.cupon ? fila('Descuento', `${Number(data.cupon.descuentoPorcentaje.toFixed(2))}% con el cupón ${escapeHtml(data.cupon.codigo)}`) : ''}
                 </table>
               </div>
+
+              ${data.fidelizacion ? this.bloqueFidelizacion(data.fidelizacion, color) : ''}
 
               ${data.whatsappUrl ? `
               <div style="padding:24px 32px 4px;text-align:center;">

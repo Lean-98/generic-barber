@@ -12,6 +12,9 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
 import { PesosPipe } from '../../shared/pipes/pesos.pipe';
 import { fechaLocal } from '../../shared/utils/fecha-local.util';
+import { BrandingService } from '../../core/services/branding.service';
+import { CumpleanosService, CumpleanosProximo } from '../../shared/services/cumpleanos.service';
+import { whatsappDeTelefono } from '../../shared/utils/whatsapp.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -46,6 +49,53 @@ import { fechaLocal } from '../../shared/utils/fecha-local.util';
             </div>
           </div>
           <a routerLink="/productos" class="btn btn-sm">Ver productos</a>
+        </div>
+      }
+
+      <!-- Cumpleaños de la semana (con el cupón personal si ya se generó) -->
+      @if (cumpleanos().length > 0) {
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body p-5">
+            <div class="flex items-center gap-2">
+              <app-icon name="star" [size]="18" className="text-primary" />
+              <h2 class="font-medium">Cumpleaños de esta semana</h2>
+            </div>
+            <ul class="mt-2 divide-y divide-base-200">
+              @for (c of cumpleanos(); track c.idPersona) {
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-medium">{{ c.nombre }} {{ c.apellido }}</span>
+                      @if (c.esHoy) {
+                        <span class="badge badge-primary badge-sm">¡Hoy! 🎂</span>
+                      } @else {
+                        <span class="badge badge-ghost badge-sm">{{ diaCumple(c.fecha) }}</span>
+                      }
+                      <span class="text-xs text-base-content/60">cumple {{ c.edad }}</span>
+                    </div>
+                    <div class="mt-0.5 text-xs text-base-content/60">
+                      @if (c.cupon) {
+                        Cupón <span class="font-mono">{{ c.cupon.codigo }}</span> ({{ c.cupon.descuentoPorcentaje }}%) ·
+                        {{ c.cupon.usado ? 'ya lo usó' : 'vale hasta el ' + c.cupon.hasta }}
+                      } @else if (!c.recibePromociones) {
+                        No acepta promociones
+                      } @else if (!c.mail) {
+                        Sin email: no recibe el cupón automático
+                      } @else {
+                        El cupón sale por mail {{ branding().cumpleActivo ? 'los días antes del cumple' : 'cuando actives el beneficio en Marca' }}
+                      }
+                    </div>
+                  </div>
+                  @if (linkWhatsapp(c); as link) {
+                    <a [href]="link" target="_blank" rel="noopener" class="btn btn-sm gap-2 border-0 bg-[#25D366] text-white hover:bg-[#1ebe5a]">
+                      <app-icon name="whatsapp" [size]="16" />
+                      Saludar
+                    </a>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
         </div>
       }
 
@@ -306,6 +356,10 @@ export class DashboardComponent implements OnInit {
   private readonly productosService = inject(ProductosService);
 
   stockBajo = signal<Producto[]>([]);
+  private readonly cumpleanosService = inject(CumpleanosService);
+  private readonly brandingService = inject(BrandingService);
+  branding = this.brandingService.branding;
+  cumpleanos = signal<CumpleanosProximo[]>([]);
 
   turnos = signal<Turno[]>([]);
   turnosHoy = signal<Turno[]>([]);
@@ -351,7 +405,33 @@ export class DashboardComponent implements OnInit {
       .slice(0, 5);
   });
 
+  /** "2026-11-13" → "vie 13/11". */
+  diaCumple(fecha: string): string {
+    const [a, m, d] = fecha.split('-').map(Number);
+    const dia = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][new Date(a, m - 1, d).getDay()];
+    return `${dia} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+  }
+
+  /**
+   * Saludo por WhatsApp. Con cupón vigente y sin usar, incluye el código y
+   * el link que lo carga en /reservar; si no, es solo el saludo (sin
+   * prometer un descuento que no puede usar online).
+   */
+  linkWhatsapp(c: CumpleanosProximo): string | null {
+    const saludo = c.esHoy ? `¡Feliz cumple, ${c.nombre}! 🎉` : `¡Se viene tu cumple, ${c.nombre}! 🎉`;
+    let mensaje = `${saludo} Te esperamos para festejarlo.`;
+    if (c.cupon && !c.cupon.usado && c.recibePromociones) {
+      const link = `${window.location.origin}/reservar?cupon=${encodeURIComponent(c.cupon.codigo)}`;
+      mensaje = `${saludo} Te regalamos ${c.cupon.descuentoPorcentaje}% de descuento para festejarlo: reservá hasta el ${c.cupon.hasta} con el código *${c.cupon.codigo}* acá: ${link}`;
+    }
+    return whatsappDeTelefono(c.telefono, mensaje);
+  }
+
   ngOnInit(): void {
+    this.cumpleanosService.proximos(7).subscribe({
+      next: (lista) => this.cumpleanos.set(lista),
+      error: () => this.cumpleanos.set([]),
+    });
     this.productosService.findStockBajo().subscribe({
       next: (productos) => this.stockBajo.set(productos),
       error: () => this.stockBajo.set([]),

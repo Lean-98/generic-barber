@@ -4,11 +4,16 @@ import { Throttle } from '@nestjs/throttler';
 import { TurnosService } from './turnos.service';
 import { ReservaPublicaDto, DisponibilidadQueryDto } from './dto/reserva-publica.dto';
 import { CancelacionPublicaDto } from './dto/cancelacion-publica.dto';
+import { CuponesService } from '../cupones/cupones.service';
+import { ValidarCuponQueryDto } from '../cupones/dto/cupon.dto';
 
 @ApiTags('Turnos Públicos')
 @Controller('turnos-publicos')
 export class TurnosPublicosController {
-  constructor(private readonly turnosService: TurnosService) {}
+  constructor(
+    private readonly turnosService: TurnosService,
+    private readonly cuponesService: CuponesService,
+  ) {}
 
   @Get('disponibilidad')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
@@ -42,6 +47,15 @@ export class TurnosPublicosController {
       throw new BadRequestException('email es requerido');
     }
     return this.turnosService.buscarClientePorEmail(email);
+  }
+
+  @Get('cupon')
+  // Más estricto que el resto: que no se puedan probar códigos al azar.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Validar un cupón de descuento antes de reservar' })
+  @ApiResponse({ status: 200, description: '{ valido: true, codigo, descuentoPorcentaje, hasta } o { valido: false, mensaje }' })
+  async validarCupon(@Query() query: ValidarCuponQueryDto) {
+    return this.cuponesService.validarParaReserva(query.codigo, query.email);
   }
 
   @Post('reservar')

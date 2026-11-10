@@ -32,6 +32,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reservas/cancelar-turno.component').then((m) => m.CancelarTurnoComponent),
   },
   {
+    path: 'promociones',
+    loadComponent: () =>
+      import('./features/promociones/preferencia-promociones.component').then((m) => m.PreferenciaPromocionesComponent),
+  },
+  {
     path: 'tienda',
     loadComponent: () => import('./features/landing/tienda.component').then((m) => m.TiendaComponent),
   },
@@ -75,6 +80,10 @@ export const routes: Routes = [
       {
         path: 'caja',
         loadComponent: () => import('./features/caja/caja.component').then((m) => m.CajaComponent),
+      },
+      {
+        path: 'cupones',
+        loadComponent: () => import('./features/cupones/cupones.component').then((m) => m.CuponesComponent),
       },
       {
         path: 'reportes',

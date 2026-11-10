@@ -19,7 +19,7 @@ import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { Persona } from '@prisma/client';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
-import { SearchPersonasQueryDto } from './dto/search-personas-query.dto';
+import { CumplenMesQueryDto, SearchPersonasQueryDto } from './dto/search-personas-query.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @ApiTags('Personas')
@@ -42,6 +42,13 @@ export class PersonasController {
   @ApiResponse({ status: 200, description: 'Página de clientes' })
   async findAll(@Query() { page, limit }: PaginationQueryDto): Promise<PaginatedResult<Persona>> {
     return this.personasService.findAll(page, limit);
+  }
+
+  @Get('cumplen-mes')
+  @ApiOperation({ summary: 'Clientes que cumplen años en el mes (por defecto el actual), ordenados por día' })
+  @ApiQuery({ name: 'mes', required: false, description: '1 a 12', example: 11 })
+  async cumplenMes(@Query() { mes, page, limit }: CumplenMesQueryDto): Promise<PaginatedResult<Persona>> {
+    return this.personasService.cumplenEnMes(mes, page, limit);
   }
 
   @Get('search')

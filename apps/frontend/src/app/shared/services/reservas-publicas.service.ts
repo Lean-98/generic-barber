@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ValidacionCupon } from '../models/cupon.model';
 
 export interface DisponibilidadResponse {
   slots: string[];
@@ -15,6 +16,9 @@ export interface ReservaRequest {
   telefono?: string;
   /** AAAA-MM-DD, para el beneficio de cumpleaños. */
   fechaNacimiento?: string;
+  codigoCupon?: string;
+  /** Solo para un cliente nuevo: si acepta recibir promociones por email. */
+  recibePromociones?: boolean;
   fechaHoraInicio: string;
   observacion?: string;
   servicios: { idServicio: number; cantidad?: number }[];
@@ -26,6 +30,16 @@ export interface ClienteExistenteResponse {
   nombre?: string;
   /** Cliente existente sin cumpleaños cargado: se le pide solo ese dato. */
   faltaFechaNacimiento?: boolean;
+  /** Visitas en el club de fidelización; null si el programa está apagado o es empleado. */
+  fidelizacion?: ProgresoClub | null;
+}
+
+export interface ProgresoClub {
+  visitasRequeridas: number;
+  descuentoPorcentaje: number;
+  /** Hechas o ya reservadas en el ciclo actual, de 0 a N-1. */
+  visitasEnCiclo: number;
+  proximaConDescuento: boolean;
 }
 
 export interface FormaPagoPublica {
@@ -63,6 +77,12 @@ export class ReservasPublicasService {
 
   buscarClientePorEmail(email: string): Observable<ClienteExistenteResponse> {
     return this.http.get<ClienteExistenteResponse>(`${this.apiUrl}/turnos-publicos/cliente`, { params: { email } });
+  }
+
+  validarCupon(codigo: string, email?: string): Observable<ValidacionCupon> {
+    const params: Record<string, string> = { codigo };
+    if (email) params['email'] = email;
+    return this.http.get<ValidacionCupon>(`${this.apiUrl}/turnos-publicos/cupon`, { params });
   }
 
   findFormasPago(): Observable<FormaPagoPublica[]> {
