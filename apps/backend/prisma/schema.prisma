@@ -291,6 +291,8 @@ model ConfiguracionNegocio {
   cumpleDescuentoPorcentaje       Decimal  @default(20) @db.Decimal(5, 2) @map("cumple_descuento_porcentaje")
   cumpleDiasAnticipacion          Int      @default(3) @map("cumple_dias_anticipacion")
   cumpleDiasValidez               Int      @default(7) @map("cumple_dias_validez")
+  /// Recordatorio por mail cuando al cupón sin usar le quedan estos días (0 = no se manda).
+  cumpleDiasRecordatorio          Int      @default(2) @map("cumple_dias_recordatorio")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")
@@ -399,6 +401,8 @@ model Cupon {
   idPersona           Int?     @map("id_persona")
   /// Año del cumpleaños al que corresponde: uno por persona y por año.
   anioCumpleanos      Int?     @map("anio_cumpleanos")
+  /// Cuándo se mandó el recordatorio de que el cupón vence (uno solo por cupón).
+  recordatorioEnviadoEn DateTime? @map("recordatorio_enviado_en")
 
   turnos  Turno[]
   persona Persona? @relation(fields: [idPersona], references: [idPersona], onDelete: Cascade)

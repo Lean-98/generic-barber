@@ -4,6 +4,7 @@ import { Persona, Prisma } from '@prisma/client';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { PaginatedResult, paginar } from '../../common/interfaces/paginated-result.interface';
+import { hoyAr } from '../../common/utils/fecha-ar.util';
 
 @Injectable()
 export class PersonasService {
@@ -34,6 +35,29 @@ export class PersonasService {
       this.prisma.persona.count(),
     ]);
     return paginar(data, total, page, limit);
+  }
+
+  /**
+   * Clientes que cumplen años en el mes (1-12; por defecto el actual, hora
+   * Argentina), ordenados por día. Prisma no filtra por mes de una fecha,
+   * así que se filtra acá: es una lista chica (solo id y fecha).
+   */
+  async cumplenEnMes(mes?: number, page = 1, limit = 20): Promise<PaginatedResult<Persona>> {
+    const mesBuscado = (mes ?? hoyAr().getUTCMonth() + 1) - 1;
+    const candidatos = await this.prisma.persona.findMany({
+      where: { fechaNacimiento: { not: null } },
+      select: { idPersona: true, fechaNacimiento: true, apellido: true },
+    });
+    const ids = candidatos
+      .filter((p) => p.fechaNacimiento!.getUTCMonth() === mesBuscado)
+      .sort((a, b) => a.fechaNacimiento!.getUTCDate() - b.fechaNacimiento!.getUTCDate() || a.apellido.localeCompare(b.apellido))
+      .map((p) => p.idPersona);
+
+    const pagina = ids.slice((page - 1) * limit, page * limit);
+    const personas = await this.prisma.persona.findMany({ where: { idPersona: { in: pagina } } });
+    const orden = new Map(pagina.map((id, i) => [id, i]));
+    personas.sort((a, b) => orden.get(a.idPersona)! - orden.get(b.idPersona)!);
+    return paginar(personas, ids.length, page, limit);
   }
 
   async findOne(id: number): Promise<Persona> {

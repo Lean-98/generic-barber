@@ -6,7 +6,7 @@ import { IconComponent } from '../../shared/ui/icon.component';
 import { BrandMarkComponent } from '../../shared/ui/brand-mark.component';
 import { POWERED_BY_NAME } from '../../shared/constants/branding.constant';
 import { ServiciosService } from '../../shared/services/servicios.service';
-import { reglaClub } from '../../shared/utils/fidelizacion.util';
+import { reglaClub, textoBeneficioCumple } from '../../shared/utils/fidelizacion.util';
 
 const ICONO_POR_CLAVE: Record<ClaveBloqueClub, string> = {
   presentarTarjeta: 'credit-card',
@@ -183,6 +183,7 @@ export class ClubComponent implements OnInit {
     cumpleDescuentoPorcentaje: 20,
     cumpleDiasAnticipacion: 3,
     cumpleDiasValidez: 7,
+    cumpleDiasRecordatorio: 2,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();
@@ -195,11 +196,23 @@ export class ClubComponent implements OnInit {
 
   club = computed(() => reglaClub(this.config()));
 
-  beneficios = computed(() =>
-    (this.config().clubBeneficios ?? [])
+  /**
+   * Con el beneficio de cumpleaños activo, su tarjeta se arma desde la
+   * configuración (aunque el texto manual esté vacío) para que diga lo que
+   * de verdad se aplica.
+   */
+  beneficios = computed(() => {
+    const config = this.config();
+    const textoCumple = textoBeneficioCumple(config);
+    const bloques = [...(config.clubBeneficios ?? [])];
+    if (textoCumple && !bloques.some((b) => b.clave === 'cumpleanos')) {
+      bloques.push({ clave: 'cumpleanos', titulo: 'Beneficio de cumpleaños', descripcion: '' });
+    }
+    return bloques
+      .map((b) => (b.clave === 'cumpleanos' && textoCumple ? { ...b, descripcion: textoCumple } : b))
       .filter((b) => !!b.descripcion?.trim())
-      .map((b) => ({ ...b, icono: ICONO_POR_CLAVE[b.clave] })),
-  );
+      .map((b) => ({ ...b, icono: ICONO_POR_CLAVE[b.clave] }));
+  });
 
   ngOnInit(): void {
     this.configuracionService.getBranding().subscribe({

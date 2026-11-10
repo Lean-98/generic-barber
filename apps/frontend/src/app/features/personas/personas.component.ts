@@ -38,6 +38,9 @@ const LIMITE_PAGINA = 20;
                 <app-icon name="x" [size]="18" />
               </button>
             </div>
+            <button class="btn btn-sm gap-2" [class.btn-primary]="soloCumpleanos()" [class.btn-outline]="!soloCumpleanos()" (click)="alternarCumpleanos()">
+              🎂 Cumplen este mes
+            </button>
             <span class="text-sm text-base-content/60">{{ total() }} {{ total() === 1 ? 'cliente' : 'clientes' }}</span>
           </div>
         </div>
@@ -69,6 +72,9 @@ const LIMITE_PAGINA = 20;
                             <span class="font-medium">{{ persona.nombre }} {{ persona.apellido }}</span>
                             @if (persona.aplicaDescuentoPersonal) {
                               <span class="badge badge-primary badge-outline badge-sm">Empleado</span>
+                            }
+                            @if (cumpleEsteMes(persona); as dia) {
+                              <span class="badge badge-ghost badge-sm" [title]="'Cumple el ' + dia">🎂 {{ dia }}</span>
                             }
                           </div>
                         </div>
@@ -402,6 +408,7 @@ export class PersonasComponent implements OnInit, OnDestroy {
 
   personas = signal<Persona[]>([]);
   filtro = signal('');
+  soloCumpleanos = signal(false);
   pagina = signal(1);
   totalPaginas = signal(1);
   total = signal(0);
@@ -435,9 +442,11 @@ export class PersonasComponent implements OnInit, OnDestroy {
 
   loadPersonas(): void {
     const query = this.filtro().trim();
-    const request$ = query
-      ? this.personasService.search(query, this.pagina(), LIMITE_PAGINA)
-      : this.personasService.findAll(this.pagina(), LIMITE_PAGINA);
+    const request$ = this.soloCumpleanos()
+      ? this.personasService.cumplenEsteMes(this.pagina(), LIMITE_PAGINA)
+      : query
+        ? this.personasService.search(query, this.pagina(), LIMITE_PAGINA)
+        : this.personasService.findAll(this.pagina(), LIMITE_PAGINA);
 
     request$.subscribe((res) => {
       this.personas.set(res.data);
@@ -451,7 +460,23 @@ export class PersonasComponent implements OnInit, OnDestroy {
     this.loadPersonas();
   }
 
+  /** "Cumplen este mes" reemplaza a la búsqueda (y al revés). */
+  alternarCumpleanos(): void {
+    this.soloCumpleanos.update((v) => !v);
+    this.filtro.set('');
+    this.pagina.set(1);
+    this.loadPersonas();
+  }
+
+  /** "13/11" si cumple este mes (para la marca 🎂 en la lista); null si no. */
+  cumpleEsteMes(persona: Persona): string | null {
+    if (!persona.fechaNacimiento) return null;
+    const [, mes, dia] = String(persona.fechaNacimiento).slice(0, 10).split('-');
+    return Number(mes) === new Date().getMonth() + 1 ? `${dia}/${mes}` : null;
+  }
+
   aplicarFiltro(): void {
+    this.soloCumpleanos.set(false);
     if (this.filtroTimeoutId) {
       clearTimeout(this.filtroTimeoutId);
     }

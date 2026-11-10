@@ -83,6 +83,8 @@ export interface ReporteRentabilidad {
   /** Lo que se dejó de cobrar por cupones de descuento. */
   costoCupones: number;
   serviciosConCupon: number;
+  /** La parte de costoCupones que fue por cupones de cumpleaños. */
+  costoCuponesCumpleanos: number;
   margenPromedioPorTurno: number | null;
   turnosParaCubrirFijosMes: number | null;
   turnosParaCubrirFijosPeriodo: number | null;
@@ -91,6 +93,22 @@ export interface ReporteRentabilidad {
   serviciosSinCosto: number;
   /** Explicación cuando no se puede calcular el punto de equilibrio. */
   aviso: string | null;
+}
+
+export interface ReporteCumpleanos {
+  /** Cupones de cumpleaños generados (y mandados) en el período. */
+  enviados: number;
+  /** De esos, cuántos se usaron para reservar (turno no cancelado). */
+  usados: number;
+  /** usados / enviados, en %; null sin cupones. */
+  porcentajeUso: number | null;
+  recordatoriosEnviados: number;
+  /** Turnos completados con esos cupones. */
+  turnosCompletados: number;
+  /** Lo cobrado por los servicios de esos turnos (ya con el descuento). */
+  facturado: number;
+  /** Lo que se dejó de cobrar por el cupón. */
+  descuentoOtorgado: number;
 }
 
 const DIAS_MES_REFERENCIA = 30;
@@ -381,6 +399,52 @@ export class ReportesService {
    * Los egresos de caja NO se restan acá para no contar dos veces lo mismo
    * (alquiler o insumos cargados como egreso y también como costo).
    */
+  /**
+   * Cupones de cumpleaños generados en el período y qué pasó con ellos.
+   * Cuenta por fecha de envío (creación del cupón): lo facturado es de esos
+   * cupones aunque el turno haya caído después.
+   */
+  async getCumpleanos(desde?: string, hasta?: string): Promise<ReporteCumpleanos> {
+    const { inicio, fin } = this.getRangoFechas(desde, hasta);
+    const cupones = await this.prisma.cupon.findMany({
+      where: { origen: 'CUMPLEANOS', createdAt: { gte: inicio, lte: fin } },
+      include: {
+        turnos: {
+          where: { estado: { not: 'CANCELADO' } },
+          include: { detalles: true },
+        },
+      },
+    });
+
+    let usados = 0;
+    let turnosCompletados = 0;
+    let facturado = 0;
+    let descuentoOtorgado = 0;
+    for (const cupon of cupones) {
+      if (cupon.turnos.length > 0) usados++;
+      for (const turno of cupon.turnos) {
+        if (turno.estado !== 'COMPLETADO') continue;
+        turnosCompletados++;
+        for (const d of turno.detalles) {
+          const bruto = Number(d.precioReal) * d.cantidad;
+          const descuento = bruto * (Number(d.descuentoPorcentaje) / 100);
+          facturado += bruto - descuento;
+          if (d.descuentoMotivo === 'CUPON') descuentoOtorgado += descuento;
+        }
+      }
+    }
+
+    return {
+      enviados: cupones.length,
+      usados,
+      porcentajeUso: cupones.length ? Math.round((usados / cupones.length) * 100) : null,
+      recordatoriosEnviados: cupones.filter((c) => c.recordatorioEnviadoEn).length,
+      turnosCompletados,
+      facturado: redondear(facturado),
+      descuentoOtorgado: redondear(descuentoOtorgado),
+    };
+  }
+
   async getRentabilidad(desde?: string, hasta?: string): Promise<ReporteRentabilidad> {
     const { inicio, fin } = this.getRangoFechas(desde, hasta);
     const dias = Math.max(1, Math.ceil((fin.getTime() - inicio.getTime()) / MS_DIA));
@@ -389,7 +453,7 @@ export class ReportesService {
       this.getCostos(),
       this.prisma.turno.findMany({
         where: { estado: 'COMPLETADO', fechaHoraInicio: { gte: inicio, lte: fin } },
-        include: { detalles: { include: { servicio: true } } },
+        include: { detalles: { include: { servicio: true } }, cupon: { select: { origen: true } } },
       }),
       this.prisma.servicio.count({ where: { vigente: true, costoInsumos: 0 } }),
     ]);
@@ -400,6 +464,7 @@ export class ReportesService {
     let serviciosConFidelizacion = 0;
     let costoCupones = 0;
     let serviciosConCupon = 0;
+    let costoCuponesCumpleanos = 0;
 
     for (const turno of turnos) {
       for (const d of turno.detalles) {
@@ -414,6 +479,7 @@ export class ReportesService {
         } else if (d.descuentoMotivo === 'CUPON') {
           costoCupones += descuento;
           serviciosConCupon += d.cantidad;
+          if (turno.cupon?.origen === 'CUMPLEANOS') costoCuponesCumpleanos += descuento;
         }
       }
     }
@@ -462,6 +528,7 @@ export class ReportesService {
       serviciosConFidelizacion,
       costoCupones: redondear(costoCupones),
       serviciosConCupon,
+      costoCuponesCumpleanos: redondear(costoCuponesCumpleanos),
       margenPromedioPorTurno: margenPromedioPorTurno === null ? null : redondear(margenPromedioPorTurno),
       turnosParaCubrirFijosMes,
       turnosParaCubrirFijosPeriodo,

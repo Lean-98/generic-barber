@@ -9,6 +9,7 @@ import {
   CostosNegocio,
   IngresosPorDia,
   ReporteRentabilidad,
+  ReporteCumpleanos,
   IngresosPorFormaPago,
   ReporteResumen,
   ServicioReporte,
@@ -58,6 +59,10 @@ export class ReportesService {
 
   getClientesSinVisitas(): Observable<ClienteInactivo[]> {
     return this.http.get<ClienteInactivo[]>(`${this.apiUrl}/clientes-sin-visitas`);
+  }
+
+  getCumpleanos(desde?: string, hasta?: string): Observable<ReporteCumpleanos> {
+    return this.http.get<ReporteCumpleanos>(`${this.apiUrl}/cumpleanos`, { params: this.buildParams(desde, hasta) });
   }
 
   getRentabilidad(desde?: string, hasta?: string): Observable<ReporteRentabilidad> {

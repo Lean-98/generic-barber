@@ -65,6 +65,8 @@ export interface CuponCumpleanosData {
   reservarUrl: string;
   /** Link para dejar de recibir promociones; null si falta FRONTEND_URL o JWT_SECRET. */
   bajaUrl: string | null;
+  /** true = aviso de que el cupón está por vencer (en vez del regalo). */
+  recordatorio?: boolean;
   nombreNegocio?: string | null;
   logoUrl?: string | null;
   colorPrimario?: string | null;
@@ -421,7 +423,14 @@ export class MailService {
     const nombreNegocio = escapeHtml(data.nombreNegocio || 'Tu barbería');
     const nombre = escapeHtml(data.nombreCliente);
     const pct = `${Number(data.descuentoPorcentaje.toFixed(2))}%`;
-    const subject = `¡Feliz cumple, ${data.nombreCliente}! Te regalamos ${pct} de descuento`;
+    const subject = data.recordatorio
+      ? `${data.nombreCliente}, tu regalo de cumple vence el ${data.hasta}`
+      : `¡Feliz cumple, ${data.nombreCliente}! Te regalamos ${pct} de descuento`;
+    const eyebrow = data.recordatorio ? 'Tu regalo vence pronto' : 'Regalo de cumpleaños';
+    const titulo = data.recordatorio ? `${nombre}, no te olvides de tu regalo` : `¡Feliz cumple, ${nombre}! 🎉`;
+    const intro = data.recordatorio
+      ? `Todavía tenés <strong>${pct} de descuento</strong> por tu cumple. Reservá hasta el <strong>${data.hasta}</strong> para usarlo.`
+      : `Para festejar tu cumple (${data.fechaCumple}) te regalamos <strong>${pct} de descuento</strong> en tu próximo turno.`;
 
     const html = `
       <!doctype html>
@@ -442,11 +451,9 @@ export class MailService {
               </table>
 
               <div style="padding:32px 32px 8px;text-align:center;">
-                <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">Regalo de cumpleaños</p>
-                <h1 style="font-family:${MARCA.fontDisplay};font-size:26px;font-weight:600;color:${MARCA.neutral};margin:10px 0 8px;">¡Feliz cumple, ${nombre}! 🎉</h1>
-                <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0;line-height:1.5;">
-                  Para festejar tu cumple (${data.fechaCumple}) te regalamos <strong>${pct} de descuento</strong> en tu próximo turno.
-                </p>
+                <p style="margin:0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${color};">${eyebrow}</p>
+                <h1 style="font-family:${MARCA.fontDisplay};font-size:26px;font-weight:600;color:${MARCA.neutral};margin:10px 0 8px;">${titulo}</h1>
+                <p style="font-size:15px;color:${MARCA.textoCuerpo};margin:0;line-height:1.5;">${intro}</p>
               </div>
 
               <div style="margin:24px 32px 0;padding:20px;border:2px dashed ${color};border-radius:10px;text-align:center;background-color:${MARCA.base200};">

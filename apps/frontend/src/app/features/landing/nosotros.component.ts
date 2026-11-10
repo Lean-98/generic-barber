@@ -155,6 +155,7 @@ export class NosotrosComponent implements OnInit {
     cumpleDescuentoPorcentaje: 20,
     cumpleDiasAnticipacion: 3,
     cumpleDiasValidez: 7,
+    cumpleDiasRecordatorio: 2,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();

@@ -55,6 +55,7 @@ const DEFAULT_CONFIG: ConfiguracionNegocio = {
   cumpleDescuentoPorcentaje: new Prisma.Decimal(20),
   cumpleDiasAnticipacion: 3,
   cumpleDiasValidez: 7,
+  cumpleDiasRecordatorio: 2,
   updatedAt: new Date(0),
 };
 

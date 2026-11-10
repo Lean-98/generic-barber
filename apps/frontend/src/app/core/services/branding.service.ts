@@ -52,6 +52,7 @@ const DEFAULT_BRANDING: ConfiguracionNegocio = {
     cumpleDescuentoPorcentaje: 20,
     cumpleDiasAnticipacion: 3,
     cumpleDiasValidez: 7,
+    cumpleDiasRecordatorio: 2,
 };
 
 @Injectable({

@@ -73,6 +73,7 @@ export interface ConfiguracionNegocio {
   cumpleDescuentoPorcentaje: number;
   cumpleDiasAnticipacion: number;
   cumpleDiasValidez: number;
+  cumpleDiasRecordatorio: number;
   updatedAt?: string;
 }
 
@@ -125,4 +126,5 @@ export interface UpdateConfiguracionRequest {
   cumpleDescuentoPorcentaje?: number;
   cumpleDiasAnticipacion?: number;
   cumpleDiasValidez?: number;
+  cumpleDiasRecordatorio?: number;
 }

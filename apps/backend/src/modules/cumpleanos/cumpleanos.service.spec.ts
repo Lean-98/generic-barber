@@ -24,6 +24,7 @@ describe('CumpleanosService', () => {
     cumpleDescuentoPorcentaje: '20',
     cumpleDiasAnticipacion: 3,
     cumpleDiasValidez: 7,
+    cumpleDiasRecordatorio: 2,
     nombre: 'Authentic',
     logoUrl: null,
     colorPrimario: null,
@@ -105,6 +106,65 @@ describe('CumpleanosService', () => {
         cupon: { codigo: 'CUMPLE-JUAN-AB12', descuentoPorcentaje: 20, hasta: '16/11', usado: false },
       }),
     ]);
+  });
+
+  describe('recordatorio de que vence', () => {
+    const cuponPorVencer = {
+      idCupon: 3,
+      codigo: 'CUMPLE-JUAN-AB12',
+      descuentoPorcentaje: '20',
+      vigenteHasta: new Date('2026-11-12T02:59:59.999Z'), // 11/11 23:59 AR
+      anioCumpleanos: 2026,
+      persona,
+    };
+
+    it('should look for unused cupones that expire within the configured days', async () => {
+      prisma.cupon.findMany.mockResolvedValue([]);
+      await service.enviarRecordatorios();
+
+      expect(prisma.cupon.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          origen: 'CUMPLEANOS',
+          activo: true,
+          recordatorioEnviadoEn: null,
+          vigenteHasta: { gte: expect.any(Date), lte: new Date('2026-11-13T02:59:59.999Z') }, // hoy + 2 días
+          createdAt: { lt: new Date('2026-11-10T03:00:00.000Z') }, // no el que se mandó hoy
+          turnos: { none: { estado: { not: 'CANCELADO' } } },
+          persona: { recibePromociones: true, mail: { not: null } },
+        }),
+        include: { persona: true },
+      });
+    });
+
+    it('should send the reminder once and mark it', async () => {
+      prisma.cupon.findMany.mockResolvedValue([cuponPorVencer]);
+      prisma.cupon.update.mockResolvedValue({});
+
+      await service.enviarRecordatorios();
+
+      expect(mail.sendCuponCumpleanos).toHaveBeenCalledWith(
+        'juan@test.com',
+        expect.objectContaining({ recordatorio: true, hasta: '11/11', fechaCumple: '13/11', codigo: 'CUMPLE-JUAN-AB12' }),
+      );
+      expect(prisma.cupon.update).toHaveBeenCalledWith({ where: { idCupon: 3 }, data: { recordatorioEnviadoEn: expect.any(Date) } });
+    });
+
+    it('should not mark it if the mail did not go out (it retries the next day)', async () => {
+      prisma.cupon.findMany.mockResolvedValue([cuponPorVencer]);
+      mail.sendCuponCumpleanos.mockResolvedValue(false);
+
+      await service.enviarRecordatorios();
+
+      expect(prisma.cupon.update).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing with 0 days or the beneficio off', async () => {
+      prisma.configuracionNegocio.findUnique.mockResolvedValue({ ...configNegocio, cumpleDiasRecordatorio: 0 });
+      await service.enviarRecordatorios();
+      prisma.configuracionNegocio.findUnique.mockResolvedValue({ ...configNegocio, cumpleActivo: false });
+      await service.enviarRecordatorios();
+      expect(prisma.cupon.findMany).not.toHaveBeenCalled();
+    });
   });
 
   describe('baja de promociones', () => {

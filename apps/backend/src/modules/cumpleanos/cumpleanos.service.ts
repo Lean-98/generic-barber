@@ -6,10 +6,15 @@ import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { diaCalendarioAr, finDiaAr, hoyAr, inicioDiaAr } from '../../common/utils/fecha-ar.util';
-import { codigoCumple, diaMes, envioCorrespondiente, proximoCumple, sumarDias } from './cumpleanos.util';
+import { codigoCumple, cumpleEnAnio, diaMes, envioCorrespondiente, proximoCumple, sumarDias } from './cumpleanos.util';
 import { urlBaja, verificarTokenBaja } from './baja-promociones-token.util';
 
 const CONFIG_ID = 1;
+
+/** El cumple al que corresponde un cupón (para el texto del recordatorio). */
+function proximoCumpleDelCupon(nacimiento: Date | null, anio: number | null): Date {
+  return nacimiento && anio ? cumpleEnAnio(nacimiento, anio) : hoyAr();
+}
 const LETRAS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O ni 1/I, que se confunden al dictarlos
 
 export interface CumpleanosProximo {
@@ -49,6 +54,11 @@ export class CumpleanosService {
   ) {}
 
   @Cron('0 10 * * *', { timeZone: 'America/Argentina/Buenos_Aires' })
+  async procesarDelDia(): Promise<void> {
+    await this.enviarCuponesDelDia();
+    await this.enviarRecordatorios();
+  }
+
   async enviarCuponesDelDia(): Promise<void> {
     const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
     if (!config?.cumpleActivo) return;
@@ -80,6 +90,56 @@ export class CumpleanosService {
         });
       } catch (err) {
         this.logger.error(`Fallo con el cupón de cumpleaños de la persona ${persona.idPersona}: ${err}`);
+      }
+    }
+  }
+
+  /**
+   * Aviso de que el cupón vence: a los que no lo usaron, cuando le quedan
+   * cumpleDiasRecordatorio días (o menos, si el proceso no corrió algún
+   * día). Uno solo por cupón; no al que lo recibió hoy mismo.
+   */
+  async enviarRecordatorios(): Promise<void> {
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    if (!config?.cumpleActivo || config.cumpleDiasRecordatorio <= 0) return;
+
+    const ahora = new Date();
+    const hoy = hoyAr();
+    const limite = finDiaAr(sumarDias(hoy, config.cumpleDiasRecordatorio));
+    const cupones = await this.prisma.cupon.findMany({
+      where: {
+        origen: 'CUMPLEANOS',
+        activo: true,
+        recordatorioEnviadoEn: null,
+        vigenteDesde: { lte: ahora },
+        vigenteHasta: { gte: ahora, lte: limite },
+        createdAt: { lt: inicioDiaAr(hoy) },
+        turnos: { none: { estado: { not: 'CANCELADO' } } },
+        persona: { recibePromociones: true, mail: { not: null } },
+      },
+      include: { persona: true },
+    });
+
+    for (const cupon of cupones) {
+      try {
+        const enviado = await this.mailService.sendCuponCumpleanos(cupon.persona!.mail!, {
+          nombreCliente: cupon.persona!.nombre,
+          codigo: cupon.codigo,
+          descuentoPorcentaje: Number(cupon.descuentoPorcentaje),
+          fechaCumple: diaMes(proximoCumpleDelCupon(cupon.persona!.fechaNacimiento, cupon.anioCumpleanos)),
+          hasta: diaMes(diaCalendarioAr(cupon.vigenteHasta)),
+          reservarUrl: this.urlReservar(cupon.codigo),
+          bajaUrl: this.urlBajaDe(cupon.persona!.idPersona),
+          nombreNegocio: config.nombre,
+          logoUrl: config.logoUrl,
+          colorPrimario: config.colorPrimario,
+          recordatorio: true,
+        });
+        if (enviado) {
+          await this.prisma.cupon.update({ where: { idCupon: cupon.idCupon }, data: { recordatorioEnviadoEn: new Date() } });
+        }
+      } catch (err) {
+        this.logger.error(`Fallo el recordatorio del cupón de cumpleaños ${cupon.idCupon}: ${err}`);
       }
     }
   }

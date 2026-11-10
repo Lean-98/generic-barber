@@ -101,6 +101,14 @@ export class ReportesController {
     return this.reportesService.getClientesSinVisitas();
   }
 
+  @Get('cumpleanos')
+  @ApiOperation({ summary: 'Cupones de cumpleaños del período: enviados, usados y lo facturado con ellos' })
+  @ApiQuery({ name: 'desde', required: false, type: String, description: 'Fecha inicio YYYY-MM-DD' })
+  @ApiQuery({ name: 'hasta', required: false, type: String, description: 'Fecha fin YYYY-MM-DD' })
+  async getCumpleanos(@Query('desde') desde?: string, @Query('hasta') hasta?: string) {
+    return this.reportesService.getCumpleanos(desde, hasta);
+  }
+
   @Get('rentabilidad')
   @ApiOperation({ summary: 'Margen, costos y punto de equilibrio del período' })
   @ApiQuery({ name: 'desde', required: false, type: String, description: 'Fecha inicio YYYY-MM-DD' })

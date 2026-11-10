@@ -417,4 +417,11 @@ export class UpdateConfiguracionDto {
   @Min(1)
   @Max(60)
   cumpleDiasValidez?: number;
+
+  @ApiPropertyOptional({ description: 'Recordar por mail cuando al cupón sin usar le quedan estos días (0 = no recordar)', example: 2 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(30)
+  cumpleDiasRecordatorio?: number;
 }

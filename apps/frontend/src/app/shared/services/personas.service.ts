@@ -36,6 +36,13 @@ export class PersonasService {
     return this.http.delete<Persona>(`${this.apiUrl}/personas/${id}`);
   }
 
+  /** Clientes que cumplen años este mes, ordenados por día. */
+  cumplenEsteMes(page = 1, limit = 20): Observable<PaginatedResult<Persona>> {
+    return this.http.get<PaginatedResult<Persona>>(`${this.apiUrl}/personas/cumplen-mes`, {
+      params: { page: String(page), limit: String(limit) },
+    });
+  }
+
   search(query: string, page = 1, limit = 20): Observable<PaginatedResult<Persona>> {
     return this.http.get<PaginatedResult<Persona>>(`${this.apiUrl}/personas/search`, {
       params: { q: query, page: String(page), limit: String(limit) },

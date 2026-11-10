@@ -11,6 +11,7 @@ import {
   ReporteResumen,
   ServicioReporte,
   TurnosPorEstado,
+  ReporteCumpleanos,
 } from '../../shared/models/reportes.model';
 import { IconComponent } from '../../shared/ui/icon.component';
 import { FechaArPipe } from '../../shared/pipes/fecha-ar.pipe';
@@ -228,6 +229,50 @@ import { BrandingService } from '../../core/services/branding.service';
           }
         </div>
       </div>
+      <!-- Beneficio de cumpleaños (solo si hubo cupones en el período) -->
+      @if (cumpleanos(); as c) {
+        @if (c.enviados > 0) {
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+              <h2 class="card-title text-lg">Beneficio de cumpleaños</h2>
+              <p class="text-sm text-base-content/60">Cupones de cumpleaños mandados en el período y qué pasó con ellos.</p>
+              <div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-lg border border-base-300 p-4">
+                  <div class="text-sm text-base-content/60">Cupones mandados</div>
+                  <div class="font-display tabular-nums mt-1 text-2xl font-medium">{{ c.enviados }}</div>
+                  @if (c.recordatoriosEnviados > 0) {
+                    <div class="text-xs text-base-content/60">{{ c.recordatoriosEnviados }} con recordatorio</div>
+                  }
+                </div>
+                <div class="rounded-lg border border-base-300 p-4">
+                  <div class="text-sm text-base-content/60">Usados para reservar</div>
+                  <div class="font-display tabular-nums mt-1 text-2xl font-medium">
+                    {{ c.usados }}
+                    @if (c.porcentajeUso !== null) {
+                      <span class="text-base text-base-content/60">({{ c.porcentajeUso }}%)</span>
+                    }
+                  </div>
+                </div>
+                <div class="rounded-lg border border-base-300 p-4">
+                  <div class="text-sm text-base-content/60">Facturado con esos turnos</div>
+                  <div class="font-display tabular-nums mt-1 text-2xl font-medium">{{ c.facturado | pesos }}</div>
+                  <div class="text-xs text-base-content/60">
+                    {{ c.turnosCompletados }} {{ c.turnosCompletados === 1 ? 'turno completado' : 'turnos completados' }}
+                  </div>
+                </div>
+                <div class="rounded-lg border border-base-300 p-4">
+                  <div class="text-sm text-base-content/60">Descuento otorgado</div>
+                  <div class="font-display tabular-nums mt-1 text-2xl font-medium">{{ c.descuentoOtorgado | pesos }}</div>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-base-content/60">
+                Cuenta por la fecha en que se mandó el cupón: un cupón de fin de mes se puede usar en un turno del mes siguiente.
+              </p>
+            </div>
+          </div>
+        }
+      }
+
       <!-- Rentabilidad -->
       <div class="card bg-base-100 shadow-sm">
         <div class="card-body">
@@ -322,7 +367,10 @@ import { BrandingService } from '../../core/services/branding.service';
                   @if (r.serviciosConCupon > 0) {
                     <p class="mt-2 text-sm">
                       Por cupones se dejaron de cobrar <strong>{{ r.costoCupones | pesos }}</strong> en {{ r.serviciosConCupon }}
-                      {{ r.serviciosConCupon === 1 ? 'servicio' : 'servicios' }}.
+                      {{ r.serviciosConCupon === 1 ? 'servicio' : 'servicios' }}
+                      @if (r.costoCuponesCumpleanos > 0) {
+                        ({{ r.costoCuponesCumpleanos | pesos }} de cumpleaños y {{ r.costoCupones - r.costoCuponesCumpleanos | pesos }} de promos)
+                      }.
                     </p>
                   }
                 </div>
@@ -461,6 +509,7 @@ export class ReportesComponent implements OnInit {
 
   readonly opcionesDias = [30, 45, 60, 90, 180];
   rentabilidad = signal<ReporteRentabilidad | null>(null);
+  cumpleanos = signal<ReporteCumpleanos | null>(null);
   vistaClientes = signal<'inactivos' | 'sinVisitas'>('inactivos');
   diasInactividad = signal(60);
   clientesContacto = signal<ClienteInactivo[]>([]);
@@ -506,6 +555,10 @@ export class ReportesComponent implements OnInit {
     this.reportesService.getClientes(desde, hasta, 10).subscribe((data) => this.clientes.set(data));
     this.reportesService.getFormasPago(desde, hasta).subscribe((data) => this.formasPago.set(data));
     this.reportesService.getRentabilidad(desde, hasta).subscribe((data) => this.rentabilidad.set(data));
+    this.reportesService.getCumpleanos(desde, hasta).subscribe({
+      next: (data) => this.cumpleanos.set(data),
+      error: () => this.cumpleanos.set(null),
+    });
   }
 
   // ─── Clientes para recontactar ───

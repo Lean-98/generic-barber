@@ -220,6 +220,7 @@ export class CursosInfoComponent implements OnInit {
     cumpleDescuentoPorcentaje: 20,
     cumpleDiasAnticipacion: 3,
     cumpleDiasValidez: 7,
+    cumpleDiasRecordatorio: 2,
   });
   cursos = signal<Curso[]>([]);
   cargando = signal(true);
