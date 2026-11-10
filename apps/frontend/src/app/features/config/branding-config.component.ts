@@ -562,6 +562,31 @@ const DIAS_ORDEN: { dia: number; nombre: string }[] = [
 
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body space-y-4">
+              <h2 class="card-title text-lg">Reserva online</h2>
+              <p class="text-sm text-base-content/60">Con cuánta anticipación mínima se puede reservar desde la web.</p>
+
+              <div class="form-control max-w-xs">
+                <label class="label"><span class="label-text">Anticipación mínima (minutos)</span></label>
+                <input
+                  type="number"
+                  class="input input-bordered w-full"
+                  [(ngModel)]="reservaAnticipacionMinutos"
+                  name="reservaAnticipacionMinutos"
+                  min="0"
+                  max="1440"
+                  placeholder="15"
+                />
+              </div>
+              <p class="text-xs text-base-content/60">
+                Ejemplo: con 60, a las 10:00 el primer horario que ve el cliente es el de las 11:00. Con 0 se puede
+                reservar hasta el último momento. Máximo 1440 (24 horas). Los turnos que cargás desde el panel no tienen
+                este límite.
+              </p>
+            </div>
+          </div>
+
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
               <h2 class="card-title text-lg">Notificaciones</h2>
               <p class="text-sm text-base-content/60">Recordatorio automático por email antes de cada turno.</p>
 
@@ -672,6 +697,7 @@ export class BrandingConfigComponent implements OnInit {
   descuentoEmpleadoActivo = false;
   descuentoEmpleadoPorcentaje: number | null = null;
   recordatorioHorasAntes: number | null = null;
+  reservaAnticipacionMinutos: number | null = null;
   clubImagenUrl = '';
   bloquesClub: FilaClub[] = BLOQUES_CLUB_DEFECTO.map(({ clave, titulo }) => ({ clave, titulo, descripcion: '' }));
 
@@ -718,6 +744,7 @@ export class BrandingConfigComponent implements OnInit {
         this.descuentoEmpleadoActivo = data.descuentoEmpleadoActivo;
         this.descuentoEmpleadoPorcentaje = data.descuentoEmpleadoPorcentaje;
         this.recordatorioHorasAntes = data.recordatorioHorasAntes;
+        this.reservaAnticipacionMinutos = data.reservaAnticipacionMinutos;
         this.clubImagenUrl = data.clubImagenUrl ?? '';
         this.bloquesClub = this.mapearClub(data.clubBeneficios);
         this.loading.set(false);
@@ -796,6 +823,7 @@ export class BrandingConfigComponent implements OnInit {
     this.fidelizacionDescuentoPorcentaje = this.clampPorcentaje(this.fidelizacionDescuentoPorcentaje);
     this.descuentoEmpleadoPorcentaje = this.clampPorcentaje(this.descuentoEmpleadoPorcentaje);
     this.recordatorioHorasAntes = this.clampRango(this.recordatorioHorasAntes, 1, 168);
+    this.reservaAnticipacionMinutos = this.clampRango(this.reservaAnticipacionMinutos, 0, 1440);
 
     this.guardando.set(true);
     this.mensaje.set('');
@@ -864,6 +892,7 @@ export class BrandingConfigComponent implements OnInit {
         descuentoEmpleadoActivo: this.descuentoEmpleadoActivo,
         descuentoEmpleadoPorcentaje: this.descuentoEmpleadoPorcentaje ?? undefined,
         recordatorioHorasAntes: this.recordatorioHorasAntes ?? undefined,
+        reservaAnticipacionMinutos: this.reservaAnticipacionMinutos ?? undefined,
       })
       .subscribe({
         next: () => {

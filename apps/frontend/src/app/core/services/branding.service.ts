@@ -46,6 +46,7 @@ const DEFAULT_BRANDING: ConfiguracionNegocio = {
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
 };
 
 @Injectable({

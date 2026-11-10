@@ -152,6 +152,7 @@ export class TiendaComponent implements OnInit {
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
   });
   productos = signal<Producto[]>([]);
   cargando = signal(true);

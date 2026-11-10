@@ -26,12 +26,12 @@ const DESCUENTO_MOTIVO_EMPLEADO = 'EMPLEADO';
 /** Estados desde los que el cliente todavía puede cancelar con el link del mail. */
 const ESTADOS_CANCELABLES_POR_CLIENTE = ['PENDIENTE', 'CONFIRMADO'];
 /**
- * Anticipación mínima para reservar online: no se ofrecen ni se aceptan
- * horarios que ya pasaron o que empiezan en menos de esto. Solo aplica a la
+ * Anticipación mínima para reservar online si el negocio no la configuró
+ * (configuracion_negocio.reserva_anticipacion_minutos). Solo aplica a la
  * reserva pública; desde el panel se puede cargar un turno pasado (ej. un
  * cliente que vino sin turno).
  */
-const ANTICIPACION_MINIMA_RESERVA_MIN = 15;
+const ANTICIPACION_RESERVA_DEFECTO_MIN = 15;
 
 export type OrigenCancelacion = 'CLIENTE' | 'PANEL';
 
@@ -663,7 +663,7 @@ export class TurnosService {
 
     const slots: string[] = [];
     const intervalo = 30; // minutos
-    const primerInicioPosible = this.primerInicioReservable();
+    const primerInicioPosible = this.primerInicioReservable(config?.reservaAnticipacionMinutos);
     for (const franja of franjas) {
       const [horaAbre, minAbre] = franja.abre.split(':').map(Number);
       const [horaCierra, minCierra] = franja.cierra.split(':').map(Number);
@@ -696,8 +696,8 @@ export class TurnosService {
     return { slots, duracionTotal };
   }
 
-  private primerInicioReservable(): Date {
-    return new Date(Date.now() + ANTICIPACION_MINIMA_RESERVA_MIN * 60_000);
+  private primerInicioReservable(anticipacionMinutos: number | null | undefined): Date {
+    return new Date(Date.now() + (anticipacionMinutos ?? ANTICIPACION_RESERVA_DEFECTO_MIN) * 60_000);
   }
 
   /** Para el paso "Tus datos" del turnero público: si el email ya es de un cliente, el frontend se salta el formulario de nombre/apellido/teléfono. */
@@ -718,8 +718,9 @@ export class TurnosService {
   async reservarPublica(data: { nombre?: string; apellido?: string; email: string; telefono?: string; fechaHoraInicio: string; observacion?: string; servicios: { idServicio: number; cantidad?: number }[]; idFormaPagoPreferida: number }): Promise<Turno> {
     // 0. Antes de crear la persona: si no, un horario rechazado igual dejaba
     // un cliente nuevo cargado.
-    if (new Date(data.fechaHoraInicio) < this.primerInicioReservable()) {
-      throw new BadRequestException('Ese horario ya pasó o está por empezar. Elegí otro horario.');
+    const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
+    if (new Date(data.fechaHoraInicio) < this.primerInicioReservable(config?.reservaAnticipacionMinutos)) {
+      throw new BadRequestException('Ese horario ya pasó o no llega a la anticipación mínima para reservar online. Elegí otro horario.');
     }
 
     // 1. Buscar o crear persona por email
@@ -750,7 +751,6 @@ export class TurnosService {
     // falle por esto — si no está activo, simplemente no se aplica.
     let aplicarDescuentoEmpleado = false;
     if (persona.aplicaDescuentoPersonal) {
-      const config = await this.prisma.configuracionNegocio.findUnique({ where: { id: CONFIG_ID } });
       aplicarDescuentoEmpleado = !!config?.descuentoEmpleadoActivo && config.descuentoEmpleadoPorcentaje != null;
     }
 

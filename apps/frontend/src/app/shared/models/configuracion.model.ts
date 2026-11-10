@@ -67,6 +67,7 @@ export interface ConfiguracionNegocio {
   descuentoEmpleadoActivo: boolean;
   descuentoEmpleadoPorcentaje: number | null;
   recordatorioHorasAntes: number;
+  reservaAnticipacionMinutos: number;
   updatedAt?: string;
 }
 
@@ -113,4 +114,5 @@ export interface UpdateConfiguracionRequest {
   descuentoEmpleadoActivo?: boolean;
   descuentoEmpleadoPorcentaje?: number;
   recordatorioHorasAntes?: number;
+  reservaAnticipacionMinutos?: number;
 }

@@ -372,4 +372,16 @@ export class UpdateConfiguracionDto {
   @Min(1)
   @Max(168)
   recordatorioHorasAntes?: number;
+
+  // --- Reserva online ---
+
+  @ApiPropertyOptional({
+    description: 'Anticipación mínima para reservar online, en minutos (0 a 1440). No aplica a los turnos cargados desde el panel.',
+    example: 15,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  reservaAnticipacionMinutos?: number;
 }

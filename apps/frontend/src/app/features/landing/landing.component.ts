@@ -448,6 +448,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
   });
   servicios = signal<Servicio[]>([]);
   descripcionesExpandidas = signal<Set<number>>(new Set());

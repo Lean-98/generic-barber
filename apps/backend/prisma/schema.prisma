@@ -267,6 +267,10 @@ model ConfiguracionNegocio {
   descuentoEmpleadoActivo         Boolean  @default(false) @map("descuento_empleado_activo")
   descuentoEmpleadoPorcentaje     Decimal? @db.Decimal(5, 2) @map("descuento_empleado_porcentaje")
   recordatorioHorasAntes          Int      @default(24) @map("recordatorio_horas_antes")
+  /// Anticipación mínima para reservar online, en minutos: la página de
+  /// reservas no ofrece ni acepta horarios que empiezan antes de ahora + esto.
+  /// No aplica a los turnos cargados desde el panel.
+  reservaAnticipacionMinutos      Int      @default(15) @map("reserva_anticipacion_minutos")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_negocio")

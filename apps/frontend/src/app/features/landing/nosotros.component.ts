@@ -149,6 +149,7 @@ export class NosotrosComponent implements OnInit {
     descuentoEmpleadoActivo: false,
     descuentoEmpleadoPorcentaje: null,
     recordatorioHorasAntes: 24,
+    reservaAnticipacionMinutos: 15,
   });
   cargando = signal(true);
   currentYear = new Date().getFullYear();

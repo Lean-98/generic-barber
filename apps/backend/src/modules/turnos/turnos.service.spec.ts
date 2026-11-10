@@ -354,6 +354,22 @@ describe('TurnosService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
       expect(prismaMock.persona.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a horario inside the anticipación configured by the negocio', async () => {
+      // 11:00Z: el turno de las 13:00Z empieza en 2 horas, pero el negocio pide 3.
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T11:00:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, reservaAnticipacionMinutos: 180 });
+
+      await expect(
+        service.reservarPublica({
+          email: 'juan@example.com',
+          fechaHoraInicio: FECHA_DENTRO_DE_HORARIO,
+          servicios: [{ idServicio: 1 }],
+          idFormaPagoPreferida: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prismaMock.turno.create).not.toHaveBeenCalled();
       expect(prismaMock.turno.create).not.toHaveBeenCalled();
     });
 
@@ -401,6 +417,20 @@ describe('TurnosService', () => {
 
       expect(slots[0]).toBe('2026-06-16T14:30:00.000Z');
       expect(slots).toHaveLength(12); // 11:30-13:00 (4) + 16:30-20:00 (8)
+    });
+
+    it('should use the anticipación configured by the negocio', async () => {
+      // 11:10 hora AR con 2 horas de anticipación: el primer horario posible es 13:30,
+      // que ya no entra en la franja de la mañana (un turno de 30 min terminaría 14:00).
+      jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-06-16T14:10:00.000Z').getTime());
+      prismaMock.configuracionNegocio.findUnique.mockResolvedValue({ ...mockConfigConHorarios, reservaAnticipacionMinutos: 120 });
+      prismaMock.servicio.findMany.mockResolvedValue([mockServicio]);
+      prismaMock.turno.findMany.mockResolvedValue([]);
+
+      const { slots } = await service.getDisponibilidad('2026-06-16', '1');
+
+      expect(slots[0]).toBe('2026-06-16T19:30:00.000Z'); // 16:30 hora AR
+      expect(slots).toHaveLength(8);
     });
 
     it('should offer the whole day when it is in the future', async () => {
