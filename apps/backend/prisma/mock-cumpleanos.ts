@@ -8,7 +8,8 @@
  * Las fechas son relativas a hoy, así que sirve cualquier día. Los clientes
  * de prueba usan direcciones de prueba de Resend (delivered+...@resend.dev):
  * los mails se "entregan" sin llegarle a nadie. Se reconocen por ese email
- * y los cupones de promo, por el prefijo MOCK.
+ * (o por apellido Mock y teléfono 351555…, los que no tienen) y los cupones de promo,
+ * por el prefijo MOCK.
  */
 import 'dotenv/config';
 import 'reflect-metadata';
@@ -21,6 +22,9 @@ import { finDiaAr, horaArAUtc, hoyAr, inicioDiaAr } from '../src/common/utils/fe
 const prisma = new PrismaClient();
 const EMAIL = (n: string) => `delivered+mock-cumple-${n}@resend.dev`;
 const EMAIL_PATRON = 'delivered+mock-cumple-';
+/** Los clientes de prueba se llaman "X Mock" y tienen teléfono 351555…: así se reconocen también los que no tienen email. */
+const APELLIDO = 'Mock';
+const PREFIJO_TELEFONO = '351555';
 const PREFIJO_PROMO = 'MOCK';
 const RESPALDO = join(tmpdir(), 'authentic-barber-mock-cumple-config.json');
 const CONFIG_ID = 1;
@@ -45,7 +49,10 @@ function verificarEntorno(): void {
 // ─── limpiar ───
 
 async function limpiar(restaurarConfig = true): Promise<void> {
-  const personas = await prisma.persona.findMany({ where: { mail: { startsWith: EMAIL_PATRON } }, select: { idPersona: true } });
+  const personas = await prisma.persona.findMany({
+    where: { OR: [{ mail: { startsWith: EMAIL_PATRON } }, { apellido: APELLIDO, telefono: { startsWith: PREFIJO_TELEFONO } }] },
+    select: { idPersona: true },
+  });
   const ids = personas.map((p) => p.idPersona);
   const promos = await prisma.cupon.findMany({ where: { codigo: { startsWith: PREFIJO_PROMO }, origen: 'PROMO' }, select: { idCupon: true } });
   const idsPromo = promos.map((c) => c.idCupon);
@@ -115,7 +122,7 @@ async function crear(): Promise<void> {
 
   const persona = (n: string, nombre: string, extra: Partial<Prisma.PersonaCreateInput> = {}) =>
     prisma.persona.create({
-      data: { nombre, apellido: 'Mock', mail: EMAIL(n), telefono: `351555${String(Math.floor(1000 + Math.random() * 8999))}`, ...extra },
+      data: { nombre, apellido: APELLIDO, mail: EMAIL(n), telefono: `${PREFIJO_TELEFONO}${String(Math.floor(1000 + Math.random() * 8999))}`, ...extra },
     });
 
   /** Turno completado hace `diasAtras` días a las 10:00, con o sin cupón (el descuento va en el detalle). */
